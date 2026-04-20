@@ -25,6 +25,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  claim:
+    dependency: "direct main"
+    description:
+      path: "../../features/claim"
+      relative: true
+    source: path
+    version: "0.0.1"
   clock:
     dependency: transitive
     description:
@@ -41,6 +48,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  core_module:
+    dependency: "direct main"
+    description:
+      path: "../../core/core_module"
+      relative: true
+    source: path
+    version: "0.0.1"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -75,6 +89,20 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  history:
+    dependency: "direct main"
+    description:
+      path: "../../features/history"
+      relative: true
+    source: path
+    version: "0.0.1"
+  home:
+    dependency: "direct main"
+    description:
+      path: "../../features/home"
+      relative: true
+    source: path
+    version: "0.0.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -107,6 +135,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  login:
+    dependency: "direct main"
+    description:
+      path: "../../features/login"
+      relative: true
+    source: path
+    version: "0.0.1"
   matcher:
     dependency: transitive
     description:
@@ -139,6 +174,20 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  post:
+    dependency: "direct main"
+    description:
+      path: "../../features/post"
+      relative: true
+    source: path
+    version: "0.0.1"
+  report:
+    dependency: "direct main"
+    description:
+      path: "../../features/report"
+      relative: true
+    source: path
+    version: "0.0.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -176,6 +225,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  sync_manager:
+    dependency: "direct main"
+    description:
+      path: "../../features/sync_manager"
+      relative: true
+    source: path
+    version: "0.0.1"
   term_glyph:
     dependency: transitive
     description:
