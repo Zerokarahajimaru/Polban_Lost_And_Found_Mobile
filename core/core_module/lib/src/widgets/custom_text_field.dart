@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/color_service.dart';
 
 class CustomTextField extends StatelessWidget {
-  final String label;          // Judul di atas input (misal: "Nama Barang")
-  final String hint;           // Teks abu-abu di dalam input
-  final bool isRequired;       // Apakah perlu tanda bintang merah (*)
-  final int maxLines;          // Untuk deskripsi yang butuh baris banyak
+  final String label; // Judul di atas input (misal: "Nama Barang")
+  final String hint; // Teks abu-abu di dalam input
+  final bool isRequired; // Apakah perlu tanda bintang merah (*)
+  final int maxLines; // Untuk deskripsi yang butuh baris banyak
   final TextEditingController? controller; // Untuk mengambil data input
   final TextInputType keyboardType; // Misal: phone untuk nomor WA
 
@@ -30,9 +30,9 @@ class CustomTextField extends StatelessWidget {
           text: TextSpan(
             text: label,
             style: const TextStyle(
-              color: AppColors.primaryBlue, 
+              color: AppColors.primaryBlue,
               fontFamily: 'Montserrat', // Sesuaikan font jika ada
-              fontWeight: FontWeight.w900, 
+              fontWeight: FontWeight.w900,
               fontSize: 12,
             ),
             children: [
@@ -45,7 +45,7 @@ class CustomTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        
+
         // Input Field
         TextField(
           controller: controller,
@@ -55,24 +55,26 @@ class CustomTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
-              color: AppColors.textGrey, 
-              fontSize: 13, 
-              fontWeight: FontWeight.w500
-            ),
+                color: AppColors.textGrey,
+                fontSize: 13,
+                fontWeight: FontWeight.w500),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+
             // Border saat tidak diklik (halus)
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide(color: AppColors.secondaryBlue.withOpacity(0.5), width: 1.5),
+              borderSide: BorderSide(
+                  color: AppColors.secondaryBlue.withOpacity(0.5), width: 1.5),
             ),
-            
+
             // Border saat diklik (lebih tegas)
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryBlue, width: 2),
             ),
           ),
         ),

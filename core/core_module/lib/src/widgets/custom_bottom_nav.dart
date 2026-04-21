@@ -41,11 +41,16 @@ class CustomBottomNav extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: isActive ? AppColors.primaryYellow : Colors.white.withOpacity(0.6)),
+          Icon(icon,
+              color: isActive
+                  ? AppColors.primaryYellow
+                  : Colors.white.withOpacity(0.6)),
           Text(
             label,
             style: TextStyle(
-              color: isActive ? AppColors.primaryYellow : Colors.white.withOpacity(0.6),
+              color: isActive
+                  ? AppColors.primaryYellow
+                  : Colors.white.withOpacity(0.6),
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),

@@ -4,7 +4,8 @@ import '../theme/color_service.dart';
 class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
-  final VoidCallback? onNotificationTap; // Tambahkan ini agar bisa diklik dari luar
+  final VoidCallback?
+      onNotificationTap; // Tambahkan ini agar bisa diklik dari luar
 
   const CustomHeader({
     super.key,
@@ -19,16 +20,17 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.primaryBlue,
       elevation: 0,
       centerTitle: false,
-      leading: showBackButton 
-        ? IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.primaryYellow, size: 32),
-            onPressed: () => Navigator.pop(context),
-          ) 
-        : null,
+      leading: showBackButton
+          ? IconButton(
+              icon: const Icon(Icons.chevron_left,
+                  color: AppColors.primaryYellow, size: 32),
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
       title: Text(
         title,
         style: const TextStyle(
-          fontWeight: FontWeight.bold, 
+          fontWeight: FontWeight.bold,
           color: AppColors.white,
           fontSize: 20,
         ),
@@ -38,7 +40,8 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primaryYellow, size: 28),
+              icon: const Icon(Icons.notifications_none_rounded,
+                  color: AppColors.primaryYellow, size: 28),
               onPressed: onNotificationTap ?? () {}, // Gunakan callback di sini
             ),
             Positioned(
@@ -46,8 +49,13 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
               top: 8,
               child: Container(
                 padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                child: const Text('3', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                decoration: const BoxDecoration(
+                    color: Colors.red, shape: BoxShape.circle),
+                child: const Text('3',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold)),
               ),
             )
           ],

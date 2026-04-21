@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:main_app/features/report/presentation/pages/create_report_page.dart';
 
-import 'package:core_module/core_module.dart'; 
+import 'package:core_module/core_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         primaryColor: AppColors.primaryBlue,
         useMaterial3: true,
       ),
-      home: const CreateReportPage(), 
+      home: const CreateReportPage(),
     );
   }
 }
