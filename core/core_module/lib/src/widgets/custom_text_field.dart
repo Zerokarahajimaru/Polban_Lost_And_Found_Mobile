@@ -55,26 +55,33 @@ class CustomTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
-                color: AppColors.textGrey,
-                fontSize: 13,
-                fontWeight: FontWeight.w500),
+              color: AppColors.textGrey,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
 
             // Border saat tidak diklik (halus)
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
               borderSide: BorderSide(
-                  color: AppColors.secondaryBlue.withOpacity(0.5), width: 1.5),
+                color: AppColors.secondaryBlue.withOpacity(0.5),
+                width: 1.5,
+              ),
             ),
 
             // Border saat diklik (lebih tegas)
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide:
-                  const BorderSide(color: AppColors.primaryBlue, width: 2),
+              borderSide: const BorderSide(
+                color: AppColors.primaryBlue,
+                width: 2,
+              ),
             ),
           ),
         ),

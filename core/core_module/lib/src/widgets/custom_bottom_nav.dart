@@ -5,10 +5,7 @@ class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  const CustomBottomNav({
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const CustomBottomNav({required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +38,12 @@ class CustomBottomNav extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              color: isActive
-                  ? AppColors.primaryYellow
-                  : Colors.white.withOpacity(0.6)),
+          Icon(
+            icon,
+            color: isActive
+                ? AppColors.primaryYellow
+                : Colors.white.withOpacity(0.6),
+          ),
           Text(
             label,
             style: TextStyle(

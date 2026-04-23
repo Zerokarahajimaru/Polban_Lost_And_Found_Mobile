@@ -53,7 +53,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
                 "Kunci",
                 "Dompet",
                 "Pakaian",
-                "Lainnya"
+                "Lainnya",
               ],
               isRequired: true,
             ),
@@ -81,19 +81,24 @@ class _CreateReportPageState extends State<CreateReportPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 onPressed: () {
                   // Logika submit (data dummy)
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text("Laporan berhasil dibuat (Dummy)")));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Laporan berhasil dibuat (Dummy)"),
+                    ),
+                  );
                 },
                 child: const Text(
                   "SUBMIT LAPORAN",
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 16),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -114,8 +119,11 @@ class _CreateReportPageState extends State<CreateReportPage> {
             onPressed: () {
               // Kosongkan atau refresh halaman
             },
-            child:
-                const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
+            child: const Icon(
+              Icons.add,
+              color: AppColors.primaryBlue,
+              size: 35,
+            ),
           ),
           const SizedBox(height: 4), // Jarak antara tombol dan teks
           const Text(
@@ -153,9 +161,15 @@ class _CreateReportPageState extends State<CreateReportPage> {
       child: Row(
         children: [
           _tabButton(
-              "Barang Hilang", isLost, () => setState(() => isLost = true)),
+            "Barang Hilang",
+            isLost,
+            () => setState(() => isLost = true),
+          ),
           _tabButton(
-              "Barang Temuan", !isLost, () => setState(() => isLost = false)),
+            "Barang Temuan",
+            !isLost,
+            () => setState(() => isLost = false),
+          ),
         ],
       ),
     );
@@ -177,8 +191,11 @@ class _CreateReportPageState extends State<CreateReportPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (active)
-                  const Icon(Icons.check,
-                      color: AppColors.primaryYellow, size: 16),
+                  const Icon(
+                    Icons.check,
+                    color: AppColors.primaryYellow,
+                    size: 16,
+                  ),
                 if (active) const SizedBox(width: 8),
                 Text(
                   text,
@@ -201,11 +218,14 @@ class _CreateReportPageState extends State<CreateReportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Upload Foto Bukti (Opsional)",
-            style: TextStyle(
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.bold,
-                fontSize: 12)),
+        const Text(
+          "Upload Foto Bukti (Opsional)",
+          style: TextStyle(
+            color: AppColors.primaryBlue,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
@@ -217,12 +237,18 @@ class _CreateReportPageState extends State<CreateReportPage> {
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.camera_alt_outlined,
-                  size: 48, color: AppColors.secondaryBlue),
-              Text("Foto Kelengkapan",
-                  style: TextStyle(
-                      color: AppColors.secondaryBlue,
-                      fontWeight: FontWeight.bold)),
+              Icon(
+                Icons.camera_alt_outlined,
+                size: 48,
+                color: AppColors.secondaryBlue,
+              ),
+              Text(
+                "Foto Kelengkapan",
+                style: TextStyle(
+                  color: AppColors.secondaryBlue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -243,11 +269,14 @@ class _CreateReportPageState extends State<CreateReportPage> {
             children: const [
               Icon(Icons.card_giftcard, size: 20, color: AppColors.primaryBlue),
               SizedBox(width: 8),
-              Text("Tawarkan Imbalan (Opsional)",
-                  style: TextStyle(
-                      color: AppColors.primaryBlue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12)),
+              Text(
+                "Tawarkan Imbalan (Opsional)",
+                style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -258,11 +287,12 @@ class _CreateReportPageState extends State<CreateReportPage> {
               filled: true,
               fillColor: Colors.white.withOpacity(0.6),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none),
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             ),
-          )
+          ),
         ],
       ),
     );
