@@ -135,6 +135,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+5"
+<<<<<<< HEAD
   firebase_core:
     dependency: transitive
     description:
@@ -183,6 +184,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.11.5"
+=======
+>>>>>>> 7231402bef47d7910ac874587a3851df66839908
   flutter:
     dependency: "direct main"
     description: flutter
