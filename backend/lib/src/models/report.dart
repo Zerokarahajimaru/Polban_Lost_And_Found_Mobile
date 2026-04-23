@@ -72,9 +72,9 @@ class ReportModel {
       map['updated_at']?.toString() ?? DateTime.now().toIso8601String(),
     ),
     images: List<String>.from(map['images'] as List? ?? []),
-   bounty: map['bounty'] != null 
-    ? BountyModel.fromMap(map['bounty'] as Map<String, dynamic>) 
-    : null,
+    bounty: map['bounty'] != null
+        ? BountyModel.fromMap(map['bounty'] as Map<String, dynamic>)
+        : null,
   );
 }
 
