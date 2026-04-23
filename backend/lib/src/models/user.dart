@@ -30,7 +30,7 @@ class UserModel {
     'created_at': createdAt.toIso8601String(),
   };
 
-factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
+  factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
     id: map['_id']?.toString(),
     // Pastikan String dengan casting atau fallback ?? ''
     namaLengkap: (map['nama_lengkap'] ?? '').toString(),
@@ -38,15 +38,15 @@ factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
     password: (map['password'] ?? '').toString(),
     role: (map['role'] ?? 'user').toString(),
     statusAkun: (map['status_akun'] ?? 'active').toString(),
-    
+
     // Safety check untuk DateTime yang bisa null (banUntil)
     banUntil: map['ban_until'] != null
         ? DateTime.parse(map['ban_until'].toString())
         : null,
-        
+
     // Safety check untuk DateTime yang wajib ada (createdAt)
     createdAt: DateTime.parse(
-        map['created_at']?.toString() ?? DateTime.now().toIso8601String()
+      map['created_at']?.toString() ?? DateTime.now().toIso8601String(),
     ),
   );
 }
