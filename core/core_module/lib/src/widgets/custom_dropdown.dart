@@ -5,12 +5,14 @@ class CustomDropdown extends StatelessWidget {
   final String label;
   final List<String> items;
   final bool isRequired;
+  final Function(String?)? onChanged;
 
   const CustomDropdown({
     super.key,
     required this.label,
     required this.items,
     this.isRequired = false,
+    this.onChanged,
   });
 
   @override
@@ -57,9 +59,7 @@ class CustomDropdown extends StatelessWidget {
           items: items.map((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
-          onChanged: (newValue) {
-            // Logika simpan nilai kategori
-          },
+          onChanged: onChanged,
         ),
         const SizedBox(height: 16),
       ],
