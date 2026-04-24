@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 class ApiService {
   final Dio _dio;
 
+  Dio get dio => _dio;
+
   ApiService()
       : _dio = Dio(
           BaseOptions(

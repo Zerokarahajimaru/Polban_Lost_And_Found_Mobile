@@ -50,7 +50,11 @@ class CustomTextField extends StatelessWidget {
           maxLines: maxLines,
           keyboardType: keyboardType,
           onChanged: onChanged,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 14,
+            color: Colors.black,
+          ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
@@ -60,17 +64,10 @@ class CustomTextField extends StatelessWidget {
             ),
             filled: true,
             fillColor: Colors.white,
-<<<<<<< HEAD
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 16,
             ),
-
-            // Border saat tidak diklik (halus)
-=======
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
->>>>>>> 7231402bef47d7910ac874587a3851df66839908
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
               borderSide: BorderSide(

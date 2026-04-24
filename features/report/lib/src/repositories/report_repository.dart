@@ -1,6 +1,7 @@
+import 'dart:io';
 import 'package:core_module/core_module.dart';
 import 'package:dio/dio.dart';
-import 'package:features_report/src/services/image_upload_service.dart';
+import 'package:report/src/services/image_upload_service.dart';
 import 'package:hive/hive.dart';
 
 class ReportRepository {
@@ -17,27 +18,38 @@ class ReportRepository {
   }
 
   Future<List<ReportModel>> getAllReports() async {
-    // Try to fetch from API
     try {
       final response = await _apiService.dio.get('/reports');
       final List<dynamic> data = response.data as List<dynamic>;
       final reports = data.map((e) => ReportModel.fromMap(e as Map<String, dynamic>)).toList();
 
-      // Cache reports
       await _reportBox.clear();
       await _reportBox.addAll(reports);
       return reports;
     } catch (e) {
-      // If API call fails, return cached reports
+      return _reportBox.values.toList();
+    }
+  }
+
+  Future<List<ReportModel>> getMyReports() async {
+    try {
+      final response = await _apiService.dio.get('/reports/me');
+      final List<dynamic> data = response.data as List<dynamic>;
+      final remoteReports = data.map((e) => ReportModel.fromMap(e as Map<String, dynamic>)).toList();
+
+      for (var report in remoteReports) {
+        await _reportBox.put(report.id, report.copyWith(isSynced: true));
+      }
+      
+      return _reportBox.values.toList();
+    } catch (e) {
       return _reportBox.values.toList();
     }
   }
 
   Future<ReportModel> createReport(ReportModel report, List<File> images) async {
-    // Upload images to Firebase Storage
     final imageUrls = await _imageUploadService.uploadImages(images, report.id ?? 'new_report');
 
-    // Create a new report with image URLs
     final newReport = ReportModel(
       id: report.id,
       userId: report.userId,
@@ -52,22 +64,19 @@ class ReportRepository {
       lastActivityAt: report.lastActivityAt,
       createdAt: report.createdAt,
       updatedAt: report.updatedAt,
-      isSynced: false, // Mark as not synced initially
+      isSynced: false,
       images: imageUrls,
       bounty: report.bounty,
     );
 
-    // Send to API
     try {
       final response = await _apiService.dio.post('/reports', data: newReport.toMap());
       final createdReport = ReportModel.fromMap(response.data as Map<String, dynamic>);
 
-      // Update local cache
       await _reportBox.put(createdReport.id, createdReport.copyWith(isSynced: true));
       return createdReport;
     } catch (e) {
-      // If API call fails, save locally
-      await _reportBox.put(newReport.id, newReport);
+      await _reportBox.add(newReport);
       return newReport;
     }
   }
