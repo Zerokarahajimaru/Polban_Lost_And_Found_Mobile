@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
-import 'package:main_app/features/home/presentation/pages/ajukan_klaim_page.dart';
+// import 'package:main_app/features/klaim/presentation/pages/ajukan_klaim_page.dart';
 
 // ========================
 // HALAMAN DETAIL LAPORAN
@@ -92,9 +92,9 @@ class DetailLaporanPage extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // --- LOGIKA TOMBOL BERDASARKAN TIPE POSTINGAN ---
-                      if (!isKehilangan)
-                        _buildKlaimButton(context) // Muncul jika TEMUAN
-                      else
+                      // if (!isKehilangan)
+                      //   _buildKlaimButton(context) // Muncul jika TEMUAN
+                      // else
                         _buildHubungiButton(context), // Muncul jika KEHILANGAN
 
                       const SizedBox(height: 100), // Spasi bawah agar tidak tertutup
@@ -222,30 +222,30 @@ class DetailLaporanPage extends StatelessWidget {
   }
 
   // Tombol untuk Barang Temuan
-  Widget _buildKlaimButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryBlue,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-        icon: const Icon(Icons.check_circle_outline, color: AppColors.primaryYellow),
-        label: const Text(
-          "AJUKAN KLAIM",
-          style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AjukanKlaimPage()),
-          );
-        },
-      ),
-    );
-  }
+  // Widget _buildKlaimButton(BuildContext context) {
+  //   return SizedBox(
+  //     width: double.infinity,
+  //     height: 55,
+  //     child: ElevatedButton.icon(
+  //       style: ElevatedButton.styleFrom(
+  //         backgroundColor: AppColors.primaryBlue,
+  //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+  //       ),
+  //       icon: const Icon(Icons.check_circle_outline, color: AppColors.primaryYellow),
+  //       label: const Text(
+  //         "AJUKAN KLAIM",
+  //         style: TextStyle(
+  //             color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+  //       ),
+  //       onPressed: () {
+  //         Navigator.push(
+  //           context,
+  //           MaterialPageRoute(builder: (context) => const AjukanKlaimPage()),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 
   // Tombol untuk Barang Hilang
   Widget _buildHubungiButton(BuildContext context) {
