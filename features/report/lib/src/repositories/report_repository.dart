@@ -1,123 +1,96 @@
-import 'dart:io';
-import 'package:core_module/core_module.dart';
+import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:dio/dio.dart';
-import 'package:report/src/services/image_upload_service.dart';
-import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:report/src/models/report_model.dart';
 
-class ReportRepository {
-  ReportRepository(this._apiService, this._hiveService, this._imageUploadService);
-
-  final ApiService _apiService;
-  final HiveService _hiveService;
-  final ImageUploadService _imageUploadService;
-  late Box<ReportModel> _reportBox;
-
-  Future<void> init() async {
-    await _hiveService.init();
-    _reportBox = await _hiveService.openBox<ReportModel>('reports');
-  }
-
-  Future<List<ReportModel>> getAllReports() async {
-    try {
-      final response = await _apiService.dio.get('/reports');
-      final List<dynamic> data = response.data as List<dynamic>;
-      final reports = data.map((e) => ReportModel.fromMap(e as Map<String, dynamic>)).toList();
-
-      await _reportBox.clear();
-      await _reportBox.addAll(reports);
-      return reports;
-    } catch (e) {
-      return _reportBox.values.toList();
-    }
-  }
-
-  Future<List<ReportModel>> getMyReports() async {
-    try {
-      final response = await _apiService.dio.get('/reports/me');
-      final List<dynamic> data = response.data as List<dynamic>;
-      final remoteReports = data.map((e) => ReportModel.fromMap(e as Map<String, dynamic>)).toList();
-
-      for (var report in remoteReports) {
-        await _reportBox.put(report.id, report.copyWith(isSynced: true));
-      }
-      
-      return _reportBox.values.toList();
-    } catch (e) {
-      return _reportBox.values.toList();
-    }
-  }
-
-  Future<ReportModel> createReport(ReportModel report, List<File> images) async {
-    final imageUrls = await _imageUploadService.uploadImages(images, report.id ?? 'new_report');
-
-    final newReport = ReportModel(
-      id: report.id,
-      userId: report.userId,
-      namaBarang: report.namaBarang,
-      kategoriBarang: report.kategoriBarang,
-      statusPostingan: report.statusPostingan,
-      deskripsiBarang: report.deskripsiBarang,
-      lokasiKehilangan: report.lokasiKehilangan,
-      warnaBarang: report.warnaBarang,
-      kontak: report.kontak,
-      reportCount: report.reportCount,
-      lastActivityAt: report.lastActivityAt,
-      createdAt: report.createdAt,
-      updatedAt: report.updatedAt,
-      isSynced: false,
-      images: imageUrls,
-      bounty: report.bounty,
-    );
-
-    try {
-      final response = await _apiService.dio.post('/reports', data: newReport.toMap());
-      final createdReport = ReportModel.fromMap(response.data as Map<String, dynamic>);
-
-      await _reportBox.put(createdReport.id, createdReport.copyWith(isSynced: true));
-      return createdReport;
-    } catch (e) {
-      await _reportBox.add(newReport);
-      return newReport;
-    }
-  }
+/// A custom exception to indicate that a report was saved locally
+/// due to a network failure and will be synced later.
+class OfflinePostException implements Exception {
+  final String message =
+      'Koneksi gagal. Laporan disimpan secara lokal dan akan dikirim nanti.';
+  @override
+  String toString() => message;
 }
 
-extension ReportModelCopyWith on ReportModel {
-  ReportModel copyWith({
-    String? id,
-    String? userId,
-    String? namaBarang,
-    String? kategoriBarang,
-    String? statusPostingan,
-    String? deskripsiBarang,
-    String? lokasiKehilangan,
-    String? warnaBarang,
-    String? kontak,
-    int? reportCount,
-    DateTime? lastActivityAt,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    bool? isSynced,
-    List<String>? images,
-    BountyModel? bounty,
-  }) {
-    return ReportModel(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      namaBarang: namaBarang ?? this.namaBarang,
-      kategoriBarang: kategoriBarang ?? this.kategoriBarang,
-      statusPostingan: statusPostingan ?? this.statusPostingan,
-      deskripsiBarang: deskripsiBarang ?? this.deskripsiBarang,
-      lokasiKehilangan: lokasiKehilangan ?? this.lokasiKehilangan,
-      warnaBarang: warnaBarang ?? this.warnaBarang,
-      kontak: kontak ?? this.kontak,
-      reportCount: reportCount ?? this.reportCount,
-      lastActivityAt: lastActivityAt ?? this.lastActivityAt,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      isSynced: isSynced ?? this.isSynced,
-      images: images ?? this.images,
-      bounty: bounty ?? this.bounty,
-    );
+/// The repository for handling report data.
+///
+/// It acts as a single source of truth for report data, abstracting away
+/// the data source (network or local cache).
+class ReportRepository {
+  final _networkService = NetworkService();
+  final _hiveService = HiveService();
+
+  /// Fetches reports.
+  ///
+  /// Tries to fetch from the network first. If successful, it updates the local
+  /// cache. If the network request fails due to connection issues, it returns
+  /// data from the local cache.
+  Future<List<ReportModel>> getReports() async {
+    try {
+      final response = await _networkService.dio.get('/reports');
+
+      if (response.statusCode == 200) {
+        final data = response.data as List;
+        final reports = data.map((item) => ReportModel.fromMap(item)).toList();
+        debugPrint('Fetched ${reports.length} reports from network.');
+
+        // Update cache
+        await _hiveService.reportsBox.clear();
+        for (final report in reports) {
+          _hiveService.reportsBox.put(report.id, report.toMap());
+        }
+        debugPrint('Cache updated with new data.');
+        return reports;
+      } else {
+        throw Exception('Server Error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.unknown) {
+        debugPrint('Network failed, loading from cache.');
+        final cachedMaps = _hiveService.reportsBox.values.toList();
+        return cachedMaps.map((map) => ReportModel.fromMap(map)).toList();
+      }
+      rethrow; // Rethrow other Dio-related errors.
+    } catch (e) {
+      debugPrint('Error in getReports: $e');
+      throw Exception('Gagal memuat laporan.');
+    }
+  }
+
+  /// Posts a new report.
+  ///
+  /// Tries to post the report to the backend. If it fails due to a network
+  /// issue, it saves the report data locally for a future sync attempt.
+  Future<void> postReport({
+    required Map<String, dynamic> postData,
+  }) async {
+    try {
+      final response = await _networkService.dio.post(
+        '/reports',
+        data: postData,
+      );
+
+      if (response.statusCode != 201) {
+        throw Exception('Gagal membuat laporan: ${response.statusCode}');
+      }
+      debugPrint('Report created successfully on the server.');
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.unknown) {
+        debugPrint('Network failed, caching report for later sync.');
+        // Use a timestamp as a unique key for pending posts
+        final key = 'pending_${DateTime.now().millisecondsSinceEpoch}';
+        await _hiveService.reportsBox.put(key, postData);
+        // Throw a specific exception to let the UI know it was cached.
+        throw OfflinePostException();
+      }
+      rethrow;
+    } catch (e) {
+      debugPrint('Error in postReport: $e');
+      throw Exception('Gagal membuat laporan.');
+    }
   }
 }

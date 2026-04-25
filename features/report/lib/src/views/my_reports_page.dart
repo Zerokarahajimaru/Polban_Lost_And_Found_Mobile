@@ -1,7 +1,22 @@
+import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
-import 'package:core_module/core_module.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:report/src/repositories/report_repository.dart';
+import 'package:provider/provider.dart';
+import 'package:report/src/controllers/report_controller.dart';
+import 'package:report/src/models/report_model.dart';
+import 'package:report/src/views/create_report_page.dart';
+
+// Wrap the original page in a provider
+class MyReportsProvider extends StatelessWidget {
+  const MyReportsProvider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ReportController()..getReports(), // Fetch reports on init
+      child: const MyReportsPage(),
+    );
+  }
+}
 
 class MyReportsPage extends StatefulWidget {
   const MyReportsPage({super.key});
@@ -12,60 +27,101 @@ class MyReportsPage extends StatefulWidget {
 
 class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _initData();
   }
 
-  Future<void> _initData() async {
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) setState(() => _isLoading = false);
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : ValueListenableBuilder(
-              valueListenable: Hive.box<ReportModel>('reports').listenable(),
-              builder: (context, Box<ReportModel> box, _) {
-                final allReports = box.values.toList();
-                final pendingReports = allReports.where((r) => !r.isSynced).toList();
-                final syncedReports = allReports.where((r) => r.isSynced).toList();
-
-                return Column(
-                  children: [
-                    _buildHeader(allReports.length),
-                    const SizedBox(height: 50), 
-                    _buildTabs(),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildReportList(pendingReports, isPending: true),
-                          _buildReportList(syncedReports, isPending: false),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
+      body: Consumer<ReportController>(
+        builder: (context, controller, child) {
+          switch (controller.state) {
+            case NotifierState.loading:
+              return const Center(child: CircularProgressIndicator());
+            case NotifierState.error:
+              return Center(child: Text('Gagal memuat data: ${controller.message}'));
+            case NotifierState.initial:
+            case NotifierState.loaded:
+              return _buildLoadedView(controller.reports);
+          }
+        },
+      ),
+      // ADD THE FLOATING ACTION BUTTON AND ITS NAVIGATION LOGIC HERE
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            backgroundColor: AppColors.primaryYellow,
+            shape: const CircleBorder(
+              side: BorderSide(color: AppColors.primaryBlue, width: 4),
             ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateReportProvider()),
+              ).then((_) {
+                // After returning from create page, refresh the list
+                context.read<ReportController>().getReports();
+              });
+            },
+            child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Lapor",
+            style: TextStyle(
+              color: AppColors.primaryBlue,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNav(
         currentIndex: 1,
         onTap: (index) {
-          // Logika pindah halaman
+          // Navigation logic here
         },
       ),
     );
   }
 
+  Widget _buildLoadedView(List<ReportModel> reports) {
+    // For now, pending is empty and history shows all reports
+    final pendingReports = <ReportModel>[];
+    final historyReports = reports;
+
+    return Column(
+      children: [
+        _buildHeader(historyReports.length),
+        const SizedBox(height: 50),
+        _buildTabs(),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildReportList(pendingReports, isPending: true),
+              _buildReportList(historyReports, isPending: false),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---UNCHANGED UI HELPER WIDGETS---
   Widget _buildHeader(int total) {
     return Stack(
       clipBehavior: Clip.none,
@@ -155,7 +211,7 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
 
   Widget _buildReportList(List<ReportModel> reports, {required bool isPending}) {
     if (reports.isEmpty) {
-      return const Center(child: Text("Tidak ada laporan"));
+      return Center(child: Text(isPending ? "Tidak ada laporan pending" : "Belum ada riwayat laporan"));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(20),
@@ -184,9 +240,7 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               color: AppColors.secondaryBlue,
-              image: report.images.isNotEmpty 
-                  ? DecorationImage(image: NetworkImage(report.images.first), fit: BoxFit.cover)
-                  : null,
+              image: DecorationImage(image: NetworkImage(report.imageUrl), fit: BoxFit.cover),
             ),
           ),
           const SizedBox(width: 15),
@@ -194,8 +248,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(report.namaBarang, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-                Text(report.lokasiKehilangan, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(report.title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                Text(report.location, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

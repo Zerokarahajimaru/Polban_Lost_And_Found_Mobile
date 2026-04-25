@@ -172,4 +172,4 @@ class BountyModel {
     description: (map['bounty_description'] ?? '').toString(),
   );
 }
->>>>>>> 7231402bef47d7910ac874587a3851df66839908
+>>>>>>> 7231402bef47d7910ac874587a3851df6683
