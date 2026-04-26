@@ -1,0 +1,3 @@
+pubspec.yaml = file menyimpan list depedency yang harus di download
+.dart_tool = menyimpan path teknologi yang diinstall dari pubspec.yaml
+.metadata = memberi tahu apakah proyek flutter proyek atau package
