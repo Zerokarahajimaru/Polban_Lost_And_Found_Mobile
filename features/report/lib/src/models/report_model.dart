@@ -12,6 +12,8 @@ class ReportModel extends Equatable {
     required this.description,
     required this.imageUrl,
     required this.location,
+    required this.category, // Added for filtering and categorization
+    this.reward,           // Optional: provided if the user offers an incentive
     required this.createdAt,
     required this.status,
   });
@@ -21,6 +23,13 @@ class ReportModel extends Equatable {
   final String description;
   final String imageUrl;
   final String location;
+  
+  /// The category of the reported item (e.g., Electronics, Documents).
+  final String category; 
+  
+  /// The reward offered for the item, if any.
+  final String? reward;   
+  
   final DateTime createdAt;
   final String status;
 
@@ -44,6 +53,8 @@ class ReportModel extends Equatable {
       description: map['description'] as String? ?? '',
       imageUrl: map['imageUrl'] as String? ?? '',
       location: map['location'] as String? ?? 'Lokasi tidak diketahui',
+      category: map['category'] as String? ?? 'Lainnya', // Default to 'Lainnya' if null
+      reward: map['reward'] as String?,                  // Nullable mapping
       // Provide a default for createdAt if it's null (for pending items)
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String).toLocal()
@@ -61,6 +72,8 @@ class ReportModel extends Equatable {
       'description': description,
       'imageUrl': imageUrl,
       'location': location,
+      'category': category, // Added for backend consistency
+      'reward': reward,     // Optional field for backend
       'status': status,
     };
   }
@@ -74,6 +87,8 @@ class ReportModel extends Equatable {
       'description': description,
       'imageUrl': imageUrl,
       'location': location,
+      'category': category, // Saved locally for filtering
+      'reward': reward,     // Saved locally
       'createdAt': createdAt.toIso8601String(),
       'status': status,
     };
@@ -86,6 +101,8 @@ class ReportModel extends Equatable {
         description,
         imageUrl,
         location,
+        category,
+        reward,
         createdAt,
         status,
       ];
