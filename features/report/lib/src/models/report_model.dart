@@ -1,11 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// The client-side data model for a Report.
-///
-/// Uses [Equatable] to allow for value-based comparison, which is useful
-/// in state management to determine if the UI needs to be updated.
 class ReportModel extends Equatable {
-  /// Creates a new [ReportModel].
   const ReportModel({
     required this.id,
     required this.title,
@@ -14,6 +10,7 @@ class ReportModel extends Equatable {
     required this.location,
     required this.createdAt,
     required this.status,
+    this.localImagePath, // Added for offline image preview
   });
 
   final String id;
@@ -23,38 +20,44 @@ class ReportModel extends Equatable {
   final String location;
   final DateTime createdAt;
   final String status;
+  final String? localImagePath; // Path to the image on the local device
 
-  /// Creates a [ReportModel] from a map (typically from JSON).
-  ///
-  /// This factory is robust and can handle both complete data from the server
-  /// and partial data from locally cached pending reports.
   factory ReportModel.fromMap(Map<dynamic, dynamic> map) {
+    final imagesList = map['images'] as List<dynamic>? ?? [];
+    final title =
+        map['title'] as String? ?? map['nama_barang'] as String? ?? 'Tanpa Judul';
+
     String finalId;
     if (map['_id'] != null) {
-      // Handle ID from MongoDB
-      finalId = map['_id'] is Map ? map['_id']['\$oid'] as String : map['_id'] as String;
+      finalId =
+          map['_id'] is Map ? map['_id']['\$oid'] as String : map['_id'].toString();
     } else {
-      // Provide a default ID for pending items that don't have one
+      // For pending items, we construct a temporary ID.
+      // The key from Hive is the source of truth, but this works for model creation.
       finalId = 'pending_${DateTime.now().millisecondsSinceEpoch}';
     }
 
     return ReportModel(
       id: finalId,
-      title: map['title'] as String? ?? 'Tanpa Judul',
-      description: map['description'] as String? ?? '',
-      imageUrl: map['imageUrl'] as String? ?? '',
-      location: map['location'] as String? ?? 'Lokasi tidak diketahui',
-      // Provide a default for createdAt if it's null (for pending items)
+      title: title,
+      description: map['description'] as String? ??
+          map['deskripsi_barang'] as String? ??
+          '',
+      // Use the network URL if available, otherwise it's an empty string.
+      imageUrl: imagesList.isNotEmpty ? imagesList.first as String : '',
+      location: map['location'] as String? ??
+          map['lokasi_kehilangan'] as String? ??
+          'Lokasi tidak diketahui',
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String).toLocal()
           : DateTime.now().toLocal(),
-      status: map['status'] as String? ?? 'pending',
+      status:
+          map['status'] as String? ?? map['status_postingan'] as String? ?? 'pending',
+      // Read the local image path, which only exists for pending items.
+      localImagePath: map['local_image_path'] as String?,
     );
   }
 
-  /// Converts this model to a map for POSTing to the backend.
-  ///
-  /// Excludes server-generated fields like `id` and `createdAt`.
   Map<String, dynamic> toPostMap() {
     return {
       'title': title,
@@ -65,17 +68,16 @@ class ReportModel extends Equatable {
     };
   }
 
-  /// Converts this [ReportModel] object to a [Map<String, dynamic>] object,
-  /// suitable for local storage (e.g., Hive).
   Map<String, dynamic> toMap() {
     return {
-      '_id': id, // Use '_id' for consistency if this model originated from MongoDB
+      '_id': id,
       'title': title,
       'description': description,
-      'imageUrl': imageUrl,
+      'images': [imageUrl],
       'location': location,
       'createdAt': createdAt.toIso8601String(),
       'status': status,
+      'local_image_path': localImagePath,
     };
   }
 
@@ -88,5 +90,6 @@ class ReportModel extends Equatable {
         location,
         createdAt,
         status,
+        localImagePath,
       ];
 }
