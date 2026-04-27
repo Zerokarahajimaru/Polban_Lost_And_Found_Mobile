@@ -8,6 +8,8 @@ class ReportModel extends Equatable {
     required this.description,
     required this.imageUrl,
     required this.location,
+    required this.category, // Added for filtering and categorization
+    this.reward,           // Optional: provided if the user offers an incentive
     required this.createdAt,
     required this.status,
     this.localImagePath, // Added for offline image preview
@@ -18,6 +20,13 @@ class ReportModel extends Equatable {
   final String description;
   final String imageUrl;
   final String location;
+  
+  /// The category of the reported item (e.g., Electronics, Documents).
+  final String category; 
+  
+  /// The reward offered for the item, if any.
+  final String? reward;   
+  
   final DateTime createdAt;
   final String status;
   final String? localImagePath; // Path to the image on the local device
@@ -48,6 +57,9 @@ class ReportModel extends Equatable {
       location: map['location'] as String? ??
           map['lokasi_kehilangan'] as String? ??
           'Lokasi tidak diketahui',
+      category: map['category'] as String? ?? map['kategori_barang'] as String? ?? 'Lainnya',
+      reward: map['reward'] as String? ?? map['bounty']?.toString(),
+      
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String).toLocal()
           : DateTime.now().toLocal(),
@@ -64,6 +76,8 @@ class ReportModel extends Equatable {
       'description': description,
       'imageUrl': imageUrl,
       'location': location,
+      'category': category, // Added for backend consistency
+      'reward': reward,     // Optional field for backend
       'status': status,
     };
   }
@@ -75,6 +89,8 @@ class ReportModel extends Equatable {
       'description': description,
       'images': [imageUrl],
       'location': location,
+      'category': category, // Saved locally for filtering
+      'reward': reward,     // Saved locally
       'createdAt': createdAt.toIso8601String(),
       'status': status,
       'local_image_path': localImagePath,
@@ -88,6 +104,8 @@ class ReportModel extends Equatable {
         description,
         imageUrl,
         location,
+        category,
+        reward,
         createdAt,
         status,
         localImagePath,

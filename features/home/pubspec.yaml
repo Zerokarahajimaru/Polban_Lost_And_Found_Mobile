@@ -11,10 +11,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  core_module:
-    path: ../../core/core_module
   report:
-    path: ../../features/report
+    path: ../report
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:
