@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +26,8 @@ class MyReportsPage extends StatefulWidget {
   State<MyReportsPage> createState() => _MyReportsPageState();
 }
 
-class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProviderStateMixin {
+class _MyReportsPageState extends State<MyReportsPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -49,7 +52,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
             case NotifierState.loading:
               return const Center(child: CircularProgressIndicator());
             case NotifierState.error:
-              return Center(child: Text('Gagal memuat data: ${controller.message}'));
+              return Center(
+                  child: Text('Gagal memuat data: ${controller.message}'));
             case NotifierState.initial:
             case NotifierState.loaded:
               return _buildLoadedView(controller.reports);
@@ -67,7 +71,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CreateReportProvider()),
+                MaterialPageRoute(
+                    builder: (context) => const CreateReportProvider()),
               ).then((_) {
                 context.read<ReportController>().getReports();
               });
@@ -99,20 +104,22 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
   }
 
   Widget _buildLoadedView(List<ReportModel> reports) {
-    final pendingReports = <ReportModel>[];
-    final historyReports = reports;
+    final pendingReports =
+        reports.where((r) => r.status == 'pending_sync').toList();
+    final historyReports =
+        reports.where((r) => r.status != 'pending_sync').toList();
 
     return Column(
       children: [
-        _buildHeader(historyReports.length),
+        _buildHeader(reports.length),
         const SizedBox(height: 50),
         _buildTabs(),
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildReportList(pendingReports, isPending: true),
-              _buildReportList(historyReports, isPending: false),
+              _buildReportList(pendingReports),
+              _buildReportList(historyReports),
             ],
           ),
         ),
@@ -138,11 +145,15 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.chevron_left, color: AppColors.primaryYellow, size: 30),
+              Icon(Icons.chevron_left,
+                  color: AppColors.primaryYellow, size: 30),
               SizedBox(width: 10),
               Text(
                 "Riwayat Laporanku",
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -156,7 +167,12 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(25),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5))
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -165,15 +181,26 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: AppColors.primaryYellow.withOpacity(0.2), borderRadius: BorderRadius.circular(15)),
-                      child: const Icon(Icons.history, color: AppColors.primaryBlue),
+                      decoration: BoxDecoration(
+                          color: AppColors.primaryYellow.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(15)),
+                      child:
+                          const Icon(Icons.history, color: AppColors.primaryBlue),
                     ),
                     const SizedBox(width: 15),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("TOTAL LAPORAN", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        Text("$total Laporan", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                        const Text("TOTAL LAPORAN",
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold)),
+                        Text("$total Laporan",
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryBlue)),
                       ],
                     )
                   ],
@@ -207,22 +234,30 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
     );
   }
 
-  Widget _buildReportList(List<ReportModel> reports, {required bool isPending}) {
+  Widget _buildReportList(List<ReportModel> reports) {
     if (reports.isEmpty) {
-      return Center(child: Text(isPending ? "Tidak ada laporan pending" : "Belum ada riwayat laporan"));
+      return const Center(child: Text("Tidak ada laporan"));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: reports.length,
       itemBuilder: (context, index) {
         final report = reports[index];
-        return _buildReportCard(report, isPending);
+        return _buildReportCard(report);
       },
     );
   }
 
-  Widget _buildReportCard(ReportModel report, bool isPending) {
+  Widget _buildReportCard(ReportModel report) {
+    final bool isPending = report.status == 'pending_sync';
     final bool canEdit = DateTime.now().difference(report.createdAt).inHours < 24;
+
+    ImageProvider? imageProvider;
+    if (report.localImagePath != null && report.localImagePath!.isNotEmpty) {
+      imageProvider = FileImage(File(report.localImagePath!));
+    } else if (report.imageUrl.isNotEmpty) {
+      imageProvider = NetworkImage(report.imageUrl);
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -240,16 +275,25 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               color: AppColors.secondaryBlue,
-              image: DecorationImage(image: NetworkImage(report.imageUrl), fit: BoxFit.cover),
+              image: imageProvider != null
+                  ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                  : null,
             ),
+            child: imageProvider == null
+                ? const Icon(Icons.image_not_supported, color: Colors.white)
+                : null,
           ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(report.title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-                Text(report.location, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(report.title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue)),
+                Text(report.location,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -262,7 +306,10 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
                       ),
                       child: Text(
                         isPending ? "Pending" : "Tersinkron",
-                        style: TextStyle(color: isPending ? Colors.orange : Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: isPending ? Colors.orange : Colors.blue,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                     if (canEdit)
@@ -271,7 +318,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CreateReportProvider(existingReport: report),
+                              builder: (context) =>
+                                  CreateReportProvider(existingReport: report),
                             ),
                           ).then((_) {
                             context.read<ReportController>().getReports();
@@ -290,7 +338,10 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
                               SizedBox(width: 4),
                               Text(
                                 "Edit",
-                                style: TextStyle(color: AppColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    color: AppColors.primaryBlue,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),

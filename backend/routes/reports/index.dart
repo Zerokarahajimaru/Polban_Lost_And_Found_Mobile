@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import 'package:backend/src/models/report.dart';
-import 'package:backend/src/services/database_service.dart';
+import 'package:mongo_dart/mongo_dart.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {
@@ -9,27 +8,26 @@ Future<Response> onRequest(RequestContext context) async {
       return _onGet(context);
     case HttpMethod.post:
       return _onPost(context);
-    case HttpMethod.delete:
-    case HttpMethod.put:
-    case HttpMethod.patch:
-    case HttpMethod.head:
-    case HttpMethod.options:
+    default:
       return Response(statusCode: HttpStatus.methodNotAllowed);
   }
 }
 
 Future<Response> _onGet(RequestContext context) async {
   try {
-    final dbService = context.read<DatabaseService>();
-    final reports = await dbService.reports.find().toList();
-    
-    return Response.json(
-      body: {
-        'status': 'success',
-        'data': reports,
-      },
-    );
-  } catch (e) {
+    // Directly access the service. It will self-initialize on first use.
+    final reportsCollection = await DatabaseService().reports;
+    final reportsFromDb = await reportsCollection.find().toList();
+
+    // Manually convert non-serializable types (like ObjectId) to JSON-safe types.
+    final jsonSafeReports = reportsFromDb.map((reportMap) {
+      reportMap['_id'] = (reportMap['_id'] as ObjectId).toHexString();
+      return reportMap;
+    }).toList();
+
+    return Response.json(body: jsonSafeReports);
+  } catch (e, s) {
+    print('Error in _onGet: $e\n$s');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
       body: {'status': 'error', 'message': e.toString()},
@@ -39,29 +37,29 @@ Future<Response> _onGet(RequestContext context) async {
 
 Future<Response> _onPost(RequestContext context) async {
   try {
-    final dbService = context.read<DatabaseService>();
+    // Directly access the service.
+    final reportsCollection = await DatabaseService().reports;
     final json = await context.request.json() as Map<String, dynamic>;
+    final now = DateTime.now();
 
     final report = ReportModel(
-      userId: json['userId'] as String? ?? '',
-      namaBarang: json['title'] as String? ?? 'Tanpa Judul',
-      kategoriBarang: json['category'] as String? ?? 'Umum',
-      statusPostingan: json['status'] as String? ?? 'pending',
-      deskripsiBarang: json['description'] as String? ?? '',
-      lokasiKehilangan: json['location'] as String? ?? '',
-      warnaBarang: json['color'] as String? ?? '',
-      images: json['imageUrl'] != null ? [json['imageUrl'] as String] : [],
-      lastActivityAt: DateTime.now().toUtc(),
-      createdAt: DateTime.now().toUtc(),
-      updatedAt: DateTime.now().toUtc(),
-      isSynced: true,
-      reportCount: 0,
-      bounty: json['reward'] != null 
-          ? BountyModel(amount: int.tryParse(json['reward'].toString()) ?? 0, description: '') 
+      userId: 'user_dummy_polban', // Placeholder user ID as agreed
+      namaBarang: json['title'] as String,
+      kategoriBarang: json['category'] as String,
+      statusPostingan: json['status'] as String? ?? 'Available',
+      deskripsiBarang: json['description'] as String,
+      lokasiKehilangan: json['location'] as String,
+      kontak: json['contact'] as String,
+      images: [json['imageUrl'] as String],
+      lastActivityAt: now,
+      createdAt: now,
+      updatedAt: now,
+      bounty: (json['reward'] != null && (json['reward'] as String).isNotEmpty)
+          ? BountyModel(amount: int.parse(json['reward'] as String), description: 'Imbalan')
           : null,
     );
 
-    final result = await dbService.reports.insertOne(report.toMap());
+    final result = await reportsCollection.insertOne(report.toMap());
 
     if (result.isSuccess) {
       return Response.json(
@@ -78,7 +76,8 @@ Future<Response> _onPost(RequestContext context) async {
         body: {'status': 'error', 'message': 'Gagal menyimpan ke database'},
       );
     }
-  } catch (e) {
+  } catch (e, s) {
+    print('Error in _onPost: $e\n$s');
     return Response.json(
       statusCode: HttpStatus.internalServerError,
       body: {'status': 'error', 'message': e.toString()},

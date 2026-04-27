@@ -5,6 +5,7 @@ class CustomDropdown extends StatelessWidget {
   final String label;
   final List<String> items;
   final bool isRequired;
+  final String? value;
   final Function(String?)? onChanged;
 
   const CustomDropdown({
@@ -12,6 +13,7 @@ class CustomDropdown extends StatelessWidget {
     required this.label,
     required this.items,
     this.isRequired = false,
+    this.value,
     this.onChanged,
   });
 
@@ -36,6 +38,7 @@ class CustomDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
+          value: value,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,

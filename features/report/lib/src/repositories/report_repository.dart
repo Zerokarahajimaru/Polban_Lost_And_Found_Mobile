@@ -1,96 +1,140 @@
+import 'dart:io';
+
 import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:report/src/models/report_model.dart';
 
-/// A custom exception to indicate that a report was saved locally
-/// due to a network failure and will be synced later.
-class OfflinePostException implements Exception {
-  final String message =
-      'Koneksi gagal. Laporan disimpan secara lokal dan akan dikirim nanti.';
-  @override
-  String toString() => message;
-}
-
-/// The repository for handling report data.
-///
-/// It acts as a single source of truth for report data, abstracting away
-/// the data source (network or local cache).
+/// The repository for handling report data with robust offline sync capabilities.
 class ReportRepository {
   final _networkService = NetworkService();
   final _hiveService = HiveService();
+  final _cloudinaryService = CloudinaryService();
 
-  /// Fetches reports.
-  ///
-  /// Tries to fetch from the network first. If successful, it updates the local
-  /// cache. If the network request fails due to connection issues, it returns
-  /// data from the local cache.
+  // --- PUBLIC API ---
+
+  /// Fetches reports from the server and updates the local cache.
+  /// Also attempts to sync pending reports before fetching.
+  /// Falls back to cache if the network request fails.
   Future<List<ReportModel>> getReports() async {
     try {
+      await _syncPendingReports(); // Always try to sync first.
+
       final response = await _networkService.dio.get('/reports');
+      final serverData = response.data as List;
+      final serverReports =
+          serverData.map((item) => ReportModel.fromMap(item)).toList();
+      debugPrint('Fetched ${serverReports.length} reports from network.');
 
-      if (response.statusCode == 200) {
-        final data = response.data as List;
-        final reports = data.map((item) => ReportModel.fromMap(item)).toList();
-        debugPrint('Fetched ${reports.length} reports from network.');
-
-        // Update cache
-        await _hiveService.reportsBox.clear();
-        for (final report in reports) {
-          _hiveService.reportsBox.put(report.id, report.toMap());
-        }
-        debugPrint('Cache updated with new data.');
-        return reports;
-      } else {
-        throw Exception('Server Error: ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.unknown) {
-        debugPrint('Network failed, loading from cache.');
-        final cachedMaps = _hiveService.reportsBox.values.toList();
-        return cachedMaps.map((map) => ReportModel.fromMap(map)).toList();
-      }
-      rethrow; // Rethrow other Dio-related errors.
+      await _updateCacheWithServerData(serverReports);
+      
+      final pendingReports = _loadPendingModelsFromCache();
+      return [...serverReports, ...pendingReports];
     } catch (e) {
-      debugPrint('Error in getReports: $e');
-      throw Exception('Gagal memuat laporan.');
+      debugPrint(
+          'Network unavailable during getReports. Loading all from cache. Error: $e');
+      return _loadAllFromCache();
     }
   }
 
-  /// Posts a new report.
-  ///
-  /// Tries to post the report to the backend. If it fails due to a network
-  /// issue, it saves the report data locally for a future sync attempt.
-  Future<void> postReport({
-    required Map<String, dynamic> postData,
+  /// Immediately saves a report to the local cache for future synchronization.
+  Future<void> queueReportForSync({
+    required Map<String, dynamic> reportData,
+    required String localImagePath,
   }) async {
-    try {
-      final response = await _networkService.dio.post(
-        '/reports',
-        data: postData,
-      );
+    final key = 'pending_${DateTime.now().millisecondsSinceEpoch}';
+    
+    final dataToCache = {
+      ...reportData,
+      'local_image_path': localImagePath,
+      'status': 'pending_sync',
+    };
 
-      if (response.statusCode != 201) {
-        throw Exception('Gagal membuat laporan: ${response.statusCode}');
+    await _hiveService.reportsBox.put(key, dataToCache);
+    debugPrint('Report queued for sync with key: $key');
+  }
+
+  // --- INTERNAL & SYNC LOGIC ---
+
+  Future<void> _syncPendingReports() async {
+    final pendingKeys = _hiveService.reportsBox.keys
+        .where((key) => key.toString().startsWith('pending_'))
+        .toList();
+
+    if (pendingKeys.isEmpty) return;
+
+    debugPrint('Syncing ${pendingKeys.length} pending reports...');
+    for (final key in pendingKeys) {
+      final data =
+          Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
+      final imagePath = data['local_image_path'] as String?;
+
+      if (imagePath == null) {
+        await _hiveService.reportsBox.delete(key);
+        continue;
       }
-      debugPrint('Report created successfully on the server.');
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.unknown) {
-        debugPrint('Network failed, caching report for later sync.');
-        // Use a timestamp as a unique key for pending posts
-        final key = 'pending_${DateTime.now().millisecondsSinceEpoch}';
-        await _hiveService.reportsBox.put(key, postData);
-        // Throw a specific exception to let the UI know it was cached.
-        throw OfflinePostException();
+
+      try {
+        final imageUrl = await _cloudinaryService.uploadImage(File(imagePath));
+        final postData = {
+          'title': data['title'],
+          'description': data['description'],
+          'location': data['location'],
+          'contact': data['contact'],
+          'category': data['category'],
+          'reward': data['reward'],
+          'status': 'lost', // When syncing, it's a lost/found item
+          'imageUrl': imageUrl,
+        };
+        await _networkService.dio.post('/reports', data: postData);
+        await _hiveService.reportsBox.delete(key);
+        debugPrint('Successfully synced and deleted pending report: $key');
+      } on DioException catch (e) {
+        debugPrint(
+            'Network error during sync for key $key. Aborting. Error: ${e.message}');
+        break; 
+      } catch (e) {
+        debugPrint(
+            'Failed to sync pending report $key. Will be retried later. Error: $e');
       }
-      rethrow;
-    } catch (e) {
-      debugPrint('Error in postReport: $e');
-      throw Exception('Gagal membuat laporan.');
     }
+  }
+
+  Future<void> _updateCacheWithServerData(
+      List<ReportModel> serverReports) async {
+    final pendingData = _loadPendingDataAsMap();
+    await _hiveService.reportsBox.clear();
+    for (final report in serverReports) {
+      _hiveService.reportsBox.put(report.id, report.toMap());
+    }
+    await _hiveService.reportsBox.putAll(pendingData);
+  }
+
+  List<ReportModel> _loadAllFromCache() {
+    return _hiveService.reportsBox.values
+        .map((map) => ReportModel.fromMap(map))
+        .toList();
+  }
+
+  List<ReportModel> _loadPendingModelsFromCache() {
+    final models = <ReportModel>[];
+    for (final key in _hiveService.reportsBox.keys) {
+      if (key.toString().startsWith('pending_')) {
+        final map = _hiveService.reportsBox.get(key)!;
+        models.add(ReportModel.fromMap(map..['id_from_key'] = key));
+      }
+    }
+    return models;
+  }
+
+  Map<dynamic, Map> _loadPendingDataAsMap() {
+    final pending = <dynamic, Map>{};
+    for (final key in _hiveService.reportsBox.keys) {
+      if (key.toString().startsWith('pending_')) {
+        pending[key] =
+            Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
+      }
+    }
+    return pending;
   }
 }

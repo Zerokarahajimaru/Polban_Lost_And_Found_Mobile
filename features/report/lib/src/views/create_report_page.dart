@@ -1,7 +1,7 @@
 import 'dart:io';
-
 import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
@@ -51,7 +51,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
       _phoneController.text = widget.existingReport!.contact ?? '';
       _rewardController.text = widget.existingReport!.reward ?? '';
       isLost = widget.existingReport!.status == 'lost';
-      _selectedCategory = "Lainnya"; 
+      _selectedCategory = widget.existingReport!.category; 
     }
 
     final controller = context.read<ReportController>();
@@ -59,6 +59,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
   }
 
   void _handleStateChanges() {
+    if (!mounted) return;
+
     final controller = context.read<ReportController>();
     if (controller.state == NotifierState.error) {
       ScaffoldMessenger.of(context)
@@ -125,12 +127,35 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   Future<void> _submitLaporan() async {
     if (!_isFormValid()) return;
+
+    if (isLost) {
+      final phone = _phoneController.text;
+      final phoneRegex = RegExp(r'^08[0-9]{8,11}$');
+      
+      if (!phoneRegex.hasMatch(phone)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Nomor WhatsApp harus diawali 08 dan berjumlah 10-13 digit"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
     
     final controller = context.read<ReportController>();
 
     if (widget.existingReport != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Menghubungi Emir untuk sinkronisasi update..."))
+      controller.updateReport(
+        id: widget.existingReport!.id,
+        title: _nameController.text,
+        description: _descController.text,
+        location: _locationController.text,
+        contact: _phoneController.text,
+        category: _selectedCategory!,
+        reward: _rewardController.text,
+        status: isLost ? 'lost' : 'found',
+        imageFile: _imageFile,
       );
     } else {
       controller.createReport(
@@ -196,17 +221,50 @@ class _CreateReportPageState extends State<CreateReportPage> {
                     controller: _nameController,
                     onChanged: (_) => setState(() {})),
                 if (isLost) ...[
-                  CustomTextField(
-                      label: "Nomor WhatsApp (Aktif)",
-                      hint: "08xxxxxxxxx",
-                      isRequired: true,
-                      keyboardType: TextInputType.phone,
-                      controller: _phoneController,
-                      onChanged: (_) => setState(() {})),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            "Nomor WhatsApp (Aktif)",
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const Text(" *", style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        maxLength: 13,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: "08xxxxxxxxx",
+                          counterText: "",
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(color: AppColors.secondaryBlue, width: 2),
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ],
                 CustomDropdown(
                     label: "Kategori",
                     items: const ["Dokumen", "Elektronik", "Kunci", "Dompet", "Pakaian", "Lainnya"],
+                    value: _selectedCategory,
                     isRequired: true,
                     onChanged: (value) => setState(() => _selectedCategory = value)),
                 CustomTextField(
@@ -280,7 +338,14 @@ class _CreateReportPageState extends State<CreateReportPage> {
           padding: EdgeInsets.zero,
           notchMargin: 8,
           shape: const CircularNotchedRectangle(),
-          child: CustomBottomNav(currentIndex: 2, onTap: (index) {})),
+          child: CustomBottomNav(
+            currentIndex: 1, 
+            onTap: (index) {
+              if (index == 0) {
+                Navigator.pop(context);
+              }
+            }
+          )),
     );
   }
 
@@ -362,6 +427,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
           TextField(
               controller: _rewardController,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                   hintText: "Misal: 50000",
                   hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 13),
