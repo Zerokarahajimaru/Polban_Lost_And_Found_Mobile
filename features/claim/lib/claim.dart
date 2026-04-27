@@ -1,5 +1,5 @@
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+library claim;
+
+export './src/models/claim_model.dart';
+export './src/repositories/claim_repository.dart';
+export './src/controllers/claim_controller.dart';

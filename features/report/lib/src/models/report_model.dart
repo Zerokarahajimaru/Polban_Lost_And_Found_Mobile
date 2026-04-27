@@ -57,6 +57,9 @@ class ReportModel extends Equatable {
       location: map['location'] as String? ??
           map['lokasi_kehilangan'] as String? ??
           'Lokasi tidak diketahui',
+      category: map['category'] as String? ?? map['kategori_barang'] as String? ?? 'Lainnya',
+      reward: map['reward'] as String? ?? map['bounty']?.toString(),
+      
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String).toLocal()
           : DateTime.now().toLocal(),
