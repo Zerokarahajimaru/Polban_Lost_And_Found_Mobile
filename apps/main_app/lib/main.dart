@@ -1,10 +1,27 @@
-import 'package:flutter/material.dart';
-// import 'package:main_app/features/report/presentation/pages/create_report_page.dart';
-import 'package:main_app/features/home/presentation/pages/home_page.dart';
-
 import 'package:core_module/core_module.dart';
+import 'package:flutter/material.dart';
+import 'package:report/report.dart';
 
-void main() {
+void main() async {
+  // Ensure that Flutter bindings are initialized before any async operations.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize all core services.
+  // 1. Hive for local caching
+  await HiveService().init();
+
+  // 2. Cloudinary for image uploads
+  // TODO: IMPORTANT! Fill in your Cloudinary credentials here.
+  CloudinaryService().init(
+    cloudName: 'dd9ziyeaj',
+    uploadPreset: 'Lost_found_polban',
+  );
+
+  // 3. Network service for API communication
+  // This base URL points to the backend running on your local machine.
+  // We use port 8081 to avoid conflict with the Apache server on 8080.
+  NetworkService().init(baseUrl: 'http://127.0.0.1:8081');
+
   runApp(const MyApp());
 }
 
@@ -17,10 +34,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Polban Lost and Found',
       theme: ThemeData(
-        primaryColor: AppColors.primaryBlue,
+        primaryColor: AppColors.primaryBlue, // Assuming AppColors is in core_module
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      // Use the Provider wrapper for MyReportsPage
+      home: const MyReportsProvider(),
     );
   }
 }
