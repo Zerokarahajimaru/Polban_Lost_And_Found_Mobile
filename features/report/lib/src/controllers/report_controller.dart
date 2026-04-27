@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:report/src/models/report_model.dart';
 import 'package:report/src/repositories/report_repository.dart';
 
@@ -10,13 +9,8 @@ import 'package:report/src/repositories/report_repository.dart';
 enum NotifierState { initial, loading, loaded, error }
 
 /// The controller for the report feature.
-///
-/// This class orchestrates the business logic for fetching and creating reports.
-/// It uses [ChangeNotifier] to notify the UI about state changes.
 class ReportController extends ChangeNotifier {
   final _reportRepository = ReportRepository();
-  final _cloudinaryService = CloudinaryService();
-  final _imagePicker = ImagePicker();
 
   // Private state properties
   NotifierState _state = NotifierState.initial;
@@ -28,7 +22,7 @@ class ReportController extends ChangeNotifier {
   List<ReportModel> get reports => _reports;
   String get message => _message;
 
-  /// Fetches the list of reports from the repository.
+  /// Fetches the list of reports, which also triggers a sync attempt.
   Future<void> getReports() async {
     _setState(NotifierState.loading);
     try {
@@ -40,9 +34,9 @@ class ReportController extends ChangeNotifier {
     }
   }
 
-  /// The full flow for creating a new report.
-  /// The image file is passed in from the UI.
-  Future<void> createReport({
+  /// Creates a new report by queuing it for synchronization.
+  /// Returns `true` if queuing is successful, `false` otherwise.
+  Future<bool> createReport({
     required String title,
     required String description,
     required String location,
@@ -53,35 +47,32 @@ class ReportController extends ChangeNotifier {
     String status = 'lost',
   }) async {
     _setState(NotifierState.loading);
-    try {
-      // 1. Upload image to Cloudinary (image is already picked by UI)
-      _message = 'Mengunggah gambar...';
-      notifyListeners();
-      final imageUrl = await _cloudinaryService.uploadImage(imageFile);
+    _message = 'Menyimpan laporan ke antrian...';
+    notifyListeners();
 
-      // 2. Post report data (with image URL) to the repository
-      _message = 'Mengirim laporan...';
-      notifyListeners();
-      final postData = {
+    try {
+      final reportData = {
         'title': title,
-        'description': '$description\n\nKontak: $contact',
-        'imageUrl': imageUrl,
+        'description': description,
         'location': location,
+        'contact': contact,
         'category': category,
         'reward': reward,
         'status': status,
       };
-      await _reportRepository.postReport(postData: postData);
 
-      // 3. Refresh the list to show the newly created report
-      _message = 'Laporan berhasil dibuat!';
-      await getReports(); // This will set the final state to 'loaded'
-    } on OfflinePostException catch (e) {
-      _message = e.toString();
-      _setState(NotifierState.error);
+      await _reportRepository.queueReportForSync(
+        reportData: reportData,
+        localImagePath: imageFile.path,
+      );
+
+      _message = 'Laporan berhasil disimpan & akan disinkronisasi.';
+      _setState(NotifierState.loaded);
+      return true; // Signal success for navigation
     } catch (e) {
-      _message = e.toString();
+      _message = 'Gagal menyimpan laporan lokal: $e';
       _setState(NotifierState.error);
+      return false; // Signal failure
     }
   }
 

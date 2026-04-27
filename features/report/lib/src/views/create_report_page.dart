@@ -49,16 +49,15 @@ class _CreateReportPageState extends State<CreateReportPage> {
   }
 
   void _handleStateChanges() {
+    // Add a mounted check to prevent calling context on a deactivated widget
+    if (!mounted) return;
+
     final controller = context.read<ReportController>();
-    if (controller.state == NotifierState.error) {
+    // Show a snackbar for any message from the controller (errors or success)
+    if (controller.message.isNotEmpty) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(controller.message)));
-    } else if (controller.message == 'Laporan berhasil dibuat!') {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(controller.message)));
-      _clearForm();
     }
   }
 
@@ -110,8 +109,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   Future<void> _submitLaporan() async {
     if (!_isFormValid()) return;
-    
-    context.read<ReportController>().createReport(
+
+    final success = await context.read<ReportController>().createReport(
           title: _nameController.text,
           description: _descController.text,
           location: _locationController.text,
@@ -121,6 +120,12 @@ class _CreateReportPageState extends State<CreateReportPage> {
           reward: _rewardController.text,
           status: isLost ? 'lost' : 'found',
         );
+    
+    // If queuing was successful, clear the form and navigate back.
+    if (success && mounted) {
+      _clearForm();
+      Navigator.pop(context);
+    }
   }
 
   bool _isFormValid() {
