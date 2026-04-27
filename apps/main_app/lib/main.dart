@@ -1,6 +1,7 @@
 import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
-import 'package:report/report.dart';
+// import 'package:report/report.dart';
+import 'package:home/home.dart';
 
 void main() async {
   // Ensure that Flutter bindings are initialized before any async operations.
@@ -38,7 +39,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // Use the Provider wrapper for MyReportsPage
-      home: const MyReportsProvider(),
+      home: const HomePage(),
     );
   }
 }
