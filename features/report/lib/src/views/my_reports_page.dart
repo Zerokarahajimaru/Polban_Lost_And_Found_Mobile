@@ -5,14 +5,13 @@ import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/models/report_model.dart';
 import 'package:report/src/views/create_report_page.dart';
 
-// Wrap the original page in a provider
 class MyReportsProvider extends StatelessWidget {
   const MyReportsProvider({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ReportController()..getReports(), // Fetch reports on init
+      create: (_) => ReportController()..getReports(),
       child: const MyReportsPage(),
     );
   }
@@ -57,7 +56,6 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
           }
         },
       ),
-      // ADD THE FLOATING ACTION BUTTON AND ITS NAVIGATION LOGIC HERE
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -71,7 +69,6 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
                 context,
                 MaterialPageRoute(builder: (context) => const CreateReportProvider()),
               ).then((_) {
-                // After returning from create page, refresh the list
                 context.read<ReportController>().getReports();
               });
             },
@@ -89,17 +86,19 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: 1,
-        onTap: (index) {
-          // Navigation logic here
-        },
+      bottomNavigationBar: BottomAppBar(
+        padding: EdgeInsets.zero,
+        notchMargin: 8,
+        shape: const CircularNotchedRectangle(),
+        child: CustomBottomNav(
+          currentIndex: 1,
+          onTap: (index) {},
+        ),
       ),
     );
   }
 
   Widget _buildLoadedView(List<ReportModel> reports) {
-    // For now, pending is empty and history shows all reports
     final pendingReports = <ReportModel>[];
     final historyReports = reports;
 
@@ -121,7 +120,6 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
     );
   }
 
-  // ---UNCHANGED UI HELPER WIDGETS---
   Widget _buildHeader(int total) {
     return Stack(
       clipBehavior: Clip.none,
@@ -224,6 +222,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
   }
 
   Widget _buildReportCard(ReportModel report, bool isPending) {
+    final bool canEdit = DateTime.now().difference(report.createdAt).inHours < 24;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
@@ -251,16 +251,52 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
                 Text(report.title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
                 Text(report.location, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isPending ? Colors.orange.shade100 : Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    isPending ? "Pending" : "Tersinkron",
-                    style: TextStyle(color: isPending ? Colors.orange : Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isPending ? Colors.orange.shade100 : Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        isPending ? "Pending" : "Tersinkron",
+                        style: TextStyle(color: isPending ? Colors.orange : Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    if (canEdit)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreateReportProvider(existingReport: report),
+                            ),
+                          ).then((_) {
+                            context.read<ReportController>().getReports();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryYellow,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.primaryBlue, width: 1),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.edit, size: 12, color: AppColors.primaryBlue),
+                              SizedBox(width: 4),
+                              Text(
+                                "Edit",
+                                style: TextStyle(color: AppColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 )
               ],
             ),

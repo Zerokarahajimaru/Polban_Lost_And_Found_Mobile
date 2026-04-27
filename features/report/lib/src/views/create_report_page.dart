@@ -1,38 +1,38 @@
 import 'dart:io';
 
-import 'package:core_module/core_module.dart';
+import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
+import 'package:report/src/models/report_model.dart';
 
-// Wrap the original page in a provider
 class CreateReportProvider extends StatelessWidget {
-  const CreateReportProvider({super.key});
+  final ReportModel? existingReport;
+  const CreateReportProvider({super.key, this.existingReport});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => ReportController(),
-      child: const CreateReportPage(),
+      child: CreateReportPage(existingReport: existingReport),
     );
   }
 }
 
 class CreateReportPage extends StatefulWidget {
-  const CreateReportPage({super.key});
+  final ReportModel? existingReport;
+  const CreateReportPage({super.key, this.existingReport});
 
   @override
   State<CreateReportPage> createState() => _CreateReportPageState();
 }
 
 class _CreateReportPageState extends State<CreateReportPage> {
-  // UI-specific state remains here
   bool isLost = true;
   File? _imageFile;
   String? _selectedCategory;
 
-  // Text controllers are part of the view's state
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _descController = TextEditingController();
@@ -43,7 +43,17 @@ class _CreateReportPageState extends State<CreateReportPage> {
   @override
   void initState() {
     super.initState();
-    // Listen to controller state changes to show snackbars
+    
+    if (widget.existingReport != null) {
+      _nameController.text = widget.existingReport!.title;
+      _descController.text = widget.existingReport!.description;
+      _locationController.text = widget.existingReport!.location;
+      _phoneController.text = widget.existingReport!.contact ?? '';
+      _rewardController.text = widget.existingReport!.reward ?? '';
+      isLost = widget.existingReport!.status == 'lost';
+      _selectedCategory = "Lainnya"; 
+    }
+
     final controller = context.read<ReportController>();
     controller.addListener(_handleStateChanges);
   }
@@ -54,11 +64,16 @@ class _CreateReportPageState extends State<CreateReportPage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(controller.message)));
-    } else if (controller.message == 'Laporan berhasil dibuat!') {
+    } else if (controller.message == 'Laporan berhasil dibuat!' || controller.message == 'Laporan berhasil diperbarui!') {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(controller.message)));
-      _clearForm();
+      
+      if (widget.existingReport != null) {
+        Navigator.pop(context);
+      } else {
+        _clearForm();
+      }
     }
   }
 
@@ -111,23 +126,34 @@ class _CreateReportPageState extends State<CreateReportPage> {
   Future<void> _submitLaporan() async {
     if (!_isFormValid()) return;
     
-    context.read<ReportController>().createReport(
-          title: _nameController.text,
-          description: _descController.text,
-          location: _locationController.text,
-          contact: _phoneController.text,
-          category: _selectedCategory!,
-          imageFile: _imageFile!,
-          reward: _rewardController.text,
-          status: isLost ? 'lost' : 'found',
-        );
+    final controller = context.read<ReportController>();
+
+    if (widget.existingReport != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Menghubungi Emir untuk sinkronisasi update..."))
+      );
+    } else {
+      controller.createReport(
+        title: _nameController.text,
+        description: _descController.text,
+        location: _locationController.text,
+        contact: _phoneController.text,
+        category: _selectedCategory!,
+        imageFile: _imageFile!,
+        reward: _rewardController.text,
+        status: isLost ? 'lost' : 'found',
+      );
+    }
   }
 
   bool _isFormValid() {
     bool basicValid = _nameController.text.isNotEmpty &&
         _descController.text.isNotEmpty &&
-        _selectedCategory != null &&
-        _imageFile != null;
+        _selectedCategory != null;
+
+    if (widget.existingReport == null) {
+      basicValid = basicValid && _imageFile != null;
+    }
 
     if (isLost) {
       return basicValid && _phoneController.text.isNotEmpty;
@@ -137,7 +163,6 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   @override
   void dispose() {
-    context.read<ReportController>().removeListener(_handleStateChanges);
     _nameController.dispose();
     _phoneController.dispose();
     _descController.dispose();
@@ -148,13 +173,12 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch the controller's state for UI changes
     final controller = context.watch<ReportController>();
     final isLoading = controller.state == NotifierState.loading;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const CustomHeader(title: "Buat Laporan"),
+      appBar: CustomHeader(title: widget.existingReport != null ? "Edit Laporan" : "Buat Laporan"),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -211,15 +235,14 @@ class _CreateReportPageState extends State<CreateReportPage> {
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text("SUBMIT LAPORAN",
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
+                        : Text(widget.existingReport != null ? "SIMPAN PERUBAHAN" : "SUBMIT LAPORAN",
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 100),
               ],
             ),
           ),
-          // Modal loading indicator
           if (isLoading)
             Container(
               color: Colors.black.withOpacity(0.5),
@@ -261,7 +284,6 @@ class _CreateReportPageState extends State<CreateReportPage> {
     );
   }
 
-  // ---UNCHANGED UI HELPER WIDGETS---
   Widget _buildTabSelector() {
     return Container(
         decoration: BoxDecoration(
@@ -309,8 +331,10 @@ class _CreateReportPageState extends State<CreateReportPage> {
                   borderRadius: BorderRadius.circular(15),
                   image: _imageFile != null
                       ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
-                      : null),
-              child: _imageFile == null
+                      : (widget.existingReport != null
+                          ? DecorationImage(image: NetworkImage(widget.existingReport!.imageUrl), fit: BoxFit.cover)
+                          : null)),
+              child: _imageFile == null && (widget.existingReport == null || widget.existingReport!.imageUrl.isEmpty)
                   ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.secondaryBlue),
                       Text("Ambil Foto atau dari Galeri",

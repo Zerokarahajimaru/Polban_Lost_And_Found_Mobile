@@ -1,11 +1,9 @@
 import 'dart:io';
-
-import '../../lib/src/models/report_model.dart';
-import '../../lib/src/services/database_service.dart';
 import 'package:dart_frog/dart_frog.dart';
+import 'package:backend/src/models/report.dart';
+import 'package:backend/src/services/database_service.dart';
 
 Future<Response> onRequest(RequestContext context) async {
-  // Route the request to the appropriate handler based on the HTTP method.
   switch (context.request.method) {
     case HttpMethod.get:
       return _onGet(context);
@@ -20,65 +18,70 @@ Future<Response> onRequest(RequestContext context) async {
   }
 }
 
-/// Handles GET requests to fetch all reports.
 Future<Response> _onGet(RequestContext context) async {
   try {
-    // Read the DatabaseService from the context.
     final dbService = context.read<DatabaseService>();
-
-    // Fetch all documents from the 'reports' collection.
     final reports = await dbService.reports.find().toList();
-
-    // Return the list of reports as a JSON response.
-    return Response.json(body: reports);
+    
+    return Response.json(
+      body: {
+        'status': 'success',
+        'data': reports,
+      },
+    );
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'message': 'An internal server error occurred: $e'},
+      body: {'status': 'error', 'message': e.toString()},
     );
   }
 }
 
-/// Handles POST requests to create a new report.
 Future<Response> _onPost(RequestContext context) async {
   try {
-    // Read the DatabaseService from the context.
     final dbService = context.read<DatabaseService>();
-
-    // Parse the JSON body from the request.
     final json = await context.request.json() as Map<String, dynamic>;
 
-    // Create a ReportModel instance. This helps validate the incoming data
-    // and ensures we are saving a correctly structured document.
     final report = ReportModel(
-      title: json['title'] as String,
-      description: json['description'] as String,
-      // The imageUrl is provided by the client after uploading to Cloudinary.
-      imageUrl: json['imageUrl'] as String,
-      location: json['location'] as String,
-      // The server is responsible for setting the creation timestamp.
+      userId: json['userId'] as String? ?? '',
+      namaBarang: json['title'] as String? ?? 'Tanpa Judul',
+      kategoriBarang: json['category'] as String? ?? 'Umum',
+      statusPostingan: json['status'] as String? ?? 'pending',
+      deskripsiBarang: json['description'] as String? ?? '',
+      lokasiKehilangan: json['location'] as String? ?? '',
+      warnaBarang: json['color'] as String? ?? '',
+      images: json['imageUrl'] != null ? [json['imageUrl'] as String] : [],
+      lastActivityAt: DateTime.now().toUtc(),
       createdAt: DateTime.now().toUtc(),
-      status: (json['status'] as String?) ?? 'lost',
+      updatedAt: DateTime.now().toUtc(),
+      isSynced: true,
+      reportCount: 0,
+      bounty: json['reward'] != null 
+          ? BountyModel(amount: int.tryParse(json['reward'].toString()) ?? 0, description: '') 
+          : null,
     );
 
-    // Insert the report's data into the database.
     final result = await dbService.reports.insertOne(report.toMap());
 
     if (result.isSuccess) {
       return Response.json(
         statusCode: HttpStatus.created,
-        body: {'message': 'Report created successfully'},
+        body: {
+          'status': 'success',
+          'message': 'Laporan berhasil dibuat',
+          'data': report.toMap(),
+        },
       );
     } else {
       return Response.json(
-        statusCode: HttpStatus.internalServerError,
-        body: {'message': 'Failed to save report: ${result.writeError?.errmsg}'},
+        statusCode: HttpStatus.badRequest,
+        body: {'status': 'error', 'message': 'Gagal menyimpan ke database'},
       );
     }
   } catch (e) {
     return Response.json(
       statusCode: HttpStatus.internalServerError,
-      body: {'message': 'An internal server error occurred: $e'},
+      body: {'status': 'error', 'message': e.toString()},
     );
   }
 }
