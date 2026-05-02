@@ -13,6 +13,8 @@ dependencies:
     sdk: flutter
   report:
     path: ../report
+  core_module:
+    path: ../../core/core_module
   provider: ^6.1.1
 
 dev_dependencies:

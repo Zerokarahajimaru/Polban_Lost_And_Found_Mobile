@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:home/home.dart';
-// import 'package:main_app/features/klaim/presentation/pages/ajukan_klaim_page.dart';
+import 'package:claim/claim.dart';
 
 // ========================
 // HALAMAN DETAIL LAPORAN
@@ -57,7 +57,7 @@ class ReportDetailPage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: item.statusColor.withOpacity(0.2),
+                              color: item.statusColor.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -93,9 +93,9 @@ class ReportDetailPage extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // --- LOGIKA TOMBOL BERDASARKAN TIPE POSTINGAN ---
-                      // if (!isKehilangan)
-                      //   _buildKlaimButton(context) // Muncul jika TEMUAN
-                      // else
+                      if (!isKehilangan)
+                        _buildKlaimButton(context) // Muncul jika TEMUAN
+                      else
                         _buildHubungiButton(context), // Muncul jika KEHILANGAN
 
                       const SizedBox(height: 100), // Spasi bawah agar tidak tertutup
@@ -130,7 +130,7 @@ class ReportDetailPage extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.black.withOpacity(0.5), Colors.transparent],
+              colors: [Colors.black.withValues(alpha: 0.5), Colors.transparent],
             ),
           ),
         ),
@@ -200,7 +200,7 @@ class ReportDetailPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.secondaryBlue.withOpacity(0.5)),
+          border: Border.all(color: AppColors.secondaryBlue.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -222,31 +222,35 @@ class ReportDetailPage extends StatelessWidget {
     );
   }
 
-  // Tombol untuk Barang Temuan
-  // Widget _buildKlaimButton(BuildContext context) {
-  //   return SizedBox(
-  //     width: double.infinity,
-  //     height: 55,
-  //     child: ElevatedButton.icon(
-  //       style: ElevatedButton.styleFrom(
-  //         backgroundColor: AppColors.primaryBlue,
-  //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-  //       ),
-  //       icon: const Icon(Icons.check_circle_outline, color: AppColors.primaryYellow),
-  //       label: const Text(
-  //         "AJUKAN KLAIM",
-  //         style: TextStyle(
-  //             color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-  //       ),
-  //       onPressed: () {
-  //         Navigator.push(
-  //           context,
-  //           MaterialPageRoute(builder: (context) => const AjukanKlaimPage()),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
+  //Tombol untuk Barang Temuan
+  Widget _buildKlaimButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        ),
+        icon: const Icon(Icons.check_circle_outline, color: AppColors.primaryYellow),
+        label: const Text(
+          "AJUKAN KLAIM",
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AjukanKlaimPageProvider(
+                reportId: item.nama,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   // Tombol untuk Barang Hilang
   Widget _buildHubungiButton(BuildContext context) {

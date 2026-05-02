@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
-import 'package:provider/provider.dart';
 import 'package:report/report.dart';
+import 'package:provider/provider.dart';
 import '../controllers/home_controller.dart';
-// import '../models/item_report.dart';
+import '../models/item_report.dart';
 
 // ========================
 // HALAMAN UTAMA (HOME) - PROVIDER WRAPPER
@@ -137,7 +137,7 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const CreateReportPage(),
+                      builder: (_) => const CreateReportProvider(),
                     ),
                   );
                 },
@@ -212,7 +212,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTabSelector(HomeController controller) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.secondaryBlue.withValues(alpha: 0.3),
+        color: AppColors.secondaryBlue.withOpacity(0.3),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
@@ -250,7 +250,7 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(
                     color: active
                         ? AppColors.primaryYellow
-                        : Colors.white.withValues(alpha: 0.7),
+                        : Colors.white.withOpacity(0.7),
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
@@ -328,7 +328,7 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              color: AppColors.primaryBlue.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),

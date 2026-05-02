@@ -38,8 +38,8 @@ class MyApp extends StatelessWidget {
         primaryColor: AppColors.primaryBlue, // Assuming AppColors is in core_module
         useMaterial3: true,
       ),
-      // Use the Provider wrapper for MyReportsPage
-      home: const HomePage(),
+      // Use the Provider wrapper for the home page so HomeController and ReportController are available.
+      home: const HomePageProvider(),
     );
   }
 }

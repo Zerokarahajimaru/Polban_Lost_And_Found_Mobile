@@ -16,6 +16,8 @@ dependencies:
     path: ../../core/core_module
   home:
     path: ../../features/home
+  claim:
+    path: ../../features/claim
   provider: ^6.1.5+1
   equatable: ^2.0.8
 
