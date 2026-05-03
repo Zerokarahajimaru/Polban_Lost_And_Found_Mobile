@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/models/report_model.dart';
 import 'package:report/src/views/create_report_page.dart';
-import 'package:report/src/views/custom_bottom_nav.dart';
+import 'package:core_module/core_module.dart';
 
 class MyReportsProvider extends StatelessWidget {
   const MyReportsProvider({super.key});
@@ -91,8 +91,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
   }
 
   Widget _buildLoadedView(List<ReportModel> reports) {
-    final pendingReports = reports.where((r) => r.status == 'pending_sync' || r.status == 'draft').toList();[cite: 1]
-    final historyReports = reports.where((r) => r.status != 'pending_sync' && r.status != 'draft').toList();[cite: 1]
+    final pendingReports = reports.where((r) => r.status == 'pending_sync' || r.status == 'draft').toList();
+    final historyReports = reports.where((r) => r.status != 'pending_sync' && r.status != 'draft').toList();
 
     return Column(
       children: [
@@ -142,8 +142,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
   }
 
   Widget _buildReportCard(ReportModel report) {
-    final bool isDraft = report.status == 'draft';[cite: 1]
-    final bool isPending = report.status == 'pending_sync';[cite: 1]
+    final bool isDraft = report.status == 'draft';
+    final bool isPending = report.status == 'pending_sync';
     final bool canEdit = isDraft || DateTime.now().difference(report.createdAt).inHours < 24;
 
     ImageProvider? imageProvider;

@@ -17,4 +17,8 @@ class ReportController {
         await dbService.db.collection('reports').insertOne(report.toMap());
     return result.document!;
   }
+
+  void updateReport(dynamic reportData) {
+    debugPrint("Fungsi updateReport dipanggil sementara (UI Test)");
+  }
 }

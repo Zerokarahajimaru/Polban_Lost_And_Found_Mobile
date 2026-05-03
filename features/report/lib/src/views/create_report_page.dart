@@ -6,8 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/models/report_model.dart';
-import 'package:report/src/views/custom_bottom_nav.dart';
-import 'package:report/src/services/hive_service.dart';[cite: 4]
+import 'package:core_module/core_module.dart';
 
 class CreateReportProvider extends StatelessWidget {
   final ReportModel? existingReport;
@@ -84,7 +83,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
       'localImagePath': _imageFile?.path ?? widget.existingReport?.localImagePath,
     };
 
-    await HiveService().reportsBox.put(draftData['id'], draftData);[cite: 4]
+    await HiveService().reportsBox.put(draftData['id'], draftData);
   }
 
   Future<void> _pickImage(ImageSource source) async {
