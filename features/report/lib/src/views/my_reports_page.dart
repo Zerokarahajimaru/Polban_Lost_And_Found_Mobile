@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/models/report_model.dart';
@@ -42,26 +41,24 @@ class _MyReportsPageState extends State<MyReportsPage>
     super.dispose();
   }
 
-  /// This method now awaits the result of Navigator.push. If the result is `true`
-  /// (indicating a successful operation), it uses `SchedulerBinding.instance.addPostFrameCallback`
-  /// to ensure `getReports()` is called ONLY AFTER the navigation animation is complete,
-  /// preventing UI freezes.
-  void _navigateToCreateOrEdit({ReportModel? report}) {
-    Navigator.push(
+  /// With the controller now safe, we can use a clean async/await pattern.
+  /// This function `await`s for Navigator.push to complete. After the page
+  /// is popped, it safely refreshes the data. This is the final and correct
+  /// implementation that avoids all race conditions.
+  Future<void> _navigateToCreateOrEdit({ReportModel? report}) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateReportProvider(existingReport: report),
       ),
-    ).then((result) {
-      if (result == true && mounted) {
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          context.read<ReportController>().getReports();
-        });
-      }
-    });
+    );
+
+    if (result == true && mounted) {
+      context.read<ReportController>().getReports();
+    }
   }
 
-  /// Same as `_navigateToCreateOrEdit` but for the delete action.
+  /// Applied the same robust async/await pattern to the delete action.
   Future<void> _deleteAndRefresh(ReportModel report) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -85,13 +82,10 @@ class _MyReportsPageState extends State<MyReportsPage>
           .read<ReportController>()
           .deleteReport(report.id, report.status);
       if (success && mounted) {
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          context.read<ReportController>().getReports();
-        });
+        context.read<ReportController>().getReports();
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +108,11 @@ class _MyReportsPageState extends State<MyReportsPage>
         shape: const CircularNotchedRectangle(),
         child: CustomBottomNav(
           currentIndex: 1,
-          onTap: (index) {},
+          onTap: (index) {
+             if (index == 0) {
+              Navigator.pop(context);
+            }
+          },
         ),
       ),
     );

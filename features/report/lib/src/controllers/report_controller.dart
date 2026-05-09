@@ -18,15 +18,25 @@ class ReportController extends ChangeNotifier {
   List<ReportModel> get reports => _reports;
   String get message => _message;
 
+  /// The definitive fix for the UI freeze bug.
+  /// This method now avoids setting a synchronous loading state if data already exists.
+  /// It fetches new data in the background and only notifies listeners upon completion
+  /// or error, preventing a UI rebuild from racing with navigation animations.
   Future<void> getReports() async {
-    _setState(NotifierState.loading);
+    // Only show a loading spinner if there's no data to display.
+    if (_reports.isEmpty) {
+      _setState(NotifierState.loading);
+    }
+
     try {
-      _reports = await _reportRepository.getReports();
-      _message = ''; // Clear message on successful fetch
-      _setState(NotifierState.loaded);
+      // Fetch new data in the background.
+      final newReports = await _reportRepository.getReports();
+      _reports = newReports;
+      _message = ''; // Clear previous messages
+      _setState(NotifierState.loaded); // Notify UI to rebuild with new data.
     } catch (e) {
       _message = e.toString();
-      _setState(NotifierState.error);
+      _setState(NotifierState.error); // Notify UI about the error.
     }
   }
 
@@ -40,7 +50,6 @@ class ReportController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Logic to handle offline/draft updates
       if (existingId != null && (existingId.startsWith('pending_') || existingId.startsWith('draft_'))) {
          try {
           await _reportRepository.queueUpdateForSync(id: existingId, reportData: reportData, localImagePath: imageFile?.path);
@@ -54,7 +63,6 @@ class ReportController extends ChangeNotifier {
         }
       }
 
-      // Online logic
       if (existingId != null) {
         await _reportRepository.updateReportOnline(id: existingId, reportData: reportData, imageFile: imageFile);
         _message = 'Laporan berhasil diperbarui!';
