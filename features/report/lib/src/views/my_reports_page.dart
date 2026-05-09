@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:core_module/core_module.dart' hide ReportModel;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/models/report_model.dart';
@@ -41,32 +42,64 @@ class _MyReportsPageState extends State<MyReportsPage>
     super.dispose();
   }
 
+  /// This method now awaits the result of Navigator.push. If the result is `true`
+  /// (indicating a successful operation), it uses `SchedulerBinding.instance.addPostFrameCallback`
+  /// to ensure `getReports()` is called ONLY AFTER the navigation animation is complete,
+  /// preventing UI freezes.
   void _navigateToCreateOrEdit({ReportModel? report}) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateReportProvider(existingReport: report),
       ),
-    ).then((_) {
-      context.read<ReportController>().getReports();
+    ).then((result) {
+      if (result == true && mounted) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          context.read<ReportController>().getReports();
+        });
+      }
     });
   }
 
+  /// Same as `_navigateToCreateOrEdit` but for the delete action.
+  Future<void> _deleteAndRefresh(ReportModel report) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Hapus Laporan?"),
+        content: Text(
+            "Anda yakin ingin menghapus '${report.title}'? Tindakan ini tidak dapat dibatalkan."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Batal")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Hapus", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final success = await context
+          .read<ReportController>()
+          .deleteReport(report.id, report.status);
+      if (success && mounted) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          context.read<ReportController>().getReports();
+        });
+      }
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    final controller = context.watch<ReportController>();
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Consumer<ReportController>(
-        builder: (context, controller, child) {
-          if (controller.state == NotifierState.loading && controller.reports.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (controller.state == NotifierState.error && controller.reports.isEmpty) {
-            return Center(child: Text('Gagal memuat data: ${controller.message}'));
-          }
-          return _buildLoadedView(controller.reports);
-        },
-      ),
+      body: _buildLoadedView(controller.reports, controller.state),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryYellow,
         shape: const CircleBorder(
@@ -81,15 +114,13 @@ class _MyReportsPageState extends State<MyReportsPage>
         shape: const CircularNotchedRectangle(),
         child: CustomBottomNav(
           currentIndex: 1,
-          onTap: (index) {
-            // Navigation logic is now handled in the header and FAB
-          },
+          onTap: (index) {},
         ),
       ),
     );
   }
 
-  Widget _buildLoadedView(List<ReportModel> reports) {
+  Widget _buildLoadedView(List<ReportModel> reports, NotifierState state) {
     final pendingReports = reports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
     final historyReports = reports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
 
@@ -99,13 +130,15 @@ class _MyReportsPageState extends State<MyReportsPage>
         const SizedBox(height: 50),
         _buildTabs(),
         Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildReportList(pendingReports),
-              _buildReportList(historyReports)
-            ],
-          ),
+          child: state == NotifierState.loading && reports.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildReportList(pendingReports, state),
+                  _buildReportList(historyReports, state)
+                ],
+              ),
         ),
       ],
     );
@@ -180,9 +213,6 @@ class _MyReportsPageState extends State<MyReportsPage>
                                       color: AppColors.primaryBlue))
                             ])
                       ]),
-                      const CircleAvatar(
-                          backgroundColor: AppColors.primaryBlue,
-                          child: Icon(Icons.add, color: Colors.white))
                     ]))),
       ],
     );
@@ -200,14 +230,20 @@ class _MyReportsPageState extends State<MyReportsPage>
             tabs: const [Tab(text: "Pending"), Tab(text: "Riwayat")]));
   }
 
-  Widget _buildReportList(List<ReportModel> reports) {
+  Widget _buildReportList(List<ReportModel> reports, NotifierState state) {
+    if (state == NotifierState.loading && reports.isEmpty) {
+       return const Center(child: CircularProgressIndicator());
+    }
     if (reports.isEmpty) {
       return const Center(child: Text("Tidak ada laporan di sini"));
     }
-    return ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: reports.length,
-        itemBuilder: (context, index) => _buildReportCard(reports[index]));
+    return RefreshIndicator(
+      onRefresh: () => context.read<ReportController>().getReports(),
+      child: ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: reports.length,
+          itemBuilder: (context, index) => _buildReportCard(reports[index])),
+    );
   }
 
   Widget _buildReportCard(ReportModel report) {
@@ -310,33 +346,8 @@ class _MyReportsPageState extends State<MyReportsPage>
                               color: AppColors.primaryBlue, size: 20),
                         ),
                       const SizedBox(width: 8),
-                      GestureDetector( // Delete button always visible
-                        onTap: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text("Hapus Laporan?"),
-                              content: Text(
-                                  "Anda yakin ingin menghapus '${report.title}'? Tindakan ini tidak dapat dibatalkan."),
-                              actions: [
-                                TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text("Batal")),
-                                TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text("Hapus",
-                                        style: TextStyle(color: Colors.red))),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            context
-                                .read<ReportController>()
-                                .deleteReport(report.id);
-                          }
-                        },
+                      GestureDetector(
+                        onTap: () => _deleteAndRefresh(report),
                         child: const Icon(Icons.delete_forever,
                             color: Colors.red, size: 22),
                       ),

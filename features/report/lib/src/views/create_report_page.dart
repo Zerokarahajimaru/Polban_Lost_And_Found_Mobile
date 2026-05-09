@@ -51,20 +51,21 @@ class _CreateReportPageState extends State<CreateReportPage> {
       _phoneController.text = report.contact ?? '';
       _rewardController.text = report.reward ?? '';
       _selectedCategory = report.category;
-      isLost = report.status == 'lost';
+      isLost = report.status != 'found';
     }
     context.read<ReportController>().addListener(_handleStateChanges);
   }
-  
+
   void _handleStateChanges() {
     if (!mounted) return;
     final controller = context.read<ReportController>();
-    if (controller.message.isNotEmpty) {
-      ScaffoldMessenger.of(context)
+    if (controller.message.isNotEmpty && (controller.state == NotifierState.error || controller.state == NotifierState.loaded)) {
+       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
           content: Text(controller.message),
-          backgroundColor: controller.state == NotifierState.error ? Colors.red : Colors.green,
+          backgroundColor:
+              controller.state == NotifierState.error ? Colors.red : Colors.green,
         ));
     }
   }
@@ -92,7 +93,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
   void _showPickerOptions() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
@@ -103,7 +105,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
                 _pickImage(ImageSource.camera);
               }),
           ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primaryBlue),
+              leading:
+                  const Icon(Icons.photo_library, color: AppColors.primaryBlue),
               title: const Text("Pilih dari Galeri"),
               onTap: () {
                 Navigator.pop(context);
@@ -114,57 +117,90 @@ class _CreateReportPageState extends State<CreateReportPage> {
     );
   }
 
-  Future<void> _submitLaporan() async {
-    if (!_isFormValid()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Harap isi semua kolom yang wajib diisi (*)"), backgroundColor: Colors.red));
+  Future<void> _onFinalize() async {
+    if (!_isFormValid(isFinalizing: true)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Harap isi semua kolom yang wajib diisi (*)"),
+          backgroundColor: Colors.red));
       return;
     }
 
-    if (isLost) {
+    if (isLost && _phoneController.text.isNotEmpty) {
       final phoneRegex = RegExp(r'^08[0-9]{8,11}$');
       if (!phoneRegex.hasMatch(_phoneController.text)) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nomor WhatsApp tidak valid. Contoh: 081234567890"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Nomor WhatsApp tidak valid. Contoh: 081234567890"),
+            backgroundColor: Colors.red));
         return;
       }
     }
 
     final controller = context.read<ReportController>();
-    final isUpdating = widget.existingReport != null;
+    final reportData = {
+      'title': _nameController.text,
+      'description': _descController.text,
+      'location': _locationController.text,
+      'contact': _phoneController.text,
+      'category': _selectedCategory,
+      'reward': _rewardController.text,
+      'status': isLost ? 'lost' : 'found',
+      'createdAt': widget.existingReport?.createdAt.toIso8601String(),
+      'imageUrl': widget.existingReport?.imageUrl,
+    };
 
-    final success = isUpdating
-        ? await controller.updateReport(
-            id: widget.existingReport!.id,
-            title: _nameController.text,
-            description: _descController.text,
-            location: _locationController.text,
-            contact: _phoneController.text,
-            category: _selectedCategory!,
-            reward: _rewardController.text,
-            status: isLost ? 'lost' : 'found',
-            imageFile: _imageFile,
-          )
-        : await controller.createReport(
-            title: _nameController.text,
-            description: _descController.text,
-            location: _locationController.text,
-            contact: _phoneController.text,
-            category: _selectedCategory!,
-            imageFile: _imageFile!,
-            reward: _rewardController.text,
-            status: isLost ? 'lost' : 'found',
-          );
-    
+    final success = await controller.finalizeReport(
+      reportData: reportData,
+      imageFile: _imageFile,
+      existingId: widget.existingReport?.id,
+    );
+
     if (success && mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Pop with a success signal
     }
   }
 
-  bool _isFormValid() {
-    bool basicValid = _nameController.text.isNotEmpty && _descController.text.isNotEmpty && _selectedCategory != null;
-    if (widget.existingReport == null) {
+  Future<void> _onSaveDraft() async {
+    if (_nameController.text.isEmpty && _descController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Isi setidaknya judul atau deskripsi untuk menyimpan draft."),
+          backgroundColor: Colors.orange));
+      return;
+    }
+
+    final controller = context.read<ReportController>();
+    final reportData = {
+      'title': _nameController.text,
+      'description': _descController.text,
+      'location': _locationController.text,
+      'contact': _phoneController.text,
+      'category': _selectedCategory,
+      'reward': _rewardController.text,
+      'status': 'draft',
+      'createdAt': widget.existingReport?.createdAt.toIso8601String(),
+    };
+
+    final success = await controller.saveAsDraft(
+      reportData: reportData,
+      localImagePath: _imageFile?.path ?? widget.existingReport?.localImagePath,
+      existingId: widget.existingReport?.id,
+    );
+
+    if (success && mounted) {
+      Navigator.pop(context, true); // Pop with a success signal
+    }
+  }
+
+  bool _isFormValid({bool isFinalizing = false}) {
+    bool basicValid = _nameController.text.isNotEmpty &&
+        _descController.text.isNotEmpty &&
+        _selectedCategory != null;
+    if (isFinalizing && widget.existingReport == null) {
       basicValid = basicValid && _imageFile != null;
     }
-    return isLost ? (basicValid && _phoneController.text.isNotEmpty) : basicValid;
+    if (isLost) {
+      return basicValid && _phoneController.text.isNotEmpty;
+    }
+    return basicValid;
   }
 
   @override
@@ -179,7 +215,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
             child: Column(
               children: [
                 _buildTabSelector(isEditing: isEditing),
@@ -191,27 +227,41 @@ class _CreateReportPageState extends State<CreateReportPage> {
                     hint: "Misal: KTM atas nama Lu Guang",
                     isRequired: true,
                     controller: _nameController,
-                    onChanged: (_) => setState((){})),
+                    onChanged: (_) => setState(() {})),
                 if (isLost) ...[
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(children: [Text("Nomor WhatsApp (Aktif)", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)), Text(" *", style: TextStyle(color: Colors.red))]),
+                      const Row(children: [
+                        Text("Nomor WhatsApp (Aktif)",
+                            style: TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12)),
+                        Text(" *", style: TextStyle(color: Colors.red))
+                      ]),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         maxLength: 13,
-                        onChanged: (_) => setState((){}),
+                        onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
                           hintText: "08xxxxxxxxx",
                           counterText: "",
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.secondaryBlue, width: 2)),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(
+                                  color: AppColors.secondaryBlue, width: 2)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15)),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -220,40 +270,98 @@ class _CreateReportPageState extends State<CreateReportPage> {
                 ],
                 CustomDropdown(
                     label: "Kategori",
-                    items: const ["Dokumen", "Elektronik", "Kunci", "Dompet", "Pakaian", "Lainnya"],
+                    items: const [
+                      "Dokumen",
+                      "Elektronik",
+                      "Kunci",
+                      "Dompet",
+                      "Pakaian",
+                      "Lainnya"
+                    ],
                     value: _selectedCategory,
                     isRequired: true,
-                    onChanged: (value) => setState(() => _selectedCategory = value)),
-                CustomTextField(label: "Lokasi (Opsional)", hint: "Lokasi Terakhir Diingat", controller: _locationController, onChanged: (_) => setState((){})),
-                CustomTextField(label: "Deskripsi Barang", hint: "Detail Ciri Khusus Barang", isRequired: true, maxLines: 4, controller: _descController, onChanged: (_) => setState((){})),
+                    onChanged: (value) =>
+                        setState(() => _selectedCategory = value)),
+                CustomTextField(
+                    label: "Lokasi (Opsional)",
+                    hint: "Lokasi Terakhir Diingat",
+                    controller: _locationController,
+                    onChanged: (_) => setState(() {})),
+                CustomTextField(
+                    label: "Deskripsi Barang",
+                    hint: "Detail Ciri Khusus Barang",
+                    isRequired: true,
+                    maxLines: 4,
+                    controller: _descController,
+                    onChanged: (_) => setState(() {})),
                 if (isLost) _buildRewardSection(),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: _isFormValid() ? AppColors.primaryBlue : Colors.grey, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                    onPressed: _isFormValid() && !isLoading ? _submitLaporan : null,
-                    child: isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(isEditing ? "SIMPAN PERUBAHAN" : "SUBMIT LAPORAN", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
-                  ),
-                ),
-                const SizedBox(height: 100),
               ],
             ),
           ),
-          if (isLoading) Container(color: Colors.black.withOpacity(0.5), child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const CircularProgressIndicator(color: Colors.white), const SizedBox(height: 16), Text(controller.message, style: const TextStyle(color: Colors.white, fontSize: 16))]))),
+          if (isLoading)
+            Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 16),
+                      Text(controller.message,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16))
+                    ]))),
         ],
       ),
-      bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        notchMargin: 8,
-        shape: const CircularNotchedRectangle(),
-        child: CustomBottomNav(
-          currentIndex: 1, 
-          onTap: (index) {
-            if (index != 1) Navigator.pop(context);
-          }
-        )
+      bottomNavigationBar: _buildActionButtons(isLoading),
+    );
+  }
+
+  Widget _buildActionButtons(bool isLoading) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: isLoading ? null : _onSaveDraft,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primaryBlue),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text("Simpan Draft",
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: isLoading ? null : _onFinalize,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Text("Finalisasi & Kirim",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -264,18 +372,43 @@ class _CreateReportPageState extends State<CreateReportPage> {
       child: Opacity(
         opacity: isEditing ? 0.5 : 1.0,
         child: Container(
-          decoration: BoxDecoration(color: AppColors.secondaryBlue.withOpacity(0.3), borderRadius: BorderRadius.circular(30)), 
-          child: Row(children: [
-            _tabButton("Barang Hilang", isLost, () => setState(() => isLost = true)), 
-            _tabButton("Barang Temuan", !isLost, () => setState(() => isLost = false))
-          ])
-        ),
+            decoration: BoxDecoration(
+                color: AppColors.secondaryBlue.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(30)),
+            child: Row(children: [
+              _tabButton("Barang Hilang", isLost,
+                  () => setState(() => isLost = true)),
+              _tabButton("Barang Temuan", !isLost,
+                  () => setState(() => isLost = false))
+            ])),
       ),
     );
   }
 
   Widget _tabButton(String text, bool active, VoidCallback onTap) {
-    return Expanded(child: GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: active ? AppColors.primaryBlue : Colors.transparent, borderRadius: BorderRadius.circular(30)), child: Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [if (active) const Icon(Icons.check, color: AppColors.primaryYellow, size: 16), if (active) const SizedBox(width: 8), Text(text, style: TextStyle(color: active ? AppColors.primaryYellow : AppColors.primaryBlue.withOpacity(0.5), fontWeight: FontWeight.bold))])))));
+    return Expanded(
+        child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                    color: active ? AppColors.primaryBlue : Colors.transparent,
+                    borderRadius: BorderRadius.circular(30)),
+                child: Center(
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                      if (active)
+                        const Icon(Icons.check,
+                            color: AppColors.primaryYellow, size: 16),
+                      if (active) const SizedBox(width: 8),
+                      Text(text,
+                          style: TextStyle(
+                              color: active
+                                  ? AppColors.primaryYellow
+                                  : AppColors.primaryBlue.withOpacity(0.5),
+                              fontWeight: FontWeight.bold))
+                    ])))));
   }
 
   Widget _buildPhotoPicker() {
@@ -283,17 +416,22 @@ class _CreateReportPageState extends State<CreateReportPage> {
     if (_imageFile != null) {
       imageProvider = FileImage(_imageFile!);
     } else if (widget.existingReport != null) {
-      if (widget.existingReport!.localImagePath != null && widget.existingReport!.localImagePath!.isNotEmpty) {
+      if (widget.existingReport!.localImagePath != null &&
+          widget.existingReport!.localImagePath!.isNotEmpty) {
         imageProvider = FileImage(File(widget.existingReport!.localImagePath!));
       } else if (widget.existingReport!.imageUrl.isNotEmpty) {
         imageProvider = NetworkImage(widget.existingReport!.imageUrl);
       }
     }
-    
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Row(
         children: [
-          Text("Upload Foto Bukti", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text("Upload Foto Bukti",
+              style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12)),
           Text(" *", style: TextStyle(color: Colors.red)),
         ],
       ),
@@ -306,10 +444,20 @@ class _CreateReportPageState extends State<CreateReportPage> {
               decoration: BoxDecoration(
                   border: Border.all(color: AppColors.secondaryBlue, width: 2),
                   borderRadius: BorderRadius.circular(15),
-                  image: imageProvider != null ? DecorationImage(image: imageProvider, fit: BoxFit.cover) : null
-              ),
+                  image: imageProvider != null
+                      ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                      : null),
               child: imageProvider == null
-                  ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.secondaryBlue), Text("Ambil Foto atau dari Galeri", style: TextStyle(color: AppColors.secondaryBlue, fontWeight: FontWeight.bold))])
+                  ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                          Icon(Icons.camera_alt_outlined,
+                              size: 48, color: AppColors.secondaryBlue),
+                          Text("Ambil Foto atau dari Galeri",
+                              style: TextStyle(
+                                  color: AppColors.secondaryBlue,
+                                  fontWeight: FontWeight.bold))
+                        ])
                   : null))
     ]);
   }
@@ -318,16 +466,36 @@ class _CreateReportPageState extends State<CreateReportPage> {
     return Container(
         margin: const EdgeInsets.only(top: 20),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AppColors.primaryYellow, borderRadius: BorderRadius.circular(15)),
+        decoration: BoxDecoration(
+            color: AppColors.primaryYellow,
+            borderRadius: BorderRadius.circular(15)),
         child: Column(children: [
-          const Row(children: [Icon(Icons.card_giftcard, size: 20, color: AppColors.primaryBlue), SizedBox(width: 8), Text("Tawarkan Imbalan (Opsional)", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12))]),
+          const Row(children: [
+            Icon(Icons.card_giftcard, size: 20, color: AppColors.primaryBlue),
+            SizedBox(width: 8),
+            Text("Tawarkan Imbalan (Opsional)",
+                style: TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12))
+          ]),
           const SizedBox(height: 10),
           TextField(
               controller: _rewardController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (_) => setState((){}),
-              decoration: InputDecoration(hintText: "Misal: 50000", hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 13), filled: true, fillColor: Colors.white.withOpacity(0.6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 16)))
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                  hintText: "Misal: 50000",
+                  hintStyle:
+                      const TextStyle(color: AppColors.textGrey, fontSize: 13),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.6),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16)))
         ]));
   }
 }

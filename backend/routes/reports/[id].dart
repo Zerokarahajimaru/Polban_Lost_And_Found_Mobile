@@ -22,47 +22,57 @@ Future<Response> _onPut(RequestContext context, String id) async {
     final objectId = ObjectId.fromHexString(id);
     final json = await context.request.json() as Map<String, dynamic>;
 
-    final report = ReportModel(
-      id: id,
-      userId: 'user_dummy_polban', // This should ideally come from auth
-      namaBarang: json['title'] as String,
-      kategoriBarang: json['category'] as String,
-      statusPostingan: json['status'] as String,
-      deskripsiBarang: json['description'] as String,
-      lokasiKehilangan: json['location'] as String,
-      kontak: json['contact'] as String,
-      images: [json['imageUrl'] as String],
-      lastActivityAt: DateTime.now(), // Update activity time
-      createdAt: DateTime.parse(json['createdAt'] as String), // Preserve original creation time
-      updatedAt: DateTime.now(),
-      reportCount: 0, // Should not be updated by user
-      isSynced: true,
-      bounty: (json['reward'] != null && (json['reward'] as String).isNotEmpty)
-          ? BountyModel(amount: int.parse(json['reward'] as String), description: 'Imbalan')
-          : null,
-    );
+    final existingReportMap = await reportsCollection.findOne(where.id(objectId));
+    if (existingReportMap == null) {
+      return Response(statusCode: HttpStatus.notFound, body: 'Report not found');
+    }
+    
+    final updateData = Map<String, dynamic>.from(existingReportMap);
 
-    final result = await reportsCollection.replaceOne(
+    updateData['nama_barang'] = json['title'] ?? updateData['nama_barang'];
+    updateData['kategori_barang'] = json['category'] ?? updateData['kategori_barang'];
+    updateData['status_postingan'] = json['status'] ?? updateData['status_postingan'];
+    updateData['deskripsi_barang'] = json['description'] ?? updateData['deskripsi_barang'];
+    updateData['lokasi_kehilangan'] = json['location'] ?? updateData['lokasi_kehilangan'];
+    updateData['kontak'] = json['contact'] ?? updateData['kontak'];
+    updateData['updated_at'] = DateTime.now().toIso8601String();
+    
+    if (json['imageUrl'] != null) {
+      updateData['images'] = [json['imageUrl'] as String];
+    }
+    
+    if (json['reward'] != null && (json['reward'] as String).isNotEmpty) {
+      updateData['bounty'] = {
+        'bounty_amount': int.tryParse(json['reward'] as String) ?? 0,
+        'bounty_description': 'Imbalan',
+      };
+    } else {
+      updateData['bounty'] = null;
+    }
+    
+    updateData.remove('_id');
+
+    final result = await reportsCollection.updateOne(
       where.id(objectId),
-      report.toMap(),
+      {r'$set': updateData},
     );
 
-    if (result.isSuccess && result.nModified == 1) {
+    if (result.isSuccess) {
       return Response.json(body: {'message': 'Report updated successfully'});
     } else {
       return Response(
-        statusCode: HttpStatus.notFound,
-        body: 'Report with ID $id not found or no changes made.',
+        statusCode: HttpStatus.internalServerError,
+        body: 'Failed to update report.',
       );
     }
-  } catch (e) {
+  } catch (e, s) {
+    print('Error in _onPut: $e\n$s');
     return Response(
       statusCode: HttpStatus.internalServerError,
       body: 'An internal server error occurred: $e',
     );
   }
 }
-
 
 Future<Response> _onDelete(RequestContext context, String id) async {
   try {
@@ -72,7 +82,7 @@ Future<Response> _onDelete(RequestContext context, String id) async {
     final result = await reportsCollection.deleteOne(where.id(objectId));
 
     if (result.isSuccess && result.nRemoved == 1) {
-      return Response(statusCode: HttpStatus.noContent); // Success, no content
+      return Response(statusCode: HttpStatus.noContent);
     } else {
       return Response(
         statusCode: HttpStatus.notFound,
