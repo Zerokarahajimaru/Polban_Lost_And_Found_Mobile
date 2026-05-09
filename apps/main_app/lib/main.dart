@@ -11,7 +11,7 @@ void main() async {
   await HiveService().init();
 
   // 2. Cloudinary for image uploads
-  // TODO: IMPORTANT! Fill in your Cloudinary credentials here.
+  // TFill in your Cloudinary credentials here.
   CloudinaryService().init(
     cloudName: 'dd9ziyeaj',
     uploadPreset: 'Lost_found_polban',

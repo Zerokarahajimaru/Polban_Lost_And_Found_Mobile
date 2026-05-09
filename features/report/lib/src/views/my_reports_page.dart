@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/models/report_model.dart';
 import 'package:report/src/views/create_report_page.dart';
-import 'package:core_module/core_module.dart';
 
 class MyReportsProvider extends StatelessWidget {
   const MyReportsProvider({super.key});
@@ -26,7 +25,8 @@ class MyReportsPage extends StatefulWidget {
   State<MyReportsPage> createState() => _MyReportsPageState();
 }
 
-class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProviderStateMixin {
+class _MyReportsPageState extends State<MyReportsPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -41,39 +41,38 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
     super.dispose();
   }
 
+  void _navigateToCreateOrEdit({ReportModel? report}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateReportProvider(existingReport: report),
+      ),
+    ).then((_) {
+      context.read<ReportController>().getReports();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Consumer<ReportController>(
         builder: (context, controller, child) {
-          switch (controller.state) {
-            case NotifierState.loading:
-              return const Center(child: CircularProgressIndicator());
-            case NotifierState.error:
-              return Center(child: Text('Gagal memuat data: ${controller.message}'));
-            case NotifierState.initial:
-            case NotifierState.loaded:
-              return _buildLoadedView(controller.reports);
+          if (controller.state == NotifierState.loading && controller.reports.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
           }
+          if (controller.state == NotifierState.error && controller.reports.isEmpty) {
+            return Center(child: Text('Gagal memuat data: ${controller.message}'));
+          }
+          return _buildLoadedView(controller.reports);
         },
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            backgroundColor: AppColors.primaryYellow,
-            shape: const CircleBorder(side: BorderSide(color: AppColors.primaryBlue, width: 4)),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateReportProvider())).then((_) {
-                context.read<ReportController>().getReports();
-              });
-            },
-            child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
-          ),
-          const SizedBox(height: 4),
-          const Text("Lapor", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
-        ],
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.primaryYellow,
+        shape: const CircleBorder(
+            side: BorderSide(color: AppColors.primaryBlue, width: 4)),
+        onPressed: () => _navigateToCreateOrEdit(),
+        child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
@@ -83,7 +82,7 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
         child: CustomBottomNav(
           currentIndex: 1,
           onTap: (index) {
-            if (index == 0) Navigator.pop(context);
+            // Navigation logic is now handled in the header and FAB
           },
         ),
       ),
@@ -91,8 +90,8 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
   }
 
   Widget _buildLoadedView(List<ReportModel> reports) {
-    final pendingReports = reports.where((r) => r.status == 'pending_sync' || r.status == 'draft').toList();
-    final historyReports = reports.where((r) => r.status != 'pending_sync' && r.status != 'draft').toList();
+    final pendingReports = reports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
+    final historyReports = reports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
 
     return Column(
       children: [
@@ -102,7 +101,10 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [_buildReportList(pendingReports), _buildReportList(historyReports)],
+            children: [
+              _buildReportList(pendingReports),
+              _buildReportList(historyReports)
+            ],
           ),
         ),
       ],
@@ -116,35 +118,104 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
         Container(
           height: 180,
           width: double.infinity,
-          decoration: const BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40))),
+          decoration: const BoxDecoration(
+              color: AppColors.primaryBlue,
+              borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40))),
           padding: const EdgeInsets.only(top: 50, left: 20, right: 20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.chevron_left, color: AppColors.primaryYellow, size: 30)),
+              GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.chevron_left,
+                      color: AppColors.primaryYellow, size: 30)),
               const SizedBox(width: 10),
-              const Text("Riwayat Laporanku", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Riwayat Laporanku",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold)),
             ],
           ),
         ),
-        Positioned(bottom: -40, left: 20, right: 20, child: Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))]), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primaryYellow.withOpacity(0.2), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.history, color: AppColors.primaryBlue)), const SizedBox(width: 15), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("TOTAL LAPORAN", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), Text("$total Laporan", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue))])]), const CircleAvatar(backgroundColor: AppColors.primaryBlue, child: Icon(Icons.add, color: Colors.white))]))),
+        Positioned(
+            bottom: -40, left: 20, right: 20,
+            child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5))
+                    ]),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(children: [
+                        Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                                color: AppColors.primaryYellow.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(15)),
+                            child: const Icon(Icons.history,
+                                color: AppColors.primaryBlue)),
+                        const SizedBox(width: 15),
+                        Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("TOTAL LAPORAN",
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.bold)),
+                              Text("$total Laporan",
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryBlue))
+                            ])
+                      ]),
+                      const CircleAvatar(
+                          backgroundColor: AppColors.primaryBlue,
+                          child: Icon(Icons.add, color: Colors.white))
+                    ]))),
       ],
     );
   }
 
   Widget _buildTabs() {
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: TabBar(controller: _tabController, labelColor: AppColors.primaryBlue, unselectedLabelColor: Colors.grey, indicatorColor: AppColors.primaryYellow, indicatorWeight: 3, tabs: const [Tab(text: "Pending"), Tab(text: "Riwayat")]));
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: TabBar(
+            controller: _tabController,
+            labelColor: AppColors.primaryBlue,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: AppColors.primaryYellow,
+            indicatorWeight: 3,
+            tabs: const [Tab(text: "Pending"), Tab(text: "Riwayat")]));
   }
 
   Widget _buildReportList(List<ReportModel> reports) {
-    if (reports.isEmpty) return const Center(child: Text("Tidak ada laporan"));
-    return ListView.builder(padding: const EdgeInsets.all(20), itemCount: reports.length, itemBuilder: (context, index) => _buildReportCard(reports[index]));
+    if (reports.isEmpty) {
+      return const Center(child: Text("Tidak ada laporan di sini"));
+    }
+    return ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: reports.length,
+        itemBuilder: (context, index) => _buildReportCard(reports[index]));
   }
 
   Widget _buildReportCard(ReportModel report) {
     final bool isDraft = report.status == 'draft';
-    final bool isPending = report.status == 'pending_sync';
-    final bool canEdit = isDraft || DateTime.now().difference(report.createdAt).inHours < 24;
+    final bool isPending = report.status.contains('pending');
+    final bool isOffline = isDraft || isPending;
+    final bool canEdit = isOffline || (DateTime.now().difference(report.createdAt).inHours < 24);
+    final bool isLost = report.status != 'found';
 
     ImageProvider? imageProvider;
     if (report.localImagePath != null && report.localImagePath!.isNotEmpty) {
@@ -156,39 +227,120 @@ class _MyReportsPageState extends State<MyReportsPage> with SingleTickerProvider
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100)),
       child: Row(
         children: [
-          Container(width: 70, height: 70, decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), color: AppColors.secondaryBlue, image: imageProvider != null ? DecorationImage(image: imageProvider, fit: BoxFit.cover) : null), child: imageProvider == null ? const Icon(Icons.image_not_supported, color: Colors.white) : null),
+          Container(
+              width: 70, height: 70,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  color: AppColors.secondaryBlue,
+                  image: imageProvider != null
+                      ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                      : null),
+              child: imageProvider == null
+                  ? const Icon(Icons.image_not_supported, color: Colors.white)
+                  : null),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(report.title.isEmpty ? "(Tanpa Judul)" : report.title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-                Text(report.location.isEmpty ? "Lokasi tidak ditentukan" : report.location, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(report.title.isEmpty ? "(Tanpa Judul)" : report.title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                Text(
+                    report.location.isEmpty
+                        ? "Lokasi tidak ditentukan"
+                        : report.location,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: isDraft ? Colors.grey.shade200 : (isPending ? Colors.orange.shade100 : Colors.blue.shade100), borderRadius: BorderRadius.circular(10)),
-                      child: Text(isDraft ? "Draft" : (isPending ? "Pending" : "Tersinkron"), style: TextStyle(color: isDraft ? Colors.grey : (isPending ? Colors.orange : Colors.blue), fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                    if (canEdit)
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => CreateReportProvider(existingReport: report))).then((_) {
-                            context.read<ReportController>().getReports();
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: AppColors.primaryYellow, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.primaryBlue, width: 1)),
-                          child: const Row(children: [Icon(Icons.edit, size: 12, color: AppColors.primaryBlue), SizedBox(width: 4), Text("Edit", style: TextStyle(color: AppColors.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold))]),
-                        ),
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: isOffline
+                                ? Colors.orange.shade100
+                                : Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Text(
+                            isDraft
+                                ? "Draft"
+                                : (isPending ? "Pending" : "Tersinkron"),
+                            style: TextStyle(
+                                color: isOffline
+                                    ? Colors.orange.shade800
+                                    : Colors.blue.shade800,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold)),
                       ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: isLost
+                                ? Colors.red.shade100
+                                : Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Text(isLost ? "Hilang" : "Ditemukan",
+                            style: TextStyle(
+                                color: isLost
+                                    ? Colors.red.shade800
+                                    : Colors.green.shade800,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ]),
+                    Row(children: [
+                      if (canEdit)
+                        GestureDetector(
+                          onTap: () => _navigateToCreateOrEdit(report: report),
+                          child: const Icon(Icons.edit,
+                              color: AppColors.primaryBlue, size: 20),
+                        ),
+                      const SizedBox(width: 8),
+                      GestureDetector( // Delete button always visible
+                        onTap: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text("Hapus Laporan?"),
+                              content: Text(
+                                  "Anda yakin ingin menghapus '${report.title}'? Tindakan ini tidak dapat dibatalkan."),
+                              actions: [
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text("Batal")),
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text("Hapus",
+                                        style: TextStyle(color: Colors.red))),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            context
+                                .read<ReportController>()
+                                .deleteReport(report.id);
+                          }
+                        },
+                        child: const Icon(Icons.delete_forever,
+                            color: Colors.red, size: 22),
+                      ),
+                    ])
                   ],
                 )
               ],

@@ -1,4 +1,5 @@
 # Miscellaneous
+PROJECT_CONTEXT.md
 *.env
 .env
 *.class

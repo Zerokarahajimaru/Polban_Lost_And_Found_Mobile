@@ -1,4 +1,7 @@
 import 'dart:io';
+
+import 'package:backend/src/models/report.dart';
+import 'package:backend/src/services/database_service.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 
@@ -15,13 +18,10 @@ Future<Response> onRequest(RequestContext context) async {
 
 Future<Response> _onGet(RequestContext context) async {
   try {
-    // Directly access the service. It will self-initialize on first use.
     final reportsCollection = await DatabaseService().reports;
     final reportsFromDb = await reportsCollection.find().toList();
-
-    // Manually convert non-serializable types (like ObjectId) to JSON-safe types.
     final jsonSafeReports = reportsFromDb.map((reportMap) {
-      reportMap['_id'] = (reportMap['_id'] as ObjectId).toHexString();
+      reportMap['_id'] = (reportMap['_id'] as ObjectId).oid; // Use .oid
       return reportMap;
     }).toList();
 
@@ -37,13 +37,12 @@ Future<Response> _onGet(RequestContext context) async {
 
 Future<Response> _onPost(RequestContext context) async {
   try {
-    // Directly access the service.
     final reportsCollection = await DatabaseService().reports;
     final json = await context.request.json() as Map<String, dynamic>;
     final now = DateTime.now();
 
     final report = ReportModel(
-      userId: 'user_dummy_polban', // Placeholder user ID as agreed
+      userId: 'user_dummy_polban',
       namaBarang: json['title'] as String,
       kategoriBarang: json['category'] as String,
       statusPostingan: json['status'] as String? ?? 'Available',
@@ -54,8 +53,13 @@ Future<Response> _onPost(RequestContext context) async {
       lastActivityAt: now,
       createdAt: now,
       updatedAt: now,
+      // Provide default values for required fields from the new model
+      reportCount: 0,
+      isSynced: true, // If it reaches the server, it's synced
       bounty: (json['reward'] != null && (json['reward'] as String).isNotEmpty)
-          ? BountyModel(amount: int.parse(json['reward'] as String), description: 'Imbalan')
+          ? BountyModel(
+              amount: int.tryParse(json['reward'] as String) ?? 0,
+              description: 'Imbalan')
           : null,
     );
 
@@ -67,7 +71,7 @@ Future<Response> _onPost(RequestContext context) async {
         body: {
           'status': 'success',
           'message': 'Laporan berhasil dibuat',
-          'data': report.toMap(),
+          'data': report.toMap()..['_id'] = (result.id as ObjectId).oid,
         },
       );
     } else {
