@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   image_picker: ^1.2.1
+  firebase_storage: ^11.0.16
   core_module:
     path: ../../core/core_module
   home:

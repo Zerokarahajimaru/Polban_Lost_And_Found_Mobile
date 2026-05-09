@@ -40,6 +40,8 @@ class ReportModel extends Equatable {
     if (map['_id'] != null) {
       finalId =
           map['_id'] is Map ? map['_id']['\$oid'] as String : map['_id'].toString();
+    } else if (map['id_from_key'] != null) {
+      finalId = map['id_from_key'] as String;
     } else {
       // For pending items, we construct a temporary ID.
       // The key from Hive is the source of truth, but this works for model creation.

@@ -137,9 +137,11 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const CreateReportPage(),
+                      builder: (_) => const CreateReportProvider(),
                     ),
-                  );
+                  ).then((_) {
+                    context.read<ReportController>().getReports();
+                  });
                 },
                 child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
               ),

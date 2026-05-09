@@ -19,9 +19,9 @@ void main() async {
   );
 
   // 3. Network service for API communication
-  // This base URL points to the backend running on your local machine.
-  // We use port 8081 to avoid conflict with the Apache server on 8080.
-  NetworkService().init(baseUrl: 'http://127.0.0.1:8081');
+  // This base URL points to the backend running on the local network.
+  // Use the backend host IP and port that the server exposes.
+  NetworkService().init(baseUrl: 'http://192.168.1.14:8081');
 
   runApp(const MyApp());
 }
@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Polban Lost and Found',
       theme: ThemeData(
-        primaryColor: AppColors.primaryBlue, // Assuming AppColors is in core_module
+        primaryColor: AppColors.primaryBlue,
         useMaterial3: true,
       ),
       // Use the Provider wrapper for the home page so HomeController and ReportController are available.

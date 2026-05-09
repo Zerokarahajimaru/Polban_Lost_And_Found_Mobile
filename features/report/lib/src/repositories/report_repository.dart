@@ -43,11 +43,12 @@ class ReportRepository {
     required String localImagePath,
   }) async {
     final key = 'pending_${DateTime.now().millisecondsSinceEpoch}';
-    
+
     final dataToCache = {
       ...reportData,
       'local_image_path': localImagePath,
-      'status': 'pending_sync',
+      'status': reportData['status'] as String? ?? 'lost',
+      'sync_status': 'pending_sync',
     };
 
     await _hiveService.reportsBox.put(key, dataToCache);
@@ -83,7 +84,7 @@ class ReportRepository {
           'contact': data['contact'],
           'category': data['category'],
           'reward': data['reward'],
-          'status': 'lost', // When syncing, it's a lost/found item
+          'status': data['status'] as String? ?? 'lost',
           'imageUrl': imageUrl,
         };
         await _networkService.dio.post('/reports', data: postData);

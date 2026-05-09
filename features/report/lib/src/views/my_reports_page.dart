@@ -73,8 +73,11 @@ class _MyReportsPageState extends State<MyReportsPage>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const CreateReportPage()),
-              );
+                    builder: (context) => const CreateReportProvider()),
+              ).then((_) {
+                // After returning from create page, refresh the list
+                context.read<ReportController>().getReports();
+              });
             },
             child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
           ),
@@ -99,11 +102,13 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
   }
 
+
   Widget _buildLoadedView(List<ReportModel> reports) {
+    // diganti sementara buat testing, nanti bisa diubah lagi sesuai kebutuhan
     final pendingReports =
-        reports.where((r) => r.status == 'pending_sync').toList();
+        reports.where((r) => r.id.startsWith('pending_')).toList();
     final historyReports =
-        reports.where((r) => r.status != 'pending_sync').toList();
+        reports.where((r) => !r.id.startsWith('pending_')).toList();
 
     return Column(
       children: [

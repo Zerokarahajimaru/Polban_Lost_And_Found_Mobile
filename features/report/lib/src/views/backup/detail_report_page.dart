@@ -15,7 +15,9 @@ class ReportDetailPage extends StatelessWidget {
 
   bool get isReportModel => item is ReportModel;
 
-  String get nama => isReportModel ? item.title : item.nama;
+  // Temporarily disable isKehilangan to test without imbalan logic
+  bool get isKehilangan => false;
+
   String get lokasi => isReportModel ? item.location : item.lokasi;
   String get status => isReportModel ? item.status : item.status;
   Color get statusColor {
