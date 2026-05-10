@@ -34,13 +34,34 @@ class _LoginViewState extends State<_LoginView> {
   }
 
   Future<void> _performLogin() async {
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text('Email dan password tidak boleh kosong.'),
+          backgroundColor: Colors.red,
+        ));
+      return;
+    }
+    
+    // Basic email validation
+    if (!email.contains('@') || !email.contains('.')) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text('Format email tidak valid.'),
+          backgroundColor: Colors.red,
+        ));
+      return;
+    }
+
     final loginController = context.read<LoginController>();
     final sessionController = context.read<SessionController>();
 
-    final success = await loginController.login(
-      _emailController.text,
-      _passwordController.text,
-    );
+    final success = await loginController.login(email, password);
 
     if (mounted && success) {
       sessionController.login(loginController.loggedInUser!);

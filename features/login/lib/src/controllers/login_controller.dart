@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:core_module/core_module.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ class LoginController extends ChangeNotifier {
       final response = await _networkService.dio.post(
         '/login',
         data: {'email': email, 'password': password},
-      );
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final userData = response.data['user'] as Map<String, dynamic>;
@@ -27,16 +28,25 @@ class LoginController extends ChangeNotifier {
         _setState(NotifierState.loaded, 'Login successful!');
         return true;
       } else {
-        _setState(NotifierState.error, 'An unknown error occurred.');
+        // This case might be rare if server uses proper status codes.
+        _setState(NotifierState.error, 'Email atau password salah.');
         return false;
       }
+    } on TimeoutException {
+      _setState(NotifierState.error, 'Waktu koneksi habis. Periksa internet Anda.');
+      return false;
     } on DioException catch (e) {
-      final errorMessage =
-          e.response?.data['message'] as String? ?? e.message ?? 'Login failed';
-      _setState(NotifierState.error, errorMessage);
+      // For 400/401 errors, use a generic message for security.
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        _setState(NotifierState.error, 'Email atau password salah.');
+      } else {
+        // For other errors (like network issues), show a more specific message.
+        final errorMessage = e.response?.data['message'] as String? ?? 'Gagal terhubung ke server.';
+        _setState(NotifierState.error, errorMessage);
+      }
       return false;
     } catch (e) {
-      _setState(NotifierState.error, 'An unexpected error occurred: $e');
+      _setState(NotifierState.error, 'Terjadi kesalahan: $e');
       return false;
     }
   }

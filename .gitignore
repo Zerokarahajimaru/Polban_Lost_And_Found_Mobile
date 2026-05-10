@@ -16,6 +16,8 @@ PROJECT_CONTEXT.md
 migrate_working_dir/
 TODO_LIST_EMIR.txt
 CATATAN_EMIR.txt
+AI_LOG_EMIR.txt
+
 
 # IntelliJ related
 *.iml
