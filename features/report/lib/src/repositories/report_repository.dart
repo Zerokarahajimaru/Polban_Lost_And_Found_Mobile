@@ -133,7 +133,16 @@ class ReportRepository {
   }
 
   List<ReportModel> _loadAllFromCache() {
-    return _hiveService.reportsBox.values.map((map) => ReportModel.fromMap(map)).toList();
+    final reports = <ReportModel>[];
+    for (final key in _hiveService.reportsBox.keys) {
+      final map = _hiveService.reportsBox.get(key);
+      if (map != null) {
+        final dataWithId = Map<String, dynamic>.from(map);
+        dataWithId['id'] = key; // Ensure the ID is always the Hive key
+        reports.add(ReportModel.fromMap(dataWithId));
+      }
+    }
+    return reports;
   }
 
   Map<dynamic, Map> _loadPendingDataAsMap() {
