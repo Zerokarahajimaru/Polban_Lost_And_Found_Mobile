@@ -100,31 +100,7 @@ class _MyReportsPageState extends State<MyReportsPage>
   Widget build(BuildContext context) {
     final controller = context.watch<ReportController>();
     
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: _buildLoadedView(controller.reports, controller.isLoading),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryYellow,
-        shape: const CircleBorder(
-            side: BorderSide(color: AppColors.primaryBlue, width: 4)),
-        onPressed: () => _navigateToCreateOrEdit(),
-        child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        notchMargin: 8,
-        shape: const CircularNotchedRectangle(),
-        child: CustomBottomNav(
-          currentIndex: 1,
-          onTap: (index) {
-             if (index == 0) {
-              Navigator.pop(context);
-            }
-          },
-        ),
-      ),
-    );
+    return _buildLoadedView(controller.reports, controller.isLoading);
   }
 
   Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {

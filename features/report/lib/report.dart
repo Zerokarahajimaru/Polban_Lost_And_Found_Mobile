@@ -1,5 +1,8 @@
 library report;
 
+// Controllers
+export 'src/controllers/report_controller.dart';
+
 // Views (Pages)
 export 'src/views/create_report_page.dart';
 export 'src/views/my_reports_page.dart';
