@@ -44,30 +44,50 @@ class ReportController extends ChangeNotifier {
     String? existingId,
   }) async {
     try {
-      if (existingId != null && (existingId.startsWith('pending_') || existingId.startsWith('draft_'))) {
+      // Case 1: Finalizing a draft. Treat as a NEW report creation.
+      if (existingId != null && existingId.startsWith('draft_')) {
+        if (imageFile == null) throw Exception("Gambar wajib untuk finalisasi draft.");
+        try {
+          // Try to post online directly.
+          await _reportRepository.postReportOnline(reportData: reportData, imageFile: imageFile);
+          _message = 'Laporan berhasil dikirim!';
+          _lastOperationFailed = false;
+        } on DioException catch (e) {
+          // If posting fails due to network, queue it for creation.
+          if (_isNetworkError(e)) {
+            await _reportRepository.queueCreateForSync(reportData: reportData, localImagePath: imageFile.path);
+            _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
+            _lastOperationFailed = false; // Considered a success for UX.
+          } else {
+            rethrow; // Re-throw other server/unknown errors.
+          }
+        }
+        // IMPORTANT: Delete the original draft after handling.
+        await _reportRepository.deleteReport(existingId, 'draft');
+
+      // Case 2: Editing a report that is already pending synchronization.
+      } else if (existingId != null && existingId.startsWith('pending_')) {
         await _reportRepository.queueUpdateForSync(id: existingId, reportData: reportData, localImagePath: imageFile?.path);
         _message = 'Perubahan disimpan di antrian untuk sinkronisasi.';
+        _lastOperationFailed = false;
+
+      // Case 3: Updating a report that is already on the server.
       } else if (existingId != null) {
         await _reportRepository.updateReportOnline(id: existingId, reportData: reportData, imageFile: imageFile);
         _message = 'Laporan berhasil diperbarui!';
+        _lastOperationFailed = false;
+
+      // Case 4: Creating a brand new report from scratch.
       } else {
         if (imageFile == null) throw Exception("Gambar wajib untuk laporan baru.");
         await _reportRepository.postReportOnline(reportData: reportData, imageFile: imageFile);
         _message = 'Laporan berhasil dikirim!';
+        _lastOperationFailed = false;
       }
-      _lastOperationFailed = false;
     } on DioException catch (e) {
+      // This outer catch handles errors from update/post calls that were not network errors.
+      _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
       _lastOperationFailed = true;
-      if (_isNetworkError(e)) {
-        _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
-        if (existingId != null) {
-          await _reportRepository.queueUpdateForSync(id: existingId, reportData: reportData, localImagePath: imageFile?.path);
-        } else {
-          await _reportRepository.queueCreateForSync(reportData: reportData, localImagePath: imageFile!.path);
-        }
-      } else {
-        _message = 'Gagal: ${e.message}';
-      }
     } catch (e) {
       _message = 'Terjadi error: $e';
       _lastOperationFailed = true;

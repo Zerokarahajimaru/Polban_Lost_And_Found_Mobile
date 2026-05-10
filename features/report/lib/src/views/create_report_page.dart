@@ -116,7 +116,17 @@ class _CreateReportPageState extends State<CreateReportPage> {
       return;
     }
 
-    if (!_isFormValid(isFinalizing: true)) {
+    // Determine the image to be finalized. Prioritize the new image file,
+    // but fall back to the existing one if it's just an edit without a new image.
+    File? imageToFinalize;
+    if (_imageFile != null) {
+      imageToFinalize = _imageFile;
+    } else if (widget.existingReport?.localImagePath != null &&
+        widget.existingReport!.localImagePath!.isNotEmpty) {
+      imageToFinalize = File(widget.existingReport!.localImagePath!);
+    }
+
+    if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Harap isi semua kolom yang wajib diisi (*)"),
           backgroundColor: Colors.red));
@@ -133,11 +143,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
       }
     }
     
-    // Immediately pop the screen to give the user instant feedback.
     Navigator.pop(context, true);
 
-    // Trigger the finalize operation in the background without awaiting it.
-    // The previous screen will listen for controller updates and refresh itself.
     context.read<ReportController>().finalizeReport(
       reportData: {
         'title': _nameController.text,
@@ -150,7 +157,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
         'createdAt': widget.existingReport?.createdAt.toIso8601String(),
         'imageUrl': widget.existingReport?.imageUrl,
       },
-      imageFile: _imageFile,
+      imageFile: imageToFinalize,
       existingId: widget.existingReport?.id,
     );
   }
@@ -171,11 +178,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
       return;
     }
 
-    // Immediately pop the screen to give the user instant feedback.
     Navigator.pop(context, true);
 
-    // Trigger the save operation in the background without awaiting it.
-    // The previous screen will listen for controller updates and refresh itself.
     context.read<ReportController>().saveAsDraft(
       reportData: {
         'title': _nameController.text,
@@ -192,12 +196,14 @@ class _CreateReportPageState extends State<CreateReportPage> {
     );
   }
 
-  bool _isFormValid({bool isFinalizing = false}) {
+  bool _isFormValid({bool isFinalizing = false, bool hasImage = false}) {
     bool basicValid = _nameController.text.isNotEmpty &&
         _descController.text.isNotEmpty &&
         _selectedCategory != null;
-    if (isFinalizing && widget.existingReport == null) {
-      basicValid = basicValid && _imageFile != null;
+    if (isFinalizing) {
+      // When finalizing, an image is always required.
+      // This can be a new file or an existing one from a draft.
+      basicValid = basicValid && hasImage;
     }
     if (isLost) {
       return basicValid && _phoneController.text.isNotEmpty;
