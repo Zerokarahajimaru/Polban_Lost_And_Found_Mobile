@@ -27,37 +27,50 @@ class MyReportsPage extends StatefulWidget {
 class _MyReportsPageState extends State<MyReportsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late ReportController _controller;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _controller = context.read<ReportController>();
+    _controller.addListener(_handleControllerUpdates);
+  }
+
+  void _handleControllerUpdates() {
+    if (_controller.message.isNotEmpty) {
+      NotificationBanner.show(
+        context,
+        _controller.message,
+        isError: _controller.lastOperationFailed,
+      );
+      _controller.clearMessage(); 
+    }
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_handleControllerUpdates);
     _tabController.dispose();
     super.dispose();
   }
 
-  /// With the controller now safe, we can use a clean async/await pattern.
-  /// This function `await`s for Navigator.push to complete. After the page
-  /// is popped, it safely refreshes the data. This is the final and correct
-  /// implementation that avoids all race conditions.
   Future<void> _navigateToCreateOrEdit({ReportModel? report}) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CreateReportProvider(existingReport: report),
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _controller,
+          child: CreateReportProvider(existingReport: report),
+        ),
       ),
     );
 
     if (result == true && mounted) {
-      context.read<ReportController>().getReports();
+      _controller.getReports();
     }
   }
 
-  /// Applied the same robust async/await pattern to the delete action.
   Future<void> _deleteAndRefresh(ReportModel report) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -77,12 +90,8 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
 
     if (confirm == true && mounted) {
-      final success = await context
-          .read<ReportController>()
-          .deleteReport(report.id, report.status);
-      if (success && mounted) {
-        context.read<ReportController>().getReports();
-      }
+      await _controller.deleteReport(report.id, report.status);
+      await _controller.getReports();
     }
   }
 
@@ -92,7 +101,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: _buildLoadedView(controller.reports, controller.state),
+      body: _buildLoadedView(controller.reports, controller.isLoading),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryYellow,
         shape: const CircleBorder(
@@ -117,7 +126,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
   }
 
-  Widget _buildLoadedView(List<ReportModel> reports, NotifierState state) {
+  Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {
     final pendingReports = reports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
     final historyReports = reports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
 
@@ -127,13 +136,13 @@ class _MyReportsPageState extends State<MyReportsPage>
         const SizedBox(height: 50),
         _buildTabs(),
         Expanded(
-          child: state == NotifierState.loading && reports.isEmpty
+          child: isLoading && reports.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildReportList(pendingReports, state),
-                  _buildReportList(historyReports, state)
+                  _buildReportList(pendingReports, isLoading),
+                  _buildReportList(historyReports, isLoading)
                 ],
               ),
         ),
@@ -227,8 +236,8 @@ class _MyReportsPageState extends State<MyReportsPage>
             tabs: const [Tab(text: "Pending"), Tab(text: "Riwayat")]));
   }
 
-  Widget _buildReportList(List<ReportModel> reports, NotifierState state) {
-    if (state == NotifierState.loading && reports.isEmpty) {
+  Widget _buildReportList(List<ReportModel> reports, bool isLoading) {
+    if (isLoading && reports.isEmpty) {
        return const Center(child: CircularProgressIndicator());
     }
     if (reports.isEmpty) {

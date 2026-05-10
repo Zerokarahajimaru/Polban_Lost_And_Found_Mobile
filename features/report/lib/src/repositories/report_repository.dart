@@ -30,6 +30,7 @@ class ReportRepository {
   }) async {
     final key = existingId ?? 'draft_${DateTime.now().millisecondsSinceEpoch}';
     final dataToCache = {
+      'id': key,
       ...reportData,
       'local_image_path': localImagePath,
       'status': 'draft',
@@ -65,6 +66,7 @@ class ReportRepository {
   }) async {
     final key = 'pending_create_${DateTime.now().millisecondsSinceEpoch}';
     final dataToCache = {
+      'id': key,
       ...reportData,
       'local_image_path': localImagePath,
       'status': 'pending_sync_create',
@@ -79,6 +81,7 @@ class ReportRepository {
   }) async {
     final key = 'pending_update_$id';
     final dataToCache = {
+      'id': key,
       ...reportData,
       'local_image_path': localImagePath,
       'status': 'pending_sync_update',

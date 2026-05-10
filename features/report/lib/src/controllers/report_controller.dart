@@ -7,60 +7,47 @@ import 'package:report/src/repositories/report_repository.dart';
 class ReportController extends ChangeNotifier {
   final _reportRepository = ReportRepository();
 
-  NotifierState _state = NotifierState.initial;
   List<ReportModel> _reports = [];
   String _message = '';
+  bool _isLoading = false;
+  bool _lastOperationFailed = false;
 
-  NotifierState get state => _state;
   List<ReportModel> get reports => _reports;
   String get message => _message;
+  bool get isLoading => _isLoading;
+  bool get lastOperationFailed => _lastOperationFailed;
 
-  /// The definitive fix for the UI freeze bug.
-  /// This method now avoids setting a synchronous loading state if data already exists.
-  /// It fetches new data in the background and only notifies listeners upon completion
-  /// or error, preventing a UI rebuild from racing with navigation animations.
+  void clearMessage() {
+    _message = '';
+  }
+
   Future<void> getReports() async {
-    // Only show a loading spinner if there's no data to display.
-    if (_reports.isEmpty) {
-      _setState(NotifierState.loading);
-    }
+    _isLoading = true;
+    notifyListeners();
 
     try {
-      // Fetch new data in the background.
       final newReports = await _reportRepository.getReports();
       _reports = newReports;
-      _message = ''; // Clear previous messages
-      _setState(NotifierState.loaded); // Notify UI to rebuild with new data.
+      _lastOperationFailed = false;
     } catch (e) {
       _message = e.toString();
-      _setState(NotifierState.error); // Notify UI about the error.
+      _lastOperationFailed = true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  Future<bool> finalizeReport({
+  Future<void> finalizeReport({
     required Map<String, dynamic> reportData,
     File? imageFile,
     String? existingId,
   }) async {
-    _setState(NotifierState.loading);
-    _message = 'Finalisasi laporan...';
-    notifyListeners();
-
     try {
       if (existingId != null && (existingId.startsWith('pending_') || existingId.startsWith('draft_'))) {
-         try {
-          await _reportRepository.queueUpdateForSync(id: existingId, reportData: reportData, localImagePath: imageFile?.path);
-          _message = 'Perubahan disimpan di antrian untuk sinkronisasi.';
-          _setState(NotifierState.loaded);
-          return true;
-        } catch(e) {
-          _message = 'Gagal menyimpan perubahan draft: $e';
-          _setState(NotifierState.error);
-          return false;
-        }
-      }
-
-      if (existingId != null) {
+        await _reportRepository.queueUpdateForSync(id: existingId, reportData: reportData, localImagePath: imageFile?.path);
+        _message = 'Perubahan disimpan di antrian untuk sinkronisasi.';
+      } else if (existingId != null) {
         await _reportRepository.updateReportOnline(id: existingId, reportData: reportData, imageFile: imageFile);
         _message = 'Laporan berhasil diperbarui!';
       } else {
@@ -68,9 +55,9 @@ class ReportController extends ChangeNotifier {
         await _reportRepository.postReportOnline(reportData: reportData, imageFile: imageFile);
         _message = 'Laporan berhasil dikirim!';
       }
-      _setState(NotifierState.loaded);
-      return true;
+      _lastOperationFailed = false;
     } on DioException catch (e) {
+      _lastOperationFailed = true;
       if (_isNetworkError(e)) {
         _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
         if (existingId != null) {
@@ -78,52 +65,52 @@ class ReportController extends ChangeNotifier {
         } else {
           await _reportRepository.queueCreateForSync(reportData: reportData, localImagePath: imageFile!.path);
         }
-        _setState(NotifierState.loaded);
-        return true;
+      } else {
+        _message = 'Gagal: ${e.message}';
       }
-      _message = 'Gagal: ${e.message}';
-      _setState(NotifierState.error);
-      return false;
     } catch (e) {
       _message = 'Terjadi error: $e';
-      _setState(NotifierState.error);
-      return false;
+      _lastOperationFailed = true;
+    } finally {
+      notifyListeners();
     }
   }
 
-  Future<bool> saveAsDraft({
+  Future<void> saveAsDraft({
     required Map<String, dynamic> reportData,
     String? localImagePath,
     String? existingId,
   }) async {
-    _setState(NotifierState.loading);
-    _message = 'Menyimpan sebagai draft...';
-    notifyListeners();
     try {
-      await _reportRepository.saveAsDraft(reportData: reportData, localImagePath: localImagePath, existingId: existingId);
+      // Fire-and-forget the repository call to ensure no blocking.
+      _reportRepository.saveAsDraft(
+        reportData: reportData, 
+        localImagePath: localImagePath, 
+        existingId: existingId
+      );
       _message = 'Laporan berhasil disimpan sebagai draft.';
-      _setState(NotifierState.loaded);
-      return true;
+      _lastOperationFailed = false;
     } catch (e) {
       _message = 'Gagal menyimpan draft: $e';
-      _setState(NotifierState.error);
-      return false;
+      _lastOperationFailed = true;
+    } finally {
+      notifyListeners();
     }
   }
 
-  Future<bool> deleteReport(String id, String status) async {
-    _setState(NotifierState.loading);
-    _message = 'Menghapus laporan...';
+  Future<void> deleteReport(String id, String status) async {
+    _isLoading = true;
     notifyListeners();
     try {
       await _reportRepository.deleteReport(id, status);
       _message = 'Laporan berhasil dihapus.';
-      _setState(NotifierState.loaded);
-      return true;
+      _lastOperationFailed = false;
     } catch (e) {
       _message = 'Gagal menghapus laporan: $e';
-      _setState(NotifierState.error);
-      return false;
+      _lastOperationFailed = true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -131,10 +118,5 @@ class ReportController extends ChangeNotifier {
     return e.type == DioExceptionType.connectionError ||
            e.type == DioExceptionType.connectionTimeout ||
            e.type == DioExceptionType.unknown;
-  }
-
-  void _setState(NotifierState newState) {
-    _state = newState;
-    notifyListeners();
   }
 }

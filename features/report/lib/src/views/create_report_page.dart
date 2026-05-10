@@ -59,26 +59,10 @@ class _CreateReportPageState extends State<CreateReportPage> {
       // Only allow Teknisi to edit found items
       isLost = session.isTeknisi ? (report.status != 'found') : true;
     }
-    context.read<ReportController>().addListener(_handleStateChanges);
-  }
-
-  void _handleStateChanges() {
-    if (!mounted) return;
-    final controller = context.read<ReportController>();
-    if (controller.message.isNotEmpty && (controller.state == NotifierState.error || controller.state == NotifierState.loaded)) {
-       ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(controller.message),
-          backgroundColor:
-              controller.state == NotifierState.error ? Colors.red : Colors.green,
-        ));
-    }
   }
 
   @override
   void dispose() {
-    context.read<ReportController>().removeListener(_handleStateChanges);
     _nameController.dispose();
     _phoneController.dispose();
     _descController.dispose();
@@ -124,9 +108,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
   }
 
   Future<void> _onFinalize() async {
-    await Future.delayed(Duration.zero);
     final session = context.read<SessionController>();
-
     if (!session.isTeknisi && !isLost) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
@@ -150,35 +132,31 @@ class _CreateReportPageState extends State<CreateReportPage> {
         return;
       }
     }
+    
+    // Immediately pop the screen to give the user instant feedback.
+    Navigator.pop(context, true);
 
-    final controller = context.read<ReportController>();
-    final reportData = {
-      'title': _nameController.text,
-      'description': _descController.text,
-      'location': _locationController.text,
-      'contact': _phoneController.text,
-      'category': _selectedCategory,
-      'reward': _rewardController.text,
-      'status': isLost ? 'lost' : 'found',
-      'createdAt': widget.existingReport?.createdAt.toIso8601String(),
-      'imageUrl': widget.existingReport?.imageUrl,
-    };
-
-    final success = await controller.finalizeReport(
-      reportData: reportData,
+    // Trigger the finalize operation in the background without awaiting it.
+    // The previous screen will listen for controller updates and refresh itself.
+    context.read<ReportController>().finalizeReport(
+      reportData: {
+        'title': _nameController.text,
+        'description': _descController.text,
+        'location': _locationController.text,
+        'contact': _phoneController.text,
+        'category': _selectedCategory,
+        'reward': _rewardController.text,
+        'status': isLost ? 'lost' : 'found',
+        'createdAt': widget.existingReport?.createdAt.toIso8601String(),
+        'imageUrl': widget.existingReport?.imageUrl,
+      },
       imageFile: _imageFile,
       existingId: widget.existingReport?.id,
     );
-
-    if (success && mounted) {
-      Navigator.pop(context, true);
-    }
   }
 
   Future<void> _onSaveDraft() async {
-    await Future.delayed(Duration.zero);
     final session = context.read<SessionController>();
-
     if (!session.isTeknisi && !isLost) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
@@ -193,27 +171,25 @@ class _CreateReportPageState extends State<CreateReportPage> {
       return;
     }
 
-    final controller = context.read<ReportController>();
-    final reportData = {
-      'title': _nameController.text,
-      'description': _descController.text,
-      'location': _locationController.text,
-      'contact': _phoneController.text,
-      'category': _selectedCategory,
-      'reward': _rewardController.text,
-      'status': 'draft',
-      'createdAt': widget.existingReport?.createdAt.toIso8601String(),
-    };
+    // Immediately pop the screen to give the user instant feedback.
+    Navigator.pop(context, true);
 
-    final success = await controller.saveAsDraft(
-      reportData: reportData,
+    // Trigger the save operation in the background without awaiting it.
+    // The previous screen will listen for controller updates and refresh itself.
+    context.read<ReportController>().saveAsDraft(
+      reportData: {
+        'title': _nameController.text,
+        'description': _descController.text,
+        'location': _locationController.text,
+        'contact': _phoneController.text,
+        'category': _selectedCategory,
+        'reward': _rewardController.text,
+        'status': 'draft',
+        'createdAt': widget.existingReport?.createdAt.toIso8601String(),
+      },
       localImagePath: _imageFile?.path ?? widget.existingReport?.localImagePath,
       existingId: widget.existingReport?.id,
     );
-
-    if (success && mounted) {
-      Navigator.pop(context, true);
-    }
   }
 
   bool _isFormValid({bool isFinalizing = false}) {
@@ -231,116 +207,97 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<ReportController>();
     final session = context.watch<SessionController>();
-    final isLoading = controller.state == NotifierState.loading;
     final isEditing = widget.existingReport != null;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CustomHeader(title: isEditing ? "Edit Laporan" : "Buat Laporan"),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-            child: Column(
-              children: [
-                _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
-                const SizedBox(height: 24),
-                _buildPhotoPicker(),
-                const SizedBox(height: 20),
-                CustomTextField(
-                    label: "Nama Barang",
-                    hint: "Misal: KTM atas nama Lu Guang",
-                    isRequired: true,
-                    controller: _nameController,
-                    onChanged: (_) => setState(() {})),
-                if (isLost) ...[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(children: [
-                        Text("Nomor WhatsApp (Aktif)",
-                            style: TextStyle(
-                                color: AppColors.primaryBlue,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12)),
-                        Text(" *", style: TextStyle(color: Colors.red))
-                      ]),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                        maxLength: 13,
-                        onChanged: (_) => setState(() {}),
-                        decoration: InputDecoration(
-                          hintText: "08xxxxxxxxx",
-                          counterText: "",
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(
-                                  color: AppColors.secondaryBlue, width: 2)),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+        child: Column(
+          children: [
+            _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
+            const SizedBox(height: 24),
+            _buildPhotoPicker(),
+            const SizedBox(height: 20),
+            CustomTextField(
+                label: "Nama Barang",
+                hint: "Misal: KTM atas nama Lu Guang",
+                isRequired: true,
+                controller: _nameController,
+                onChanged: (_) => setState(() {})),
+            if (isLost) ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(children: [
+                    Text("Nomor WhatsApp (Aktif)",
+                        style: TextStyle(
+                            color: AppColors.primaryBlue,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12)),
+                    Text(" *", style: TextStyle(color: Colors.red))
+                  ]),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly
                     ],
+                    maxLength: 13,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: "08xxxxxxxxx",
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: const BorderSide(
+                              color: AppColors.secondaryBlue, width: 2)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                    ),
                   ),
+                  const SizedBox(height: 16),
                 ],
-                CustomDropdown(
-                    label: "Kategori",
-                    items: const [
-                      "Dokumen",
-                      "Elektronik",
-                      "Kunci",
-                      "Dompet",
-                      "Pakaian",
-                      "Lainnya"
-                    ],
-                    value: _selectedCategory,
-                    isRequired: true,
-                    onChanged: (value) =>
-                        setState(() => _selectedCategory = value)),
-                CustomTextField(
-                    label: "Lokasi (Opsional)",
-                    hint: "Lokasi Terakhir Diingat",
-                    controller: _locationController,
-                    onChanged: (_) => setState(() {})),
-                CustomTextField(
-                    label: "Deskripsi Barang",
-                    hint: "Detail Ciri Khusus Barang",
-                    isRequired: true,
-                    maxLines: 4,
-                    controller: _descController,
-                    onChanged: (_) => setState(() {})),
-                if (isLost) _buildRewardSection(),
-              ],
-            ),
-          ),
-          if (isLoading)
-            Container(
-                color: Colors.black.withOpacity(0.5),
-                child: Center(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                      const CircularProgressIndicator(color: Colors.white),
-                      const SizedBox(height: 16),
-                      Text(controller.message,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 16))
-                    ]))),
-        ],
+              ),
+            ],
+            CustomDropdown(
+                label: "Kategori",
+                items: const [
+                  "Dokumen",
+                  "Elektronik",
+                  "Kunci",
+                  "Dompet",
+                  "Pakaian",
+                  "Lainnya"
+                ],
+                value: _selectedCategory,
+                isRequired: true,
+                onChanged: (value) =>
+                    setState(() => _selectedCategory = value)),
+            CustomTextField(
+                label: "Lokasi (Opsional)",
+                hint: "Lokasi Terakhir Diingat",
+                controller: _locationController,
+                onChanged: (_) => setState(() {})),
+            CustomTextField(
+                label: "Deskripsi Barang",
+                hint: "Detail Ciri Khusus Barang",
+                isRequired: true,
+                maxLines: 4,
+                controller: _descController,
+                onChanged: (_) => setState(() {})),
+            if (isLost) _buildRewardSection(),
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildActionButtons(isLoading),
+      bottomNavigationBar: _buildActionButtons(false),
     );
   }
 

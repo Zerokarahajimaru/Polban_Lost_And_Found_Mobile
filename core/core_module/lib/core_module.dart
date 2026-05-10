@@ -5,6 +5,7 @@ export 'src/widgets/custom_header.dart';
 export 'src/widgets/custom_bottom_nav.dart';
 export 'src/widgets/custom_text_field.dart';
 export 'src/widgets/custom_dropdown.dart';
+export 'src/widgets/notification_banner.dart';
 
 // Theme
 export 'src/theme/color_service.dart';
