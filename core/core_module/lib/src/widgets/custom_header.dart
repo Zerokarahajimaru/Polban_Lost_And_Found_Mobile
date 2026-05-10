@@ -27,7 +27,10 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
                 color: AppColors.primaryYellow,
                 size: 32,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                Navigator.pop(context);
+              },
             )
           : null,
       title: Text(
