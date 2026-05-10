@@ -116,8 +116,6 @@ class _CreateReportPageState extends State<CreateReportPage> {
       return;
     }
 
-    // Determine the image to be finalized. Prioritize the new image file,
-    // but fall back to the existing one if it's just an edit without a new image.
     File? imageToFinalize;
     if (_imageFile != null) {
       imageToFinalize = _imageFile;
@@ -126,7 +124,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
       imageToFinalize = File(widget.existingReport!.localImagePath!);
     }
 
-    if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null)) {
+    final oldImageExists = widget.existingReport?.imageUrl != null && widget.existingReport!.imageUrl.isNotEmpty;
+    if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null || oldImageExists)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Harap isi semua kolom yang wajib diisi (*)"),
           backgroundColor: Colors.red));

@@ -56,19 +56,20 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Future<void> _navigateToCreateOrEdit({ReportModel? report}) async {
-    final result = await Navigator.push(
+    // The controller is now passed down using ChangeNotifierProvider.value
+    // to ensure the same instance is used by the CreateReportPage.
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider.value(
           value: _controller,
-          child: CreateReportProvider(existingReport: report),
+          // The CreateReportProvider is no longer needed here as we provide the controller directly.
+          child: CreateReportPage(existingReport: report),
         ),
       ),
     );
-
-    if (result == true && mounted) {
-      _controller.getReports();
-    }
+    // No need to call getReports() here anymore.
+    // The controller will update its state and notify listeners itself.
   }
 
   Future<void> _deleteAndRefresh(ReportModel report) async {
