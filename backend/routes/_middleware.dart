@@ -1,6 +1,6 @@
 import 'package:dart_frog/dart_frog.dart';
 
 Handler middleware(Handler handler) {
-  // Dependency injection is no longer handled here.
+  // This is the original, simple middleware.
   return handler;
 }

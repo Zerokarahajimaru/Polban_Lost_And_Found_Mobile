@@ -1,11 +1,10 @@
 import 'dart:io';
-import 'package:core_module/core_module.dart' hide ReportModel;
+import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
-import 'package:report/src/models/report_model.dart';
 
 class CreateReportProvider extends StatelessWidget {
   final ReportModel? existingReport;
@@ -43,6 +42,12 @@ class _CreateReportPageState extends State<CreateReportPage> {
   @override
   void initState() {
     super.initState();
+
+    final session = context.read<SessionController>();
+    if (!session.isTeknisi) {
+      isLost = true;
+    }
+
     if (widget.existingReport != null) {
       final report = widget.existingReport!;
       _nameController.text = report.title;
@@ -51,7 +56,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
       _phoneController.text = report.contact ?? '';
       _rewardController.text = report.reward ?? '';
       _selectedCategory = report.category;
-      isLost = report.status != 'found';
+      // Only allow Teknisi to edit found items
+      isLost = session.isTeknisi ? (report.status != 'found') : true;
     }
     context.read<ReportController>().addListener(_handleStateChanges);
   }
@@ -118,6 +124,16 @@ class _CreateReportPageState extends State<CreateReportPage> {
   }
 
   Future<void> _onFinalize() async {
+    await Future.delayed(Duration.zero);
+    final session = context.read<SessionController>();
+
+    if (!session.isTeknisi && !isLost) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
+          backgroundColor: Colors.red));
+      return;
+    }
+
     if (!_isFormValid(isFinalizing: true)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Harap isi semua kolom yang wajib diisi (*)"),
@@ -155,11 +171,21 @@ class _CreateReportPageState extends State<CreateReportPage> {
     );
 
     if (success && mounted) {
-      Navigator.pop(context, true); // Pop with a success signal
+      Navigator.pop(context, true);
     }
   }
 
   Future<void> _onSaveDraft() async {
+    await Future.delayed(Duration.zero);
+    final session = context.read<SessionController>();
+
+    if (!session.isTeknisi && !isLost) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
+          backgroundColor: Colors.red));
+      return;
+    }
+
     if (_nameController.text.isEmpty && _descController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Isi setidaknya judul atau deskripsi untuk menyimpan draft."),
@@ -186,7 +212,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
     );
 
     if (success && mounted) {
-      Navigator.pop(context, true); // Pop with a success signal
+      Navigator.pop(context, true);
     }
   }
 
@@ -206,6 +232,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ReportController>();
+    final session = context.watch<SessionController>();
     final isLoading = controller.state == NotifierState.loading;
     final isEditing = widget.existingReport != null;
 
@@ -218,7 +245,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
             child: Column(
               children: [
-                _buildTabSelector(isEditing: isEditing),
+                _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
                 const SizedBox(height: 24),
                 _buildPhotoPicker(),
                 const SizedBox(height: 20),
@@ -366,7 +393,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
     );
   }
 
-  Widget _buildTabSelector({required bool isEditing}) {
+  Widget _buildTabSelector({required bool isEditing, required bool isTeknisi}) {
     return AbsorbPointer(
       absorbing: isEditing,
       child: Opacity(
@@ -378,8 +405,9 @@ class _CreateReportPageState extends State<CreateReportPage> {
             child: Row(children: [
               _tabButton("Barang Hilang", isLost,
                   () => setState(() => isLost = true)),
-              _tabButton("Barang Temuan", !isLost,
-                  () => setState(() => isLost = false))
+              if (isTeknisi)
+                _tabButton("Barang Temuan", !isLost,
+                    () => setState(() => isLost = false))
             ])),
       ),
     );

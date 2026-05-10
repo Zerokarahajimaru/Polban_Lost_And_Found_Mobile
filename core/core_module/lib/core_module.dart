@@ -14,3 +14,14 @@ export 'src/theme/theme_service.dart';
 export 'src/services/hive_service.dart';
 export 'src/services/network_service.dart';
 export 'src/services/cloudinary_service.dart';
+
+// Controllers
+export 'src/controllers/session_controller.dart';
+
+// Models
+export 'src/models/user_model.dart';
+export 'src/models/report_model.dart';
+
+
+// Enums
+export 'src/enums/notifier_state.dart';

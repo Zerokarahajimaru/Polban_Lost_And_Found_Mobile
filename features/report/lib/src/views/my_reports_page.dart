@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'package:core_module/core_module.dart' hide ReportModel;
+import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
-import 'package:report/src/models/report_model.dart';
 import 'package:report/src/views/create_report_page.dart';
 
 class MyReportsProvider extends StatelessWidget {

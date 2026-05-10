@@ -1,19 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
+import 'package:provider/provider.dart';
+import '../controllers/login_controller.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => LoginController(),
+      child: const _LoginView(),
+    );
+  }
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginView extends StatefulWidget {
+  const _LoginView();
+
+  @override
+  State<_LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<_LoginView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _performLogin() async {
+    final loginController = context.read<LoginController>();
+    final sessionController = context.read<SessionController>();
+
+    final success = await loginController.login(
+      _emailController.text,
+      _passwordController.text,
+    );
+
+    if (mounted && success) {
+      sessionController.login(loginController.loggedInUser!);
+      // The GoRouter redirect will handle navigation automatically.
+    }
+
+    if (mounted && loginController.state == NotifierState.error) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(loginController.message),
+          backgroundColor: Colors.red,
+        ));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = context.watch<LoginController>();
+    final isLoading = controller.state == NotifierState.loading;
+
     return Scaffold(
       backgroundColor: AppColors.primaryBlue,
       body: SingleChildScrollView(
@@ -62,15 +110,19 @@ class _LoginPageState extends State<LoginPage> {
                           backgroundColor: AppColors.primaryYellow,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
-                        onPressed: () {},
-                        child: const Text(
-                          "MASUK PORTAL",
-                          style: TextStyle(
-                            color: AppColors.primaryBlue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
+                        onPressed: isLoading ? null : _performLogin,
+                        child: isLoading
+                            ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                              )
+                            : const Text(
+                                "MASUK PORTAL",
+                                style: TextStyle(
+                                  color: AppColors.primaryBlue,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -119,6 +171,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showResetPasswordDialog(BuildContext context) {
+    // This UI is kept as is, but the actions are not implemented.
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -164,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text("BATAL", style: TextStyle(color: Colors.white70))),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryYellow),
-                    onPressed: () {},
+                    onPressed: () {}, // Not implemented
                     child: const Text("KIRIM LINK", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
                   ),
                 ],

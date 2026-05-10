@@ -1,8 +1,7 @@
 import 'dart:io';
-import 'package:core_module/core_module.dart' hide ReportModel;
+import 'package:core_module/core_module.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:report/src/models/report_model.dart';
 
 class ReportRepository {
   final _networkService = NetworkService();
