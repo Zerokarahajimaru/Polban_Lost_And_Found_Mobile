@@ -177,6 +177,25 @@ class _CreateReportPageState extends State<CreateReportPage> {
       return;
     }
 
+    String? finalLocalImagePath = _imageFile?.path ?? widget.existingReport?.localImagePath;
+
+    final isRevertingSyncedPost = widget.existingReport != null &&
+        !widget.existingReport!.status.contains('draft') &&
+        !widget.existingReport!.status.contains('pending');
+
+    // If reverting a synced post and no new image is chosen, download the existing one first.
+    if (isRevertingSyncedPost && _imageFile == null && widget.existingReport!.imageUrl.isNotEmpty) {
+      final downloadedPath = await FileService.downloadImageAndGetPath(widget.existingReport!.imageUrl);
+      if (downloadedPath == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Gagal mengunduh gambar untuk disimpan sebagai draft.'),
+          backgroundColor: Colors.red,
+        ));
+        return; // Stop if download fails.
+      }
+      finalLocalImagePath = downloadedPath;
+    }
+
     Navigator.pop(context, true);
 
     context.read<ReportController>().saveAsDraft(
@@ -189,8 +208,9 @@ class _CreateReportPageState extends State<CreateReportPage> {
         'reward': _rewardController.text,
         'status': 'draft',
         'createdAt': widget.existingReport?.createdAt.toIso8601String(),
+        'imageUrl': '', // We prioritize the local path for drafts.
       },
-      localImagePath: _imageFile?.path ?? widget.existingReport?.localImagePath,
+      localImagePath: finalLocalImagePath,
       existingId: widget.existingReport?.id,
     );
   }

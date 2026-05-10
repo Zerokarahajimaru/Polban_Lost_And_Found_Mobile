@@ -90,51 +90,49 @@ class ReportController extends ChangeNotifier {
       }
     }
   
-    Future<void> saveAsDraft({
-      required Map<String, dynamic> reportData,
-      String? localImagePath,
-      String? existingId,
-    }) async {
-      try {
-        final isRevertingSyncedPost = existingId != null &&
-            !existingId.startsWith('draft_') &&
-            !existingId.startsWith('pending_');
-  
-        if (isRevertingSyncedPost) {
-          // Case 1: Reverting a synced post to a local draft.
-          // Create a new draft.
-          await _reportRepository.saveAsDraft(
-            reportData: reportData,
-            localImagePath: localImagePath,
-            existingId: null, // Force new draft creation
-          );
-          
-          // Fire-and-forget the deletion of the old synced post.
-          // The repository handles offline queueing. This avoids blocking the UI.
-          _reportRepository.deleteReport(existingId, 'synced');
-  
-          _message = 'Postingan online telah diubah menjadi draft lokal.';
-          _lastOperationFailed = false;
-          
-        } else {
-          // Case 2: Creating a new draft or updating an existing draft.
-          await _reportRepository.saveAsDraft(
-            reportData: reportData,
-            localImagePath: localImagePath,
-            existingId: existingId, // Pass the original ID to update
-          );
-          _message = 'Laporan berhasil disimpan sebagai draft.';
-          _lastOperationFailed = false;
-        }
-  
-        // After any successful draft operation, refresh the state from the local source of truth.
-        await refreshFromCache();
-      } catch (e) {
-        _message = 'Gagal menyimpan draft: $e';
-        _lastOperationFailed = true;
-        notifyListeners();
+  Future<void> saveAsDraft({
+    required Map<String, dynamic> reportData,
+    String? localImagePath,
+    String? existingId,
+  }) async {
+    try {
+      final isRevertingSyncedPost = existingId != null &&
+          !existingId.startsWith('draft_') &&
+          !existingId.startsWith('pending_');
+
+      if (isRevertingSyncedPost) {
+        // Case 1: Reverting a synced post. Create a new draft.
+        await _reportRepository.saveAsDraft(
+          reportData: reportData,
+          localImagePath: localImagePath,
+          existingId: null, // Force new draft creation
+        );
+        
+        // Fire-and-forget the deletion of the old synced post.
+        _reportRepository.deleteReport(existingId, 'synced');
+
+        _message = 'Postingan online telah diubah menjadi draft lokal.';
+        _lastOperationFailed = false;
+        
+      } else {
+        // Case 2: Creating a new draft or updating an existing one.
+        await _reportRepository.saveAsDraft(
+          reportData: reportData,
+          localImagePath: localImagePath,
+          existingId: existingId, // Pass the original ID to update
+        );
+        _message = 'Laporan berhasil disimpan sebagai draft.';
+        _lastOperationFailed = false;
       }
+
+      await refreshFromCache();
+
+    } catch (e) {
+      _message = 'Gagal menyimpan draft: $e';
+      _lastOperationFailed = true;
+      notifyListeners();
     }
+  }
   Future<void> refreshFromCache() async {
     _reports = await _reportRepository.loadFromCacheOnly();
     notifyListeners();
