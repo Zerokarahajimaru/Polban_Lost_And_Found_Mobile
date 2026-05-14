@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:claim/claim.dart';
+import 'package:post/post.dart';
 import 'package:report/src/models/report_model.dart';
 
 // ========================
@@ -133,6 +134,11 @@ class ReportDetailPage extends StatelessWidget {
                         _buildKlaimButton(context) // Muncul jika TEMUAN
                       else
                         _buildHubungiButton(context), // Muncul jika KEHILANGAN
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Tombol Report dengan tanda seru merah
+                      _buildReportButton(context),
 
                       const SizedBox(height: 100), // Spasi bawah agar tidak tertutup
                     ],
@@ -317,6 +323,36 @@ class ReportDetailPage extends StatelessWidget {
           // Tambahkan logika WhatsApp/Chat di sini
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Menghubungi pelapor...")),
+          );
+        },
+      ),
+    );
+  }
+
+  // Tombol Report dengan tanda seru merah
+  Widget _buildReportButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.red, width: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        ),
+        icon: const Icon(Icons.warning_outlined, color: Colors.red),
+        label: const Text(
+          "LAPORKAN POSTINGAN",
+          style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 16),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ReportPostPageProvider(),
+            ),
           );
         },
       ),

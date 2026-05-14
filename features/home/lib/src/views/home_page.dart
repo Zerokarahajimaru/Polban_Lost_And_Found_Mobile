@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
+import 'package:notification/notification.dart';
 import '../controllers/home_controller.dart';
 // import '../models/item_report.dart';
 
@@ -47,7 +48,17 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           backgroundColor: AppColors.softGrey,
-          appBar: const CustomHeader(title: 'Beranda Publik'),
+          appBar: CustomHeader(
+            title: 'Beranda Publik',
+            onNotificationTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotifikasiPage(),
+                ),
+              );
+            },
+          ),
           body: Column(
             children: [
               Container(
@@ -62,63 +73,85 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDataLokalBanner(unsyncedCount),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.verified_user_outlined,
-                                color: AppColors.primaryBlue, size: 22),
-                            SizedBox(width: 8),
-                            Text(
-                              'Laporan Terverifikasi',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.black87,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    await context.read<ReportController>().getReports();
+                  },
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _buildDataLokalBanner(unsyncedCount),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                          child: Row(
+                            children: const [
+                              Icon(Icons.verified_user_outlined,
+                                  color: AppColors.primaryBlue, size: 22),
+                              SizedBox(width: 8),
+                              Text(
+                                'Laporan Terverifikasi',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       if (reportController.state == NotifierState.loading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: CircularProgressIndicator(),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
                           ),
                         )
                       else if (reportController.state == NotifierState.error)
-                        Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Center(
-                            child: Text(
-                              'Gagal memuat laporan: ${reportController.message}',
-                              style: const TextStyle(color: Colors.red),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Center(
+                              child: Text(
+                                'Gagal memuat laporan: ${reportController.message}',
+                                style: const TextStyle(color: Colors.red),
+                              ),
                             ),
                           ),
                         )
                       else if (filteredReports.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(20.0),
-                          child: Center(
-                            child: Text('Tidak ada laporan tersedia'),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(
+                              child: Text('Tidak ada laporan tersedia'),
+                            ),
                           ),
                         )
                       else
-                        Padding(
+                        SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            children: filteredReports
-                                .map((item) => _buildLaporanCard(item))
-                                .toList(),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final item = filteredReports[index];
+                                return _buildLaporanCard(item);
+                              },
+                              childCount: filteredReports.length,
+                            ),
                           ),
                         ),
+                      SliverToBoxAdapter(
+                        child: const SizedBox(height: 24),
+                      ),
                     ],
                   ),
                 ),
@@ -267,7 +300,14 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildDataLokalBanner(int unsyncedCount) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const MyReportsProvider(),
+          ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         padding: const EdgeInsets.all(14),
@@ -332,7 +372,7 @@ class _HomePageState extends State<HomePage> {
             BoxShadow(
               color: AppColors.primaryBlue.withValues(alpha: 0.1),
               blurRadius: 10,
-              offset: const Offset(0, 3),
+              offset: const Offset(0, 10),
             ),
           ],
         ),

@@ -12,6 +12,7 @@ class ReportModel extends Equatable {
     this.reward,           // Optional: provided if the user offers an incentive
     required this.createdAt,
     required this.status,
+    required this.syncStatus,
     this.localImagePath, // Added for offline image preview
   });
 
@@ -29,6 +30,7 @@ class ReportModel extends Equatable {
   
   final DateTime createdAt;
   final String status;
+  final String syncStatus;
   final String? localImagePath; // Path to the image on the local device
 
   factory ReportModel.fromMap(Map<dynamic, dynamic> map) {
@@ -40,8 +42,6 @@ class ReportModel extends Equatable {
     if (map['_id'] != null) {
       finalId =
           map['_id'] is Map ? map['_id']['\$oid'] as String : map['_id'].toString();
-    } else if (map['id_from_key'] != null) {
-      finalId = map['id_from_key'] as String;
     } else {
       // For pending items, we construct a temporary ID.
       // The key from Hive is the source of truth, but this works for model creation.
@@ -67,6 +67,8 @@ class ReportModel extends Equatable {
           : DateTime.now().toLocal(),
       status:
           map['status'] as String? ?? map['status_postingan'] as String? ?? 'pending',
+      syncStatus: map['sync_status'] as String? ??
+          (map['local_image_path'] != null ? 'pending_sync' : 'synced'),
       // Read the local image path, which only exists for pending items.
       localImagePath: map['local_image_path'] as String?,
     );
@@ -95,6 +97,7 @@ class ReportModel extends Equatable {
       'reward': reward,     // Saved locally
       'createdAt': createdAt.toIso8601String(),
       'status': status,
+      'sync_status': syncStatus,
       'local_image_path': localImagePath,
     };
   }
@@ -110,6 +113,7 @@ class ReportModel extends Equatable {
         reward,
         createdAt,
         status,
+        syncStatus,
         localImagePath,
       ];
 }

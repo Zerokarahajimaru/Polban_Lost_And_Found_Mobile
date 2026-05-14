@@ -104,11 +104,10 @@ class _MyReportsPageState extends State<MyReportsPage>
 
 
   Widget _buildLoadedView(List<ReportModel> reports) {
-    // diganti sementara buat testing, nanti bisa diubah lagi sesuai kebutuhan
     final pendingReports =
-        reports.where((r) => r.id.startsWith('pending_')).toList();
+        reports.where((r) => r.syncStatus == 'pending_sync').toList();
     final historyReports =
-        reports.where((r) => !r.id.startsWith('pending_')).toList();
+        reports.where((r) => r.syncStatus != 'pending_sync').toList();
 
     return Column(
       children: [
@@ -239,13 +238,18 @@ class _MyReportsPageState extends State<MyReportsPage>
     if (reports.isEmpty) {
       return const Center(child: Text("Tidak ada laporan"));
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: reports.length,
-      itemBuilder: (context, index) {
-        final report = reports[index];
-        return _buildReportCard(report);
+    return RefreshIndicator(
+      onRefresh: () async {
+        await context.read<ReportController>().getReports();
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: reports.length,
+        itemBuilder: (context, index) {
+          final report = reports[index];
+          return _buildReportCard(report);
+        },
+      ),
     );
   }
 
@@ -257,7 +261,7 @@ class _MyReportsPageState extends State<MyReportsPage>
       imageProvider = NetworkImage(report.imageUrl);
     }
 
-    final isActuallyPending = report.status == 'pending_sync';
+    final isActuallyPending = report.syncStatus == 'pending_sync';
     final String statusText = isActuallyPending ? "Pending Sync" : "Tersinkron";
     final Color statusColor = isActuallyPending ? Colors.orange : Colors.blue;
 

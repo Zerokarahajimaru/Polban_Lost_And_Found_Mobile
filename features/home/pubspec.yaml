@@ -15,6 +15,8 @@ dependencies:
     path: ../report
   core_module:
     path: ../../core/core_module
+  notification:
+    path: ../notification
   provider: ^6.1.1
 
 dev_dependencies:

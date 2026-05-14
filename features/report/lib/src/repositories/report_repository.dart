@@ -43,10 +43,10 @@ class ReportRepository {
     required String localImagePath,
   }) async {
     final key = 'pending_${DateTime.now().millisecondsSinceEpoch}';
-
     final dataToCache = {
       ...reportData,
       'local_image_path': localImagePath,
+      'createdAt': DateTime.now().toIso8601String(),
       'status': reportData['status'] as String? ?? 'lost',
       'sync_status': 'pending_sync',
     };
@@ -84,6 +84,7 @@ class ReportRepository {
           'contact': data['contact'],
           'category': data['category'],
           'reward': data['reward'],
+          // ada perubahan disini, untuk test home dulu, nanti bisa diubah lagi sesuai kebutuhan
           'status': data['status'] as String? ?? 'lost',
           'imageUrl': imageUrl,
         };

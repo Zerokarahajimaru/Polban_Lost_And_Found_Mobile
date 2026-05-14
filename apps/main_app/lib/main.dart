@@ -7,21 +7,15 @@ void main() async {
   // Ensure that Flutter bindings are initialized before any async operations.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize all core services.
-  // 1. Hive for local caching
   await HiveService().init();
 
-  // 2. Cloudinary for image uploads
-  // TODO: IMPORTANT! Fill in your Cloudinary credentials here.
   CloudinaryService().init(
     cloudName: 'dd9ziyeaj',
     uploadPreset: 'Lost_found_polban',
   );
 
-  // 3. Network service for API communication
-  // This base URL points to the backend running on the local network.
-  // Use the backend host IP and port that the server exposes.
-  NetworkService().init(baseUrl: 'http://192.168.1.14:8081');
+  // ini ip laptop soalnya di tes pake hp fisik, jadi harus pake ip laptop, nanti bisa diubah lagi sesuai kebutuhan
+  NetworkService().init(baseUrl: 'http://192.168.1.14:8082');
 
   runApp(const MyApp());
 }

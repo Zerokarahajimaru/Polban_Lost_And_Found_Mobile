@@ -24,6 +24,8 @@ dependencies:
     path: ../../features/history
   claim:
     path: ../../features/claim
+  notification:
+    path: ../../features/notification
   
   # Core
   core_module:

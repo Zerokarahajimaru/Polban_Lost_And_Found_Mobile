@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:post/src/models/report_post_model.dart';
 
-/// State enum untuk report post
 enum ReportPostState { initial, loading, loaded, error }
 
 /// Alasan-alasan pelaporan yang tersedia

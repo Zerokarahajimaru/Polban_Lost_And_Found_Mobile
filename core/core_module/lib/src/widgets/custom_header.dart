@@ -60,7 +60,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Text(
-                  '3',
+                  '3', // Contoh jumlah notifikasi, bisa diganti dengan data dinamis
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 8,

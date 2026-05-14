@@ -19,6 +19,8 @@ dependencies:
     path: ../../features/home
   claim:
     path: ../../features/claim
+  post:
+    path: ../../features/post
   provider: ^6.1.5+1
   equatable: ^2.0.8
 

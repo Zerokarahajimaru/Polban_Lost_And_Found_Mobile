@@ -66,7 +66,7 @@ class ReportController extends ChangeNotifier {
         localImagePath: imageFile.path,
       );
 
-      _message = 'Laporan berhasil disimpan & akan disinkronisasi.';
+      _message = 'Laporan disimpan sebagai draft. Akan disinkronkan ketika online.';
       _setState(NotifierState.loaded);
       return true; // Signal success for navigation
     } catch (e) {
