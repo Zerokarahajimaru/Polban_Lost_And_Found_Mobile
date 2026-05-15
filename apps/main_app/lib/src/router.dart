@@ -12,7 +12,6 @@ class AppRouter {
     initialLocation: '/login',
     navigatorKey: _rootNavigatorKey,
     routes: [
-      // Main application shell
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
@@ -21,7 +20,7 @@ class AppRouter {
         routes: [
           GoRoute(
             path: '/home',
-            builder: (context, state) => const Center(child: Text('Home Content')), // Placeholder for real home
+            builder: (context, state) => const Center(child: Text('Home Content')), 
           ),
           GoRoute(
             path: '/reports',
@@ -41,23 +40,22 @@ class AppRouter {
     ],
     // Redirect logic
     redirect: (BuildContext context, GoRouterState state) {
-      final hiveService = HiveService();
-      final bool loggedIn = hiveService.isLoggedIn();
-      final bool loggingIn = state.matchedLocation == '/login';
+      // final hiveService = HiveService();
+      // final bool loggedIn = hiveService.isLoggedIn();
+      // final bool loggingIn = state.matchedLocation == '/login';
 
-      if (!loggedIn && !loggingIn) {
-        return '/login'; // If not logged in and not on the login page, redirect to login
-      }
-      if (loggedIn && loggingIn) {
-        return '/home'; // If logged in and on the login page, redirect to home
-      }
+      // if (!loggedIn && !loggingIn) {
+      //   return '/login'; // If not logged in and not on the login page, redirect to login
+      // }
+      // if (loggedIn && loggingIn) {
+      //   return '/home'; // If logged in and on the login page, redirect to home
+      // }
 
       return null; // No redirect needed
     },
   );
 }
 
-// This will be the new Main Navigation Hub
 class HomePage extends StatefulWidget {
   final Widget child;
   const HomePage({super.key, required this.child});
@@ -93,7 +91,6 @@ class _HomePageState extends State<HomePage> {
         GoRouter.of(context).go('/reports');
         break;
       case 2:
-        // Placeholder for claim page
         GoRouter.of(context).go('/claim');
         break;
       case 3:
@@ -111,7 +108,6 @@ class _HomePageState extends State<HomePage> {
         shape: const CircleBorder(
             side: BorderSide(color: AppColors.primaryBlue, width: 4)),
         onPressed: () {
-          // TODO: Implement FAB action, maybe navigate to a 'create' page
         },
         child: Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
       ),

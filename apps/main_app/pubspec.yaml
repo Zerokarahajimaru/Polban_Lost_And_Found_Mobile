@@ -1,5 +1,5 @@
 name: main_app
-description: "A new Flutter project."
+description: "Polban Lost and Found — aplikasi utama."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,7 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  image_picker: ^1.1.2
+
+  # Feature packages
   home:
     path: ../../features/home
   post:
@@ -24,7 +25,9 @@ dependencies:
     path: ../../features/history
   claim:
     path: ../../features/claim
-  
+  teknisi_dashboard:
+    path: ../../features/teknisi_dashboard
+
   # Core
   core_module:
     path: ../../core/core_module
@@ -33,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   go_router: ^14.1.1
   provider: ^6.0.0
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:

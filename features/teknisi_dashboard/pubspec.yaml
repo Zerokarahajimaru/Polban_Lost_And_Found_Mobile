@@ -1,5 +1,5 @@
-name: login
-description: "Fitur login untuk Polban Lost and Found."
+name: teknisi_dashboard
+description: "Dashboard entry point untuk role Teknisi — navigasi saja, tidak ada business logic."
 publish_to: 'none'
 version: 0.0.1
 
@@ -12,8 +12,8 @@ dependencies:
     sdk: flutter
   core_module:
     path: ../../core/core_module
-  provider: ^6.1.2
-  dio: ^5.9.2
+  moderation:
+    path: ../moderation
 
 dev_dependencies:
   flutter_test:
