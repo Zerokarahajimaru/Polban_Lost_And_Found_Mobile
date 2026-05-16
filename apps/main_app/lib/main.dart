@@ -25,9 +25,9 @@ void main() async {
     uploadPreset: 'Lost_found_polban',
   );
 
-  // INIT API
+  // INIT API — port 8888 sesuai backend/.env
   NetworkService().init(
-    baseUrl: 'http://127.0.0.1:8081',
+    baseUrl: 'http://127.0.0.1:8888',
   );
 
   runApp(
@@ -36,8 +36,6 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => SessionController(),
         ),
-
-        // Shared report controller
         ChangeNotifierProvider(
           create: (_) => ReportController(),
         ),
@@ -60,19 +58,18 @@ class MyApp extends StatelessWidget {
 
       redirect: (BuildContext context, GoRouterState state) {
         final isLoggedIn = sessionController.isLoggedIn;
-        final isLoggingIn = state.uri.toString() == '/login';
+        final location = state.uri.toString();
+        final isLoggingIn = location == '/login';
 
         if (!isLoggedIn && !isLoggingIn) {
           return '/login';
         }
 
         if (isLoggedIn && isLoggingIn) {
-          // Redirect teknisi
+          // Redirect berdasarkan role
           if (sessionController.isTeknisi) {
             return '/teknisi-dashboard';
           }
-
-          // Redirect user biasa
           return '/home';
         }
 
@@ -92,16 +89,13 @@ class MyApp extends StatelessWidget {
           builder: (context, state) => const TeknisiDashboardPage(),
         ),
 
-        // USER SHELL
+        // USER SHELL 
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
-            return MainScaffold(
-              child: navigationShell,
-            );
+            return MainScaffold(child: navigationShell);
           },
-
           branches: [
-            // HOME
+            // HOME — index 0
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -110,36 +104,31 @@ class MyApp extends StatelessWidget {
                 ),
               ],
             ),
-
-            // MY REPORTS
+            // MY REPORTS — index 1
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/my-reports',
-                  builder: (context, state) =>
-                      const MyReportsProvider(),
+                  builder: (context, state) => const MyReportsProvider(),
                 ),
               ],
             ),
-
-            // PROFILE
+            // PROFILE — index 2
             StatefulShellBranch(
               routes: [
                 GoRoute(
                   path: '/profile',
-                  builder: (context, state) =>
-                      const ProfilePage(),
+                  builder: (context, state) => const ProfilePage(),
                 ),
               ],
             ),
           ],
         ),
 
-        // CREATE REPORT
+        // CREATE REPORT 
         GoRoute(
           path: '/create-report',
-          builder: (context, state) =>
-              const CreateReportProvider(),
+          builder: (context, state) => const CreateReportProvider(),
         ),
       ],
     );
@@ -147,9 +136,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: router,
-
       title: 'Polban Lost and Found',
-
       theme: ThemeData(
         primaryColor: AppColors.primaryBlue,
         useMaterial3: true,

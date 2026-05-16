@@ -460,7 +460,7 @@ packages:
     source: hosted
     version: "2.0.0"
   moderation:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../features/moderation"
       relative: true
