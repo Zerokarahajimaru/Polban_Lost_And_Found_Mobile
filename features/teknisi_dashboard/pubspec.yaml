@@ -10,10 +10,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
   core_module:
     path: ../../core/core_module
+
   moderation:
     path: ../moderation
+
+  provider: ^6.1.1
+  go_router: ^14.8.1
 
 dev_dependencies:
   flutter_test:

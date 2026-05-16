@@ -5,7 +5,11 @@ class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  const CustomBottomNav({required this.currentIndex, required this.onTap});
+  const CustomBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,18 +25,18 @@ class CustomBottomNav extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.home_outlined, "Beranda", 0),
-          _navItem(Icons.assignment_outlined, "Laporanku", 1),
-          const SizedBox(width: 40), // Ruang untuk tombol (+) di tengah
-          _navItem(Icons.check_box_outlined, "Klaim", 3),
-          _navItem(Icons.person_outline, "Profil", 4),
+          _navItem(Icons.home_outlined, 'Beranda', 0),
+          _navItem(Icons.assignment_outlined, 'Laporanku', 1),
+          const SizedBox(width: 40), // Ruang untuk FAB (+) di tengah
+          _navItem(Icons.check_box_outlined, 'Klaim', 2),
+          _navItem(Icons.person_outline, 'Profil', 3),
         ],
       ),
     );
   }
 
   Widget _navItem(IconData icon, String label, int index) {
-    bool isActive = currentIndex == index;
+    final bool isActive = currentIndex == index;
     return GestureDetector(
       onTap: () => onTap(index),
       child: Column(

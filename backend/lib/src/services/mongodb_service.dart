@@ -26,7 +26,8 @@ class MongodbService {
         throw Exception('MONGO_ATLAS_URI is not set in the .env file');
       }
 
-      final sanitizedUri = Uri.parse(rawUri).replace(queryParameters: null).toString();
+      // Strip surrounding quotes that dotenv sometimes preserves
+      final sanitizedUri = rawUri.replaceAll('"', '').trim();
 
       _db = await Db.create(sanitizedUri);
       await _db!.open();

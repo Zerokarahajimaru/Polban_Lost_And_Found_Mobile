@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:core_module/core_module.dart';
 import 'package:moderation/moderation.dart';
+import 'package:provider/provider.dart';
 
 class TeknisiDashboardPage extends StatelessWidget {
   const TeknisiDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final userName = session.currentUser?.name ?? 'Teknisi';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: const CustomHeader(
@@ -20,9 +25,9 @@ class TeknisiDashboardPage extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
 
-            const Text(
-              'Halo, Teknisi JTK!',
-              style: TextStyle(
+            Text(
+              'Halo, $userName!',
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.primaryBlue,
@@ -39,7 +44,7 @@ class TeknisiDashboardPage extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            _AntreanKlaimBanner(count: 2),
+            const _AntreanKlaimBanner(count: 0),
 
             const SizedBox(height: 24),
 
@@ -55,10 +60,9 @@ class TeknisiDashboardPage extends StatelessWidget {
                   icon: Icons.add_circle_outline,
                   label: 'Input\nLaporan',
                   accentColor: AppColors.primaryBlue,
-                  onTap: () => _showPlaceholderSnackBar(
-                    context,
-                    'Input Laporan',
-                  ),
+                  onTap: () {
+                    context.push('/create-report');
+                  },
                 ),
 
                 _MenuTile(
@@ -96,6 +100,49 @@ class TeknisiDashboardPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 24),
+
+            // Tombol logout
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.logout, color: Colors.red),
+                label: const Text(
+                  'Keluar Portal',
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Konfirmasi Keluar'),
+                      content: const Text(
+                          'Apakah Anda yakin ingin keluar dari portal?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Keluar',
+                              style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true && context.mounted) {
+                    context.read<SessionController>().logout();
+                  }
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -115,17 +162,12 @@ class TeknisiDashboardPage extends StatelessWidget {
 class _AntreanKlaimBanner extends StatelessWidget {
   final int count;
 
-  const _AntreanKlaimBanner({
-    required this.count,
-  });
+  const _AntreanKlaimBanner({required this.count});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.primaryBlue,
         borderRadius: BorderRadius.circular(14),
@@ -138,15 +180,10 @@ class _AntreanKlaimBanner extends StatelessWidget {
               color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.inbox_outlined,
-              color: Colors.white,
-              size: 26,
-            ),
+            child: const Icon(Icons.inbox_outlined,
+                color: Colors.white, size: 26),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,34 +191,25 @@ class _AntreanKlaimBanner extends StatelessWidget {
                 const Text(
                   'Antrean Klaim',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15),
                 ),
-
                 Text(
                   '$count menunggu proses',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
           ),
-
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.chevron_right,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: const Icon(Icons.chevron_right,
+                color: Colors.white, size: 20),
           ),
         ],
       ),
@@ -210,10 +238,7 @@ class _MenuTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: accentColor,
-            width: 2,
-          ),
+          border: Border.all(color: accentColor, width: 2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -225,22 +250,15 @@ class _MenuTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: accentColor,
-              size: 36,
-            ),
-
+            Icon(icon, color: accentColor, size: 36),
             const SizedBox(height: 8),
-
             Text(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87),
             ),
           ],
         ),
