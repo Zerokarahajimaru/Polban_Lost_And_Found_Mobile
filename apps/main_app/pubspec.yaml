@@ -26,7 +26,10 @@ dependencies:
     path: ../../features/claim
   notification:
     path: ../../features/notification
-  
+  inventaris:
+    path: ../../features/inventaris
+
+  provider: ^6.0.5
   # Core
   core_module:
     path: ../../core/core_module

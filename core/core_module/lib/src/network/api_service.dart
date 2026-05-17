@@ -9,7 +9,7 @@ class ApiService {
       : _dio = Dio(
           BaseOptions(
             baseUrl:
-                'http://192.168.1.14:8082', // Updated to the actual running server port
+                'http://192.168.1.5:8082', // Updated to the actual running server port
             connectTimeout:
                 const Duration(seconds: 10), // Biar gak nunggu selamanya
             receiveTimeout: const Duration(seconds: 10),
