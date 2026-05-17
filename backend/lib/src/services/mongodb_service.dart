@@ -24,4 +24,6 @@ class MongodbService {
     }
     return _db!;
   }
+
+  Object? getCollection(String s) {}
 }

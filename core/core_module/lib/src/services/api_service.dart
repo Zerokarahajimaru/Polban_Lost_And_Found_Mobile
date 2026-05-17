@@ -16,4 +16,18 @@ class ApiService {
   late final Dio _dio;
 
   Dio get dio => _dio;
+
+
+  Future<Response?> getAdminStats() async {
+    try {
+      final response = await _dio.get('/stats/admin_stats');
+      if (response.statusCode == 200) {
+        return response;
+      }
+      return null;
+    } catch (e) {
+      print('Error ApiService Admin Stats: $e');
+      return null;
+    }
+  }
 }

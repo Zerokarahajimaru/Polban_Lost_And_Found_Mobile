@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider';
 import 'package:report/report.dart';
 import 'package:notification/notification.dart';
 import '../controllers/home_controller.dart';
-// import '../models/item_report.dart';
+import 'admin_stat_page.dart'; // Import halaman statistik yang sudah kita buat
 
 // ========================
 // HALAMAN UTAMA (HOME) - PROVIDER WRAPPER
@@ -41,7 +41,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Consumer2<HomeController, ReportController>(
       builder: (context, homeController, reportController, child) {
-        // Gunakan data dari ReportController bukan dummy data
         final allReports = reportController.reports;
         final filteredReports = homeController.filterReports(allReports);
         final unsyncedCount = homeController.getUnsyncedCount(allReports);
@@ -69,6 +68,9 @@ class _HomePageState extends State<HomePage> {
                     _buildSearchBar(homeController),
                     const SizedBox(height: 12),
                     _buildTabSelector(homeController),
+                    const SizedBox(height: 12),
+                    // Menyisipkan tombol analitik admin secara rapi di dalam container biru
+                    _buildAdminStatsButton(),
                   ],
                 ),
               ),
@@ -198,7 +200,6 @@ class _HomePageState extends State<HomePage> {
               currentIndex: 0,
               onTap: (index) {
                 if (index == 1) {
-                  // Laporanku
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -206,7 +207,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   );
                 }
-                // Index 0 (Beranda) - stay pada halaman ini
               },
             ),
           ),
@@ -293,6 +293,42 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // Tambahan widget tombol navigasi analitik admin tanpa merusak fungsi di atasnya
+  Widget _buildAdminStatsButton() {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AdminStatPage(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.primaryYellow,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.analytics_rounded, color: AppColors.primaryBlue, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Buka Dashboard Analitik Admin',
+              style: TextStyle(
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
     );

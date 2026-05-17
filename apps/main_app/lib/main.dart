@@ -1,10 +1,9 @@
 import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
-// import 'package:report/report.dart';
+import 'package:provider/provider'; // Tambahkan import provider
 import 'package:home/home.dart';
 
 void main() async {
-  // Ensure that Flutter bindings are initialized before any async operations.
   WidgetsFlutterBinding.ensureInitialized();
 
   await HiveService().init();
@@ -14,10 +13,15 @@ void main() async {
     uploadPreset: 'Lost_found_polban',
   );
 
-  // ini ip laptop soalnya di tes pake hp fisik, jadi harus pake ip laptop, nanti bisa diubah lagi sesuai kebutuhan
+  //ubah sesuai IP
   NetworkService().init(baseUrl: 'http://192.168.1.14:8082');
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AdminStatController(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -32,7 +36,6 @@ class MyApp extends StatelessWidget {
         primaryColor: AppColors.primaryBlue,
         useMaterial3: true,
       ),
-      // Use the Provider wrapper for the home page so HomeController and ReportController are available.
       home: const HomePageProvider(),
     );
   }

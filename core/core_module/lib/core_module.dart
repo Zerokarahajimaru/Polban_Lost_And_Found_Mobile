@@ -14,3 +14,4 @@ export 'src/theme/theme_service.dart';
 export 'src/services/hive_service.dart';
 export 'src/services/network_service.dart';
 export 'src/services/cloudinary_service.dart';
+export 'src/services/api_service.dart';
