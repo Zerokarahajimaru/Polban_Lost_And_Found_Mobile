@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:home/home.dart';
 import 'package:login/login.dart';
+import 'package:notification/notification.dart';
+import 'package:post/post.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
 import 'main_scaffold.dart';
@@ -65,7 +67,7 @@ class MyApp extends StatelessWidget {
               routes: [
                 GoRoute(
                   path: '/home',
-                  builder: (context, state) => HomePage(),
+                  builder: (context, state) => const HomePageProvider(),
                 ),
               ],
             ),
@@ -90,6 +92,14 @@ class MyApp extends StatelessWidget {
         GoRoute(
           path: '/create-report',
           builder: (context, state) => const CreateReportProvider(),
+        ),
+        GoRoute(
+          path: '/notifications',
+          builder: (context, state) => const NotifikasiPage(),
+        ),
+        GoRoute(
+          path: '/report-post',
+          builder: (context, state) => const ReportPostPageProvider(),
         ),
       ],
     );

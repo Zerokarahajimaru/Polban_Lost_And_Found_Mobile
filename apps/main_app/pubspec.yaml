@@ -18,6 +18,8 @@ dependencies:
     path: ../../features/sync_manager
   report:
     path: ../../features/report
+  notification:
+    path: ../../features/notification
   login:
     path: ../../features/login
   history:

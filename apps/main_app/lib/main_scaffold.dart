@@ -10,12 +10,26 @@ class MainScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: child,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryYellow,
-        shape: const CircleBorder(
-            side: BorderSide(color: AppColors.primaryBlue, width: 4)),
-        onPressed: () => GoRouter.of(context).push('/create-report'),
-        child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            backgroundColor: AppColors.primaryYellow,
+            shape: const CircleBorder(
+                side: BorderSide(color: AppColors.primaryBlue, width: 4)),
+            onPressed: () => GoRouter.of(context).push('/create-report'),
+            child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Lapor',
+            style: TextStyle(
+              color: AppColors.primaryBlue,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
