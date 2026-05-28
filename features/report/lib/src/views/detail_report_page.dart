@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
@@ -158,18 +159,36 @@ class ReportDetailPage extends StatelessWidget {
         Container(
           height: 300,
           width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColors.softGrey,
-            image: provider != null
-                ? DecorationImage(image: provider, fit: BoxFit.contain)
-                : null,
-          ),
-          child: provider == null
-              ? const Center(
+          color: AppColors.softGrey,
+          child: provider != null
+              ? Stack(
+                  children: [
+                    // Blurred background
+                    Positioned.fill(
+                      child: Image(
+                        image: provider,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(color: Colors.black.withValues(alpha: 0.2)),
+                      ),
+                    ),
+                    // Main image (100% visible)
+                    Center(
+                      child: Image(
+                        image: provider,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                )
+              : const Center(
                   child: Icon(Icons.image_not_supported_outlined,
                       color: AppColors.textGrey, size: 48),
-                )
-              : null,
+                ),
         ),
         // Gradient overlay agar tombol back terlihat jelas
         Container(

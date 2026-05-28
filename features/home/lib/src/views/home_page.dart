@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
@@ -126,19 +127,59 @@ class _HomePageState extends State<HomePage> {
                           ),
                         )
                       else if (filteredReports.isEmpty)
-                        const SliverFillRemaining(
+                        SliverFillRemaining(
                           hasScrollBody: false,
-                          child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Center(
-                              child: Text('Tidak ada laporan tersedia'),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(40.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.search_off_rounded,
+                                      size: 64,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  const Text(
+                                    "Tidak Ada Laporan",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryBlue,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    "Coba cari dengan kata kunci lain atau tarik ke bawah untuk memuat ulang.",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         )
                       else
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverList(
+                          sliver: SliverGrid(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.75, // Adjust this to balance image vs text area
+                            ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
                                 final item = filteredReports[index];
@@ -305,67 +346,90 @@ class _HomePageState extends State<HomePage> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 10),
+              color: AppColors.primaryBlue.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: Container(
-                    color: AppColors.softGrey,
-                    child: Image.network(
-                      item.imageUrl ?? '',
+            Expanded(
+              flex: 5,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(15)),
+                    child: Container(
                       width: double.infinity,
-                      height: 160,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 160,
-                        color: AppColors.softGrey,
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported_outlined,
-                              color: AppColors.textGrey, size: 48),
-                        ),
+                      color: AppColors.softGrey,
+                      child: Stack(
+                        children: [
+                          // Blurred Background
+                          Positioned.fill(
+                            child: Image.network(
+                              item.imageUrl ?? '',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox(),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(color: Colors.transparent),
+                            ),
+                          ),
+                          // Main Image
+                          Center(
+                            child: Image.network(
+                              item.imageUrl ?? '',
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.image_not_supported_outlined,
+                                    color: AppColors.textGrey, size: 32),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF6B35),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      item.status ?? 'Pending',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold),
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B35).withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        item.status ?? 'Pending',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -373,21 +437,23 @@ class _HomePageState extends State<HomePage> {
                     item.title ?? 'No Title',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 12,
                       color: AppColors.primaryBlue,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
                       const Icon(Icons.location_on_outlined,
-                          size: 14, color: AppColors.textGrey),
-                      const SizedBox(width: 4),
+                          size: 12, color: AppColors.textGrey),
+                      const SizedBox(width: 2),
                       Expanded(
                         child: Text(
                           item.location ?? 'Unknown location',
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textGrey),
+                              fontSize: 10, color: AppColors.textGrey),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

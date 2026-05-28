@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -454,22 +455,43 @@ class _CreateReportPageState extends State<CreateReportPage> {
               decoration: BoxDecoration(
                   color: AppColors.softGrey,
                   border: Border.all(color: AppColors.secondaryBlue, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                  image: imageProvider != null
-                      ? DecorationImage(image: imageProvider, fit: BoxFit.contain)
-                      : null),
-              child: imageProvider == null
-                  ? const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                          Icon(Icons.camera_alt_outlined,
-                              size: 48, color: AppColors.secondaryBlue),
-                          Text("Ambil Foto atau dari Galeri",
-                              style: TextStyle(
-                                  color: AppColors.secondaryBlue,
-                                  fontWeight: FontWeight.bold))
-                        ])
-                  : null))
+                  borderRadius: BorderRadius.circular(15)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: imageProvider != null
+                    ? Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                          ),
+                          Center(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                            Icon(Icons.camera_alt_outlined,
+                                size: 48, color: AppColors.secondaryBlue),
+                            Text("Ambil Foto atau dari Galeri",
+                                style: TextStyle(
+                                    color: AppColors.secondaryBlue,
+                                    fontWeight: FontWeight.bold))
+                          ]),
+              )))
     ]);
   }
 

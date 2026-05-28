@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -215,17 +216,60 @@ class _MyReportsPageState extends State<MyReportsPage>
 
   Widget _buildReportList(List<ReportModel> reports, bool isLoading) {
     if (isLoading && reports.isEmpty) {
-       return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
-    if (reports.isEmpty) {
-      return const Center(child: Text("Tidak ada laporan di sini"));
-    }
+
     return RefreshIndicator(
       onRefresh: () => context.read<ReportController>().getReports(),
-      child: ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: reports.length,
-          itemBuilder: (context, index) => _buildReportCard(reports[index])),
+      child: reports.isEmpty
+          ? SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.5,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.softGrey,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.description_outlined,
+                        size: 64,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      "Belum Ada Laporan",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Tarik ke bawah untuk memuat ulang atau mulai buat laporan baru sekarang.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              itemCount: reports.length,
+              itemBuilder: (context, index) => _buildReportCard(reports[index])),
     );
   }
 
@@ -256,13 +300,34 @@ class _MyReportsPageState extends State<MyReportsPage>
               width: 70, height: 70,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
-                  color: AppColors.softGrey,
-                  image: imageProvider != null
-                      ? DecorationImage(image: imageProvider, fit: BoxFit.contain)
-                      : null),
-              child: imageProvider == null
-                  ? const Icon(Icons.image_not_supported, color: Colors.white)
-                  : null),
+                  color: AppColors.softGrey),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: imageProvider != null
+                    ? Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              child: Container(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                          ),
+                          Center(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Icon(Icons.image_not_supported, color: Colors.white),
+              )),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
