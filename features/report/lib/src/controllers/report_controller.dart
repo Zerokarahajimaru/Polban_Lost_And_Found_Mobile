@@ -77,8 +77,10 @@ class ReportController extends ChangeNotifier {
           _message = 'Laporan berhasil dikirim!';
           _lastOperationFailed = false;
         }
-        // After any successful operation, refresh the state from the local source of truth.
-        await refreshFromCache();
+        // After any successful operation, refresh the state.
+        // If it was an online operation, getReports() will sync with server.
+        // Otherwise, refreshFromCache() is enough for local-only changes.
+        await getReports();
       } on DioException catch (e) {
         _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
         _lastOperationFailed = true;

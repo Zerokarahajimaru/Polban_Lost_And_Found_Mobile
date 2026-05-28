@@ -11,10 +11,8 @@ class MyReportsProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ReportController()..getReports(),
-      child: const MyReportsPage(),
-    );
+    // We use the root-level ReportController now
+    return const MyReportsPage();
   }
 }
 
@@ -36,9 +34,15 @@ class _MyReportsPageState extends State<MyReportsPage>
     _tabController = TabController(length: 2, vsync: this);
     _controller = context.read<ReportController>();
     _controller.addListener(_handleControllerUpdates);
+    
+    // Refresh data when the page is first shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.getReports();
+    });
   }
 
   void _handleControllerUpdates() {
+    if (!mounted) return;
     if (_controller.message.isNotEmpty) {
       NotificationBanner.show(
         context,
@@ -57,20 +61,13 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Future<void> _navigateToCreateOrEdit({ReportModel? report}) async {
-    // The controller is now passed down using ChangeNotifierProvider.value
-    // to ensure the same instance is used by the CreateReportPage.
+    // The controller is already provided at the root, so CreateReportPage will pick it up.
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider.value(
-          value: _controller,
-          // The CreateReportProvider is no longer needed here as we provide the controller directly.
-          child: CreateReportPage(existingReport: report),
-        ),
+        builder: (_) => CreateReportPage(existingReport: report),
       ),
     );
-    // No need to call getReports() here anymore.
-    // The controller will update its state and notify listeners itself.
   }
 
   Future<void> _deleteAndRefresh(ReportModel report) async {
@@ -93,7 +90,6 @@ class _MyReportsPageState extends State<MyReportsPage>
 
     if (confirm == true && mounted) {
       await _controller.deleteReport(report.id, report.status);
-      await _controller.getReports();
     }
   }
 
@@ -288,29 +284,36 @@ class _MyReportsPageState extends State<MyReportsPage>
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade100)),
-      child: Row(
-        children: [
-          Container(
-              width: 70, height: 70,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image Section
+            Container(
+              width: 100,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  color: AppColors.softGrey),
+                color: AppColors.softGrey,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+              ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
                 child: imageProvider != null
                     ? Stack(
                         children: [
                           Positioned.fill(
-                            child: Image(
-                              image: imageProvider,
-                              fit: BoxFit.cover,
-                            ),
+                            child: Image(image: imageProvider, fit: BoxFit.cover),
                           ),
                           Positioned.fill(
                             child: BackdropFilter(
@@ -319,93 +322,141 @@ class _MyReportsPageState extends State<MyReportsPage>
                             ),
                           ),
                           Center(
-                            child: Image(
-                              image: imageProvider,
-                              fit: BoxFit.contain,
-                            ),
+                            child: Image(image: imageProvider, fit: BoxFit.contain),
                           ),
                         ],
                       )
-                    : const Icon(Icons.image_not_supported, color: Colors.white),
-              )),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(report.title.isEmpty ? "(Tanpa Judul)" : report.title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                Text(
-                    report.location.isEmpty
-                        ? "Lokasi tidak ditentukan"
-                        : report.location,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: isOffline
-                                ? Colors.orange.shade100
-                                : Colors.blue.shade100,
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Text(
-                            isDraft
-                                ? "Draft"
-                                : (isPending ? "Pending" : "Tersinkron"),
-                            style: TextStyle(
-                                color: isOffline
-                                    ? Colors.orange.shade800
-                                    : Colors.blue.shade800,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold)),
+                    : const Center(
+                        child: Icon(Icons.image_not_supported_outlined,
+                            color: AppColors.textGrey, size: 30),
                       ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: isLost
-                                ? Colors.red.shade100
-                                : Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Text(isLost ? "Hilang" : "Ditemukan",
-                            style: TextStyle(
-                                color: isLost
-                                    ? Colors.red.shade800
-                                    : Colors.green.shade800,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ]),
-                    Row(children: [
-                      if (canEdit)
-                        GestureDetector(
-                          onTap: () => _navigateToCreateOrEdit(report: report),
-                          child: const Icon(Icons.edit,
-                              color: AppColors.primaryBlue, size: 20),
-                        ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _deleteAndRefresh(report),
-                        child: const Icon(Icons.delete_forever,
-                            color: Colors.red, size: 22),
-                      ),
-                    ])
-                  ],
-                )
-              ],
+              ),
             ),
-          )
-        ],
+            
+            // Content Section
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatusBadge(
+                          isDraft ? "DRAFT" : (isPending ? "PENDING" : "TERKIRIM"),
+                          isDraft ? Colors.orange : (isPending ? Colors.blue : Colors.green),
+                        ),
+                        if (canEdit)
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => _navigateToCreateOrEdit(report: report),
+                                child: const Icon(Icons.edit_outlined,
+                                    color: AppColors.primaryBlue, size: 18),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _deleteAndRefresh(report),
+                                child: const Icon(Icons.delete_outline,
+                                    color: Colors.red, size: 20),
+                              ),
+                            ],
+                          )
+                        else
+                          GestureDetector(
+                            onTap: () => _deleteAndRefresh(report),
+                            child: const Icon(Icons.delete_outline,
+                                color: Colors.red, size: 20),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      report.title.isEmpty ? "(Tanpa Judul)" : report.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.primaryBlue,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 12, color: AppColors.textGrey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            report.location.isEmpty
+                                ? "Lokasi tidak ditentukan"
+                                : report.location,
+                            style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildTypeBadge(isLost),
+                        Text(
+                          "${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}",
+                          style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.5),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeBadge(bool isLost) {
+    final color = isLost ? const Color(0xFFFF6B35) : AppColors.primaryYellow;
+    final textColor = isLost ? Colors.white : AppColors.primaryBlue;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        isLost ? "KEHILANGAN" : "TEMUAN",
+        style: TextStyle(
+          color: textColor,
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

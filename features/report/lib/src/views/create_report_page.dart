@@ -13,10 +13,8 @@ class CreateReportProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ReportController(),
-      child: CreateReportPage(existingReport: existingReport),
-    );
+    // We use the root-level ReportController now
+    return CreateReportPage(existingReport: existingReport);
   }
 }
 
@@ -32,6 +30,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
   bool isLost = true;
   File? _imageFile;
   String? _selectedCategory;
+  late ReportController _reportController;
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -43,6 +42,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
   @override
   void initState() {
     super.initState();
+    _reportController = context.read<ReportController>();
+    _reportController.addListener(_handleControllerUpdates);
 
     final session = context.read<SessionController>();
     if (!session.isTeknisi) {
@@ -62,8 +63,21 @@ class _CreateReportPageState extends State<CreateReportPage> {
     }
   }
 
+  void _handleControllerUpdates() {
+    if (!mounted) return;
+    if (_reportController.message.isNotEmpty) {
+      NotificationBanner.show(
+        context,
+        _reportController.message,
+        isError: _reportController.lastOperationFailed,
+      );
+      _reportController.clearMessage();
+    }
+  }
+
   @override
   void dispose() {
+    _reportController.removeListener(_handleControllerUpdates);
     _nameController.dispose();
     _phoneController.dispose();
     _descController.dispose();
