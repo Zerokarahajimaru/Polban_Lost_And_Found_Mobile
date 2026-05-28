@@ -256,9 +256,9 @@ class _MyReportsPageState extends State<MyReportsPage>
               width: 70, height: 70,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
-                  color: AppColors.secondaryBlue,
+                  color: AppColors.softGrey,
                   image: imageProvider != null
-                      ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                      ? DecorationImage(image: imageProvider, fit: BoxFit.contain)
                       : null),
               child: imageProvider == null
                   ? const Icon(Icons.image_not_supported, color: Colors.white)

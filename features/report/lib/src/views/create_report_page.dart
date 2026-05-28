@@ -452,10 +452,11 @@ class _CreateReportPageState extends State<CreateReportPage> {
               width: double.infinity,
               height: 150,
               decoration: BoxDecoration(
+                  color: AppColors.softGrey,
                   border: Border.all(color: AppColors.secondaryBlue, width: 2),
                   borderRadius: BorderRadius.circular(15),
                   image: imageProvider != null
-                      ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                      ? DecorationImage(image: imageProvider, fit: BoxFit.contain)
                       : null),
               child: imageProvider == null
                   ? const Column(

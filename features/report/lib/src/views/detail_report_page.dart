@@ -161,7 +161,7 @@ class ReportDetailPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.softGrey,
             image: provider != null
-                ? DecorationImage(image: provider, fit: BoxFit.cover)
+                ? DecorationImage(image: provider, fit: BoxFit.contain)
                 : null,
           ),
           child: provider == null

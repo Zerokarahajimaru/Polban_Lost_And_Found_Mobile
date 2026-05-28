@@ -325,17 +325,20 @@ class _HomePageState extends State<HomePage> {
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: Image.network(
-                    item.imageUrl ?? '',
-                    width: double.infinity,
-                    height: 160,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                  child: Container(
+                    color: AppColors.softGrey,
+                    child: Image.network(
+                      item.imageUrl ?? '',
+                      width: double.infinity,
                       height: 160,
-                      color: AppColors.softGrey,
-                      child: const Center(
-                        child: Icon(Icons.image_not_supported_outlined,
-                            color: AppColors.textGrey, size: 48),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 160,
+                        color: AppColors.softGrey,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported_outlined,
+                              color: AppColors.textGrey, size: 48),
+                        ),
                       ),
                     ),
                   ),
