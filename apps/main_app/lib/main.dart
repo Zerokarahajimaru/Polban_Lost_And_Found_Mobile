@@ -16,7 +16,7 @@ void main() async {
     cloudName: 'dd9ziyeaj',
     uploadPreset: 'Lost_found_polban',
   );
-  NetworkService().init(baseUrl: 'http://127.0.0.1:8081');
+  NetworkService().init(baseUrl: 'http://localhost:8081');
 
   runApp(
     MultiProvider(

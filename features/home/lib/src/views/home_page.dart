@@ -26,8 +26,22 @@ class HomePageProvider extends StatelessWidget {
 // ========================
 // HALAMAN UTAMA (HOME)
 // ========================
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Memuat laporan saat pertama kali halaman dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ReportController>().getReports();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -283,9 +297,11 @@ class HomePage extends StatelessWidget {
   Widget _buildLaporanCard(BuildContext context, dynamic item) {
     return GestureDetector(
       onTap: () {
-        // ReportDetailPage belum diimplementasikan oleh teman
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Detail laporan belum tersedia")),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportDetailPage(item: item),
+          ),
         );
       },
       child: Container(
