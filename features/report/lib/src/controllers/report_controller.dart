@@ -103,31 +103,31 @@ class ReportController extends ChangeNotifier {
           !existingId.startsWith('pending_');
 
       if (isRevertingSyncedPost) {
-        // Case 1: Reverting a synced post. Create a new draft.
+        // Case 1: Reverting a synced post.
+        // 1. Save it locally as a draft first to ensure no data loss.
         await _reportRepository.saveAsDraft(
           reportData: reportData,
           localImagePath: localImagePath,
-          existingId: null, // Force new draft creation
+          existingId: null, // Create new local ID
         );
         
-        // Fire-and-forget the deletion of the old synced post.
-        _reportRepository.deleteReport(existingId, 'synced');
+        // 2. Delete from cloud immediately.
+        await _reportRepository.deleteReport(existingId, 'synced');
 
-        _message = 'Postingan online telah diubah menjadi draft lokal.';
-        _lastOperationFailed = false;
-        
+        _message = 'Laporan online dipindahkan ke draft lokal.';
       } else {
         // Case 2: Creating a new draft or updating an existing one.
         await _reportRepository.saveAsDraft(
           reportData: reportData,
           localImagePath: localImagePath,
-          existingId: existingId, // Pass the original ID to update
+          existingId: existingId,
         );
-        _message = 'Laporan berhasil disimpan sebagai draft.';
-        _lastOperationFailed = false;
+        _message = 'Draft berhasil diperbarui.';
       }
 
-      await refreshFromCache();
+      _lastOperationFailed = false;
+      // Critical: Refresh all data (including server sync if needed) to update UI
+      await getReports();
 
     } catch (e) {
       _message = 'Gagal menyimpan draft: $e';
