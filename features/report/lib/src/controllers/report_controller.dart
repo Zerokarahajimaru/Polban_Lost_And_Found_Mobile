@@ -21,12 +21,12 @@ class ReportController extends ChangeNotifier {
     _message = '';
   }
 
-  Future<void> getReports({String? userId}) async {
+  Future<void> getReports() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final newReports = await _reportRepository.getReports(userId: userId);
+      final newReports = await _reportRepository.getReports();
       _reports = newReports;
       _lastOperationFailed = false;
     } catch (e) {
@@ -38,60 +38,67 @@ class ReportController extends ChangeNotifier {
     }
   }
 
-    Future<void> finalizeReport({
-      required Map<String, dynamic> reportData,
-      File? imageFile,
-      String? existingId,
-      String? userId,
-    }) async {
-      try {
-        final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
-        
-        if (existingId != null && existingId.startsWith('draft_')) {
-          if (imageFile == null) throw Exception("Gambar wajib untuk finalisasi draft.");
-          try {
-            await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
-            _message = 'Laporan berhasil dikirim!';
-            _lastOperationFailed = false;
-          } on DioException catch (e) {
-            if (_isNetworkError(e)) {
-              await _reportRepository.queueCreateForSync(reportData: dataWithUser, localImagePath: imageFile.path);
-              _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
-              _lastOperationFailed = false;
-            } else {
-              rethrow;
-            }
-          }
-          await _reportRepository.deleteReport(existingId, 'draft');
-  
-        } else if (existingId != null && existingId.startsWith('pending_')) {
-          await _reportRepository.queueUpdateForSync(id: existingId, reportData: dataWithUser, localImagePath: imageFile?.path);
-          _message = 'Perubahan disimpan di antrian untuk sinkronisasi.';
-          _lastOperationFailed = false;
-  
-        } else if (existingId != null) {
-          await _reportRepository.updateReportOnline(id: existingId, reportData: dataWithUser, imageFile: imageFile);
-          _message = 'Laporan berhasil diperbarui!';
-          _lastOperationFailed = false;
-  
-        } else {
-          if (imageFile == null) throw Exception("Gambar wajib untuk laporan baru.");
+  Future<void> finalizeReport({
+    required Map<String, dynamic> reportData,
+    File? imageFile,
+    String? existingId,
+    String? userId,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
+      
+      if (existingId != null && existingId.startsWith('draft_')) {
+        if (imageFile == null) throw Exception("Gambar wajib untuk finalisasi draft.");
+        try {
           await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
           _message = 'Laporan berhasil dikirim!';
           _lastOperationFailed = false;
+        } on DioException catch (e) {
+          if (_isNetworkError(e)) {
+            await _reportRepository.queueCreateForSync(reportData: dataWithUser, localImagePath: imageFile.path);
+            _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
+            _lastOperationFailed = false;
+          } else {
+            rethrow;
+          }
         }
-        await getReports(userId: userId);
-      } on DioException catch (e) {
-        _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
-        _lastOperationFailed = true;
-        notifyListeners();
-      } catch (e) {
-        _message = 'Terjadi error: $e';
-        _lastOperationFailed = true;
-        notifyListeners();
+        await _reportRepository.deleteReport(existingId, 'draft');
+
+      } else if (existingId != null && existingId.startsWith('pending_')) {
+        await _reportRepository.queueUpdateForSync(id: existingId, reportData: dataWithUser, localImagePath: imageFile?.path);
+        _message = 'Perubahan disimpan di antrian untuk sinkronisasi.';
+        _lastOperationFailed = false;
+
+      } else if (existingId != null) {
+        await _reportRepository.updateReportOnline(id: existingId, reportData: dataWithUser, imageFile: imageFile);
+        _message = 'Laporan berhasil diperbarui!';
+        _lastOperationFailed = false;
+
+      } else {
+        if (imageFile == null) throw Exception("Gambar wajib untuk laporan baru.");
+        await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
+        _message = 'Laporan berhasil dikirim!';
+        _lastOperationFailed = false;
       }
+      
+      // Refresh to update Home and History
+      await getReports();
+      
+    } on DioException catch (e) {
+      _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
+      _lastOperationFailed = true;
+    } catch (e) {
+      _message = 'Terjadi error: $e';
+      _lastOperationFailed = true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-  
+  }
+
   Future<void> saveAsDraft({
     required Map<String, dynamic> reportData,
     String? localImagePath,
@@ -100,30 +107,14 @@ class ReportController extends ChangeNotifier {
   }) async {
     try {
       final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
-      final isRevertingSyncedPost = existingId != null &&
-          !existingId.startsWith('draft_') &&
-          !existingId.startsWith('pending_');
-
-      if (isRevertingSyncedPost) {
-        await _reportRepository.saveAsDraft(
-          reportData: dataWithUser,
-          localImagePath: localImagePath,
-          existingId: null, 
-        );
-        await _reportRepository.deleteReport(existingId, 'synced');
-        _message = 'Laporan online dipindahkan ke draft lokal.';
-      } else {
-        await _reportRepository.saveAsDraft(
-          reportData: dataWithUser,
-          localImagePath: localImagePath,
-          existingId: existingId,
-        );
-        _message = 'Draft berhasil diperbarui.';
-      }
-
+      await _reportRepository.saveAsDraft(
+        reportData: dataWithUser,
+        localImagePath: localImagePath,
+        existingId: existingId,
+      );
+      _message = 'Draft berhasil disimpan.';
       _lastOperationFailed = false;
-      await getReports(userId: userId);
-
+      await getReports();
     } catch (e) {
       _message = 'Gagal menyimpan draft: $e';
       _lastOperationFailed = true;
@@ -131,19 +122,19 @@ class ReportController extends ChangeNotifier {
     }
   }
   
-  Future<void> refreshFromCache({String? userId}) async {
-    _reports = await _reportRepository.loadFromCacheOnly(userId: userId);
+  Future<void> refreshFromCache() async {
+    _reports = await _reportRepository.loadFromCacheOnly();
     notifyListeners();
   }
 
-  Future<void> deleteReport(String id, String status, {String? userId}) async {
+  Future<void> deleteReport(String id, String status) async {
     _isLoading = true;
     notifyListeners();
     try {
       await _reportRepository.deleteReport(id, status);
       _message = 'Laporan berhasil dihapus.';
       _lastOperationFailed = false;
-      await refreshFromCache(userId: userId);
+      await getReports();
     } catch (e) {
       _message = 'Gagal menghapus laporan: $e';
       _lastOperationFailed = true;

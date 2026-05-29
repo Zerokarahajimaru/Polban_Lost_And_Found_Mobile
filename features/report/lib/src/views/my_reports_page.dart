@@ -38,7 +38,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     _userId = context.read<SessionController>().currentUser?.id;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controller.getReports(userId: _userId);
+      _controller.getReports(); // Fetch all reports globally
     });
   }
 
@@ -62,15 +62,16 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Future<void> _navigateToCreateOrEdit({ReportModel? report}) async {
-    await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CreateReportPage(existingReport: report),
       ),
     );
-    // Refresh after returning from create/edit
+    
+    // Always refresh list after returning from edit/create
     if (mounted) {
-      _controller.getReports(userId: _userId);
+      _controller.getReports();
     }
   }
 
@@ -93,7 +94,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
 
     if (confirm == true && mounted) {
-      await _controller.deleteReport(report.id, report.status, userId: _userId);
+      await _controller.deleteReport(report.id, report.status);
     }
   }
 
@@ -103,25 +104,33 @@ class _MyReportsPageState extends State<MyReportsPage>
     final session = context.watch<SessionController>();
     final isTeknisi = session.isTeknisi;
     
-    // Only show reports that belong to the current user
-    final myReports = controller.reports;
+    // Filter ALL reports locally to only show reports belonging to this user
+    final reports = controller.reports.where((r) => r.userId == _userId).toList();
     
     return Scaffold(
       backgroundColor: AppColors.softGrey,
       appBar: CustomHeader(
         title: "Riwayat Laporanku",
-        showBackButton: isTeknisi, // Show back button ONLY for Teknisi
+        showBackButton: isTeknisi, 
         extraHeight: 110,
         onNotificationTap: () {},
-        bottomChild: _buildStatsCard(myReports.length, isTeknisi),
+        bottomChild: _buildStatsCard(reports.length, isTeknisi),
       ),
-      body: _buildLoadedView(myReports, controller.isLoading),
+      body: _buildLoadedView(reports, controller.isLoading),
     );
   }
 
   Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {
-    final pendingReports = reports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
-    final historyReports = reports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
+    // Correct filtering for tabs
+    final pendingReports = reports.where((r) => 
+      r.status.toLowerCase().contains('pending') || 
+      r.status.toLowerCase() == 'draft'
+    ).toList();
+    
+    final historyReports = reports.where((r) => 
+      !r.status.toLowerCase().contains('pending') && 
+      r.status.toLowerCase() != 'draft'
+    ).toList();
 
     return Column(
       children: [
@@ -212,12 +221,8 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Widget _buildReportList(List<ReportModel> reports, bool isLoading) {
-    if (isLoading && reports.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return RefreshIndicator(
-      onRefresh: () => context.read<ReportController>().getReports(userId: _userId),
+      onRefresh: () => context.read<ReportController>().getReports(),
       child: reports.isEmpty
           ? SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -251,7 +256,7 @@ class _MyReportsPageState extends State<MyReportsPage>
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      "Tarik ke bawah untuk memuat ulang atau mulai buat laporan baru sekarang.",
+                      "Tarik ke bawah untuk memuat ulang.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
@@ -271,11 +276,11 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Widget _buildReportCard(ReportModel report) {
-    final bool isDraft = report.status == 'draft';
-    final bool isPending = report.status.contains('pending');
+    final bool isDraft = report.status.toLowerCase() == 'draft';
+    final bool isPending = report.status.toLowerCase().contains('pending');
     final bool isOffline = isDraft || isPending;
     final bool canEdit = isOffline || (DateTime.now().difference(report.createdAt).inHours < 24);
-    final bool isLost = report.status != 'found';
+    final bool isLost = report.status.toLowerCase() != 'found';
 
     ImageProvider? imageProvider;
     if (report.localImagePath != null && report.localImagePath!.isNotEmpty) {

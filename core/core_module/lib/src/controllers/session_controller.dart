@@ -18,15 +18,14 @@ class SessionController extends ChangeNotifier {
   void logout() {
     _currentUser = null;
     _isLoggedIn = false;
-    
+
     // Clear all cached report data for security
     final hiveService = HiveService();
     hiveService.reportsBox.clear();
-    
+
     notifyListeners();
   }
 
   bool get isTeknisi => _currentUser?.role == 'teknisi';
   bool get isUser => _currentUser?.role == 'user';
 }
-

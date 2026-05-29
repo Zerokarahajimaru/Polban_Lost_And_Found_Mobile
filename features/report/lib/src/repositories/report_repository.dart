@@ -17,14 +17,21 @@ class ReportRepository {
       final serverReports =
           serverData.map((item) => ReportModel.fromMap(item)).toList();
       
-      if (userId == null) {
-        await _updateCacheWithServerData(serverReports);
-      }
+      // Update cache with server results. 
+      await _updateCache(serverReports);
       
       return _loadAllFromCache(filterByUserId: userId);
     } catch (e) {
-      debugPrint('Network unavailable. Loading from cache. Error: $e');
+      debugPrint('Network unavailable or server error. Loading from cache. Error: $e');
       return _loadAllFromCache(filterByUserId: userId);
+    }
+  }
+
+  /// Merges server reports into the Hive cache.
+  Future<void> _updateCache(List<ReportModel> serverReports) async {
+    // Put each server report into Hive. 
+    for (final report in serverReports) {
+      await _hiveService.reportsBox.put(report.id, report.toMap());
     }
   }
 
@@ -96,7 +103,6 @@ class ReportRepository {
 
   Future<void> queueDeleteForSync(String reportId) async {
     final key = 'pending_delete_$reportId';
-    // Store a simple map containing the ID to be deleted.
     await _hiveService.reportsBox.put(key, {'id': reportId});
   }
 
@@ -106,69 +112,57 @@ class ReportRepository {
     } else {
       try {
         await _networkService.dio.delete('/reports/$id');
+        await _hiveService.reportsBox.delete(id);
       } on DioException catch (e) {
         if (_isNetworkError(e)) {
-          // If offline, queue the deletion for later.
           await queueDeleteForSync(id);
         } else {
-          rethrow; // Re-throw other server errors
+          rethrow;
         }
       }
     }
   }
   
   Future<void> _syncPendingReports() async {
+    final keys = _hiveService.reportsBox.keys.toList();
+    
     // Sync creations and updates
-    final pendingKeys = _hiveService.reportsBox.keys.where((k) => k.toString().startsWith('pending_') && !k.toString().startsWith('pending_delete_')).toList();
-    if (pendingKeys.isNotEmpty) {
-      for (final key in pendingKeys) {
-        final data = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
-        final imagePath = data['local_image_path'] as String?;
-        File? imageFile = imagePath != null ? File(imagePath) : null;
-        
-        try {
-          if (key.toString().startsWith('pending_create_')) {
-            if (imageFile == null) continue;
-            await postReportOnline(reportData: data, imageFile: imageFile);
-          } else if (key.toString().startsWith('pending_update_')) {
-            final id = key.toString().split('pending_update_').last;
-            await updateReportOnline(id: id, reportData: data, imageFile: imageFile);
-          }
-          await _hiveService.reportsBox.delete(key);
-        } on DioException {
-          break; 
-        } catch (e) {
-          debugPrint('Failed to sync item $key. Error: $e');
+    final pendingSyncKeys = keys.where((k) => k.toString().startsWith('pending_') && !k.toString().startsWith('pending_delete_')).toList();
+    for (final key in pendingSyncKeys) {
+      final data = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
+      final imagePath = data['local_image_path'] as String?;
+      File? imageFile = imagePath != null ? File(imagePath) : null;
+      
+      try {
+        if (key.toString().startsWith('pending_create_')) {
+          if (imageFile == null) continue;
+          await postReportOnline(reportData: data, imageFile: imageFile);
+        } else if (key.toString().startsWith('pending_update_')) {
+          final id = key.toString().split('pending_update_').last;
+          await updateReportOnline(id: id, reportData: data, imageFile: imageFile);
         }
+        await _hiveService.reportsBox.delete(key);
+      } catch (e) {
+        debugPrint('Failed to sync item $key: $e');
+        if (e is DioException && _isNetworkError(e)) break;
       }
     }
 
     // Sync deletions
-    final pendingDeleteKeys = _hiveService.reportsBox.keys.where((k) => k.toString().startsWith('pending_delete_')).toList();
-    if (pendingDeleteKeys.isNotEmpty) {
-      for (final key in pendingDeleteKeys) {
-        final data = _hiveService.reportsBox.get(key);
-        if (data == null) continue;
-        final reportId = data['id'] as String;
-        try {
-          await _networkService.dio.delete('/reports/$reportId');
-          await _hiveService.reportsBox.delete(key); // Deletion successful, remove from queue
-        } on DioException {
-           break; // Stop syncing if network fails
-        } catch (e) {
-          debugPrint('Failed to sync deletion for item $key. Error: $e');
-        }
+    final pendingDeleteKeys = keys.where((k) => k.toString().startsWith('pending_delete_')).toList();
+    for (final key in pendingDeleteKeys) {
+      final data = _hiveService.reportsBox.get(key);
+      if (data == null) continue;
+      final reportId = data['id'] as String;
+      try {
+        await _networkService.dio.delete('/reports/$reportId');
+        await _hiveService.reportsBox.delete(key);
+        await _hiveService.reportsBox.delete(reportId);
+      } catch (e) {
+        debugPrint('Failed to sync deletion for $reportId: $e');
+        if (e is DioException && _isNetworkError(e)) break;
       }
     }
-  }
-  
-  Future<void> _updateCacheWithServerData(List<ReportModel> serverReports) async {
-    final pendingData = _loadPendingDataAsMap();
-    await _hiveService.reportsBox.clear();
-    for (final report in serverReports) {
-      _hiveService.reportsBox.put(report.id, report.toMap());
-    }
-    await _hiveService.reportsBox.putAll(pendingData);
   }
 
   Future<List<ReportModel>> loadFromCacheOnly({String? userId}) async {
@@ -179,9 +173,8 @@ class ReportRepository {
     final reports = <ReportModel>[];
     for (final key in _hiveService.reportsBox.keys) {
       final map = _hiveService.reportsBox.get(key);
-      if (map != null) {
+      if (map != null && !key.toString().startsWith('pending_delete_')) {
         final dataWithId = Map<String, dynamic>.from(map);
-        dataWithId['id'] = key; // Ensure the ID is always the Hive key
         final report = ReportModel.fromMap(dataWithId);
         
         if (filterByUserId != null) {
@@ -193,17 +186,8 @@ class ReportRepository {
         }
       }
     }
+    reports.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return reports;
-  }
-
-  Map<dynamic, Map> _loadPendingDataAsMap() {
-    final pending = <dynamic, Map>{};
-    for (final key in _hiveService.reportsBox.keys) {
-      if (key.toString().startsWith('pending_') || key.toString().startsWith('draft_')) {
-        pending[key] = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
-      }
-    }
-    return pending;
   }
 
   bool _isNetworkError(DioException e) {
@@ -212,6 +196,3 @@ class ReportRepository {
            e.type == DioExceptionType.unknown;
   }
 }
-
-
-
