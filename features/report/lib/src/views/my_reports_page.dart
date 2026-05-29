@@ -68,6 +68,10 @@ class _MyReportsPageState extends State<MyReportsPage>
         builder: (_) => CreateReportPage(existingReport: report),
       ),
     );
+    // Refresh after returning from create/edit
+    if (mounted) {
+      _controller.getReports(userId: _userId);
+    }
   }
 
   Future<void> _deleteAndRefresh(ReportModel report) async {
@@ -99,6 +103,9 @@ class _MyReportsPageState extends State<MyReportsPage>
     final session = context.watch<SessionController>();
     final isTeknisi = session.isTeknisi;
     
+    // Only show reports that belong to the current user
+    final myReports = controller.reports;
+    
     return Scaffold(
       backgroundColor: AppColors.softGrey,
       appBar: CustomHeader(
@@ -106,25 +113,22 @@ class _MyReportsPageState extends State<MyReportsPage>
         showBackButton: isTeknisi, // Show back button ONLY for Teknisi
         extraHeight: 110,
         onNotificationTap: () {},
-        bottomChild: _buildStatsCard(controller.reports.length, isTeknisi),
+        bottomChild: _buildStatsCard(myReports.length, isTeknisi),
       ),
-      body: _buildLoadedView(controller.reports, controller.isLoading),
+      body: _buildLoadedView(myReports, controller.isLoading),
     );
   }
 
   Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {
-    // Only show reports that belong to the current user
-    final myReports = reports.where((r) => r.userId == _userId).toList();
-    
-    final pendingReports = myReports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
-    final historyReports = myReports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
+    final pendingReports = reports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
+    final historyReports = reports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
 
     return Column(
       children: [
         const SizedBox(height: 12),
         _buildTabs(),
         Expanded(
-          child: isLoading && myReports.isEmpty
+          child: isLoading && reports.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 controller: _tabController,

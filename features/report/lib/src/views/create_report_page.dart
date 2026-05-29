@@ -124,6 +124,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   Future<void> _onFinalize() async {
     final session = context.read<SessionController>();
+    final currentUser = session.currentUser;
+    
     if (!session.isTeknisi && !isLost) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
@@ -173,11 +175,14 @@ class _CreateReportPageState extends State<CreateReportPage> {
       },
       imageFile: imageToFinalize,
       existingId: widget.existingReport?.id,
+      userId: currentUser?.id,
     );
   }
 
   Future<void> _onSaveDraft() async {
     final session = context.read<SessionController>();
+    final currentUser = session.currentUser;
+
     if (!session.isTeknisi && !isLost) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
@@ -227,6 +232,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
       },
       localImagePath: finalLocalImagePath,
       existingId: widget.existingReport?.id,
+      userId: currentUser?.id,
     );
   }
 

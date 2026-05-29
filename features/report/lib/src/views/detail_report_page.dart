@@ -3,7 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
-// import 'package:claim/claim.dart';
+import 'package:provider/provider.dart';
+import 'package:claim/claim.dart';
 import 'package:post/post.dart';
 
 // ========================
@@ -19,9 +20,15 @@ class ReportDetailPage extends StatelessWidget {
   String get nama => isReportModel ? item.title : item.nama;
   String get lokasi => isReportModel ? item.location : item.lokasi;
   String get status => isReportModel ? item.status : item.status;
+  
+  // Normalize status to lowercase for comparison
+  String get normalizedStatus => status.toLowerCase();
+  bool get isFound => normalizedStatus == 'found';
+  bool get isLost => normalizedStatus == 'lost';
+
   Color get statusColor {
     if (!isReportModel) return item.statusColor;
-    return item.status == 'found' ? AppColors.primaryYellow : AppColors.primaryBlue;
+    return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
   }
 
   String get imageUrl => isReportModel ? item.imageUrl : item.imageUrl;
@@ -37,7 +44,8 @@ class ReportDetailPage extends StatelessWidget {
   String get deskripsi => isReportModel ? item.description : item.deskripsi;
   String get id => isReportModel ? item.id : item.nama;
 
-  bool get isKehilangan => imbalan != null;
+  // Reward section visibility
+  bool get showRewardBanner => imbalan != null && imbalan!.isNotEmpty && imbalan != '-';
 
   ImageProvider<Object>? get imageProvider {
     if (isReportModel) {
@@ -72,9 +80,9 @@ class ReportDetailPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Banner Imbalan hanya muncul jika kategori Kehilangan
-                      if (isKehilangan) _buildImbalanBanner(),
-                      if (isKehilangan) const SizedBox(height: 20),
+                      // Banner Imbalan hanya muncul jika ada imbalan
+                      if (showRewardBanner) _buildImbalanBanner(),
+                      if (showRewardBanner) const SizedBox(height: 20),
 
                       // Nama Barang & Status
                       Row(
@@ -98,7 +106,7 @@ class ReportDetailPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              status,
+                              status.toUpperCase(),
                               style: TextStyle(
                                 color: statusColor,
                                 fontWeight: FontWeight.bold,
@@ -129,15 +137,18 @@ class ReportDetailPage extends StatelessWidget {
                       _buildInfoGrid(),
                       const SizedBox(height: 32),
 
-                      // --- LOGIKA TOMBOL BERDASARKAN TIPE POSTINGAN ---
-                      if (!isKehilangan)
-                        _buildKlaimButton(context) // Muncul jika TEMUAN
-                      else
-                        _buildHubungiButton(context), // Muncul jika KEHILANGAN
+                      // --- LOGIKA TOMBOL ---
+                      if (isFound) ...[
+                        _buildKlaimButton(context), // Claim on top for Found items
+                        const SizedBox(height: 16),
+                        _buildHubungiButton(context), // Followed by Contact button
+                        const SizedBox(height: 16),
+                      ] else if (isLost) ...[
+                        _buildHubungiButton(context), // Just Contact for Lost items
+                        const SizedBox(height: 16),
+                      ],
                       
-                      const SizedBox(height: 16),
-                      
-                      // Tombol Report dengan tanda seru merah
+                      // Tombol Report dengan tanda seru merah (always at bottom of action group)
                       _buildReportButton(context),
 
                       const SizedBox(height: 100), // Spasi bawah agar tidak tertutup
@@ -291,6 +302,9 @@ class ReportDetailPage extends StatelessWidget {
 
   //Tombol untuk Barang Temuan
   Widget _buildKlaimButton(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final user = session.currentUser;
+
     return SizedBox(
       width: double.infinity,
       height: 55,
@@ -305,24 +319,53 @@ class ReportDetailPage extends StatelessWidget {
           style: TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        onPressed: () {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) => AjukanKlaimPageProvider(
-          //       reportId: id,
-          //     ),
-          //   ),
-          // );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Fitur klaim belum tersedia")),
+        onPressed: () async {
+          if (user == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Harap login untuk melakukan klaim."))
+            );
+            return;
+          }
+
+          final claimRepo = ClaimRepository();
+          final claim = ClaimModel(
+            id: '', // Will be generated by server
+            reportId: id,
+            reportTitle: nama,
+            claimantName: user.name,
+            claimantId: user.id,
+            claimantEmail: user.email,
+            reportImageUrl: imageUrl,
+            status: 'pending',
+            createdAt: DateTime.now(),
           );
+
+          try {
+            await claimRepo.submitClaim(claim);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Klaim berhasil diajukan! Pantau antrean."),
+                  backgroundColor: Colors.green,
+                )
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Gagal mengajukan klaim: $e"),
+                  backgroundColor: Colors.red,
+                )
+              );
+            }
+          }
         },
       ),
     );
   }
 
-  // Tombol untuk Barang Hilang
+  // Tombol Hubungi Pelapor
   Widget _buildHubungiButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
