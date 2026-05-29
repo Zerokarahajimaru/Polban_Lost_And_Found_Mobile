@@ -1,6 +1,7 @@
 import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class MainScaffold extends StatelessWidget {
   final Widget child;
@@ -8,6 +9,9 @@ class MainScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sessionController = context.watch<SessionController>();
+    final isTeknisi = sessionController.isTeknisi;
+
     return Scaffold(
       body: child,
       floatingActionButton: Column(
@@ -38,6 +42,7 @@ class MainScaffold extends StatelessWidget {
         shape: const CircularNotchedRectangle(),
         child: CustomBottomNav(
           currentIndex: _calculateSelectedIndex(context),
+          isTeknisi: isTeknisi,
           onTap: (index) => _onItemTapped(index, context),
         ),
       ),

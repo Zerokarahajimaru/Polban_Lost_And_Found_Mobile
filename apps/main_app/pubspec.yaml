@@ -26,6 +26,10 @@ dependencies:
     path: ../../features/history
   claim:
     path: ../../features/claim
+  teknisi_dashboard:
+    path: ../../features/teknisi_dashboard
+  moderation:
+    path: ../../features/moderation
   
   # Core
   core_module:

@@ -7,6 +7,7 @@ import 'package:notification/notification.dart';
 import 'package:post/post.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
+import 'package:teknisi_dashboard/teknisi_dashboard.dart';
 import 'main_scaffold.dart';
 
 void main() async {
@@ -47,7 +48,18 @@ class MyApp extends StatelessWidget {
         if (!isLoggedIn && !isLoggingIn) {
           return '/login';
         }
+        
         if (isLoggedIn && isLoggingIn) {
+          return sessionController.isTeknisi ? '/teknisi-home' : '/home';
+        }
+
+        // If a teknisi tries to access /home, redirect to /teknisi-home
+        if (isLoggedIn && sessionController.isTeknisi && state.uri.toString() == '/home') {
+          return '/teknisi-home';
+        }
+        
+        // If a regular user tries to access /teknisi-home, redirect to /home
+        if (isLoggedIn && !sessionController.isTeknisi && state.uri.toString() == '/teknisi-home') {
           return '/home';
         }
 
@@ -57,6 +69,10 @@ class MyApp extends StatelessWidget {
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginPage(),
+        ),
+        GoRoute(
+          path: '/teknisi-home',
+          builder: (context, state) => const TeknisiDashboardPage(),
         ),
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {

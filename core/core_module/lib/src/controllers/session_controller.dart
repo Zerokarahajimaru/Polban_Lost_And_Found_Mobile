@@ -26,6 +26,6 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get isTeknisi => _currentUser?.role == 'Teknisi';
-  bool get isUser => _currentUser?.role == 'User';
+  bool get isTeknisi => _currentUser?.role == 'teknisi';
+  bool get isUser => _currentUser?.role == 'user';
 }

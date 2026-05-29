@@ -17,16 +17,12 @@ class HomePageProvider extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => HomeController()),
-        // ReportController sudah disediakan di root (main.dart)
       ],
       child: const HomePage(),
     );
   }
 }
 
-// ========================
-// HALAMAN UTAMA (HOME)
-// ========================
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -38,7 +34,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Memuat laporan saat pertama kali halaman dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportController>().getReports();
     });
@@ -48,7 +43,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Consumer2<HomeController, ReportController>(
       builder: (context, homeController, reportController, child) {
-        // Gunakan data dari ReportController
         final allReports = reportController.reports;
         final filteredReports = homeController.filterReports(allReports);
         final unsyncedCount = homeController.getUnsyncedCount(allReports);
@@ -57,21 +51,22 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: AppColors.softGrey,
           appBar: CustomHeader(
             title: 'Beranda Publik',
+            showBackButton: false, // No back button on root home
             onNotificationTap: () => context.push('/notifications'),
+            extraHeight: 60, // Space for search bar
+            bottomChild: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildSearchBar(context, homeController),
+            ),
           ),
           body: Column(
             children: [
-              Container(
-                color: AppColors.primaryBlue,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Column(
-                  children: [
-                    _buildSearchBar(context, homeController),
-                    const SizedBox(height: 12),
-                    _buildTabSelector(homeController),
-                  ],
-                ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildTabSelector(homeController),
               ),
+              const SizedBox(height: 8),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
@@ -106,25 +101,7 @@ class _HomePageState extends State<HomePage> {
                       if (reportController.isLoading && allReports.isEmpty)
                         const SliverFillRemaining(
                           hasScrollBody: false,
-                          child: Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                        )
-                      else if (reportController.lastOperationFailed && allReports.isEmpty)
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: Center(
-                              child: Text(
-                                'Gagal memuat laporan: ${reportController.message}',
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         )
                       else if (filteredReports.isEmpty)
                         SliverFillRemaining(
@@ -178,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                               crossAxisCount: 2,
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
-                              childAspectRatio: 0.75, // Adjust this to balance image vs text area
+                              childAspectRatio: 0.75,
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -189,16 +166,13 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: 24),
-                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          // FAB dan BottomNav sekarang dikelola oleh MainScaffold
         );
       },
     );
@@ -206,28 +180,26 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSearchBar(BuildContext context, HomeController controller) {
     return Container(
-      height: 44,
+      height: 48,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const SizedBox(width: 16),
           Expanded(
             child: TextField(
               onChanged: (value) => context.read<HomeController>().updateSearchQuery(value),
               decoration: const InputDecoration(
                 hintText: 'Cari barang hilang',
-                hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 13),
+                hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 14),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.zero,
               ),
             ),
           ),
-          const Icon(Icons.search, color: AppColors.textGrey, size: 20),
-          const SizedBox(width: 14),
+          const Icon(Icons.search, color: Colors.black, size: 24),
         ],
       ),
     );
@@ -235,10 +207,12 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTabSelector(HomeController controller) {
     return Container(
+      height: 50,
       decoration: BoxDecoration(
-        color: AppColors.secondaryBlue.withValues(alpha: 0.3),
+        color: const Color(0xFFE6F0FF),
         borderRadius: BorderRadius.circular(30),
       ),
+      padding: const EdgeInsets.all(4),
       child: Row(
         children: [
           _tabButton('Kehilangan', controller.activeTab == HomeTab.kehilangan,
@@ -255,31 +229,20 @@ class _HomePageState extends State<HomePage> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: active ? AppColors.primaryBlue : Colors.transparent,
             borderRadius: BorderRadius.circular(30),
-            border: active ? Border.all(color: AppColors.primaryBlue) : null,
           ),
           child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (active)
-                  const Icon(Icons.check,
-                      color: AppColors.primaryYellow, size: 14),
-                if (active) const SizedBox(width: 6),
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: active
-                        ? AppColors.primaryYellow
-                        : Colors.white.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+            child: Text(
+              text,
+              style: TextStyle(
+                color: active ? AppColors.primaryYellow : const Color(0xFF90AEE0),
+                fontWeight: active ? FontWeight.bold : FontWeight.w500,
+
+
+                fontSize: 14,
+              ),
             ),
           ),
         ),
@@ -288,6 +251,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildDataLokalBanner(BuildContext context, int unsyncedCount) {
+    if (unsyncedCount == 0) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () => context.go('/my-reports'),
       child: Container(
@@ -372,7 +336,6 @@ class _HomePageState extends State<HomePage> {
                       color: AppColors.softGrey,
                       child: Stack(
                         children: [
-                          // Blurred Background
                           Positioned.fill(
                             child: Image.network(
                               item.imageUrl ?? '',
@@ -391,7 +354,6 @@ class _HomePageState extends State<HomePage> {
                               child: Container(color: Colors.transparent),
                             ),
                           ),
-                          // Main Image
                           Center(
                             child: Image.network(
                               item.imageUrl ?? '',

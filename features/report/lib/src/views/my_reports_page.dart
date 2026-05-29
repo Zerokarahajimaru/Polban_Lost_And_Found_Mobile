@@ -11,7 +11,6 @@ class MyReportsProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We use the root-level ReportController now
     return const MyReportsPage();
   }
 }
@@ -35,7 +34,6 @@ class _MyReportsPageState extends State<MyReportsPage>
     _controller = context.read<ReportController>();
     _controller.addListener(_handleControllerUpdates);
     
-    // Refresh data when the page is first shown
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.getReports();
     });
@@ -61,7 +59,6 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Future<void> _navigateToCreateOrEdit({ReportModel? report}) async {
-    // The controller is already provided at the root, so CreateReportPage will pick it up.
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -97,7 +94,17 @@ class _MyReportsPageState extends State<MyReportsPage>
   Widget build(BuildContext context) {
     final controller = context.watch<ReportController>();
     
-    return _buildLoadedView(controller.reports, controller.isLoading);
+    return Scaffold(
+      backgroundColor: AppColors.softGrey,
+      appBar: CustomHeader(
+        title: "Riwayat Laporanku",
+        showBackButton: false, // No back button on root reports
+        extraHeight: 110, // Increased to fit the stats card
+        onNotificationTap: () {},
+        bottomChild: _buildStatsCard(controller.reports.length),
+      ),
+      body: _buildLoadedView(controller.reports, controller.isLoading),
+    );
   }
 
   Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {
@@ -106,8 +113,7 @@ class _MyReportsPageState extends State<MyReportsPage>
 
     return Column(
       children: [
-        _buildHeader(reports.length),
-        const SizedBox(height: 50),
+        const SizedBox(height: 12),
         _buildTabs(),
         Expanded(
           child: isLoading && reports.isEmpty
@@ -124,77 +130,47 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
   }
 
-  Widget _buildHeader(int total) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: 180,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-              color: AppColors.primaryBlue,
-              borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40))),
-          padding: const EdgeInsets.only(top: 50, left: 20, right: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.chevron_left,
-                      color: AppColors.primaryYellow, size: 30)),
-              const SizedBox(width: 10),
-              const Text("Riwayat Laporanku",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-        Positioned(
-            bottom: -40, left: 20, right: 20,
-            child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5))
-                    ]),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(children: [
-                        Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: AppColors.primaryYellow.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(15)),
-                            child: const Icon(Icons.history,
-                                color: AppColors.primaryBlue)),
-                        const SizedBox(width: 15),
-                        Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text("TOTAL LAPORAN",
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.bold)),
-                              Text("$total Laporan",
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryBlue))
-                            ])
-                      ]),
-                    ]))),
-      ],
+  Widget _buildStatsCard(int total) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5))
+          ]),
+      child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(children: [
+              Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: AppColors.primaryYellow.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(15)),
+                  child: const Icon(Icons.history,
+                      color: AppColors.primaryBlue)),
+              const SizedBox(width: 15),
+              Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("TOTAL LAPORAN",
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold)),
+                    Text("$total Laporan",
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlue))
+                  ])
+            ]),
+          ]),
     );
   }
 
@@ -229,8 +205,8 @@ class _MyReportsPageState extends State<MyReportsPage>
                   children: [
                     Container(
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.softGrey,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -263,7 +239,7 @@ class _MyReportsPageState extends State<MyReportsPage>
             )
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               itemCount: reports.length,
               itemBuilder: (context, index) => _buildReportCard(reports[index])),
     );
@@ -300,7 +276,6 @@ class _MyReportsPageState extends State<MyReportsPage>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image Section
             Container(
               width: 100,
               decoration: BoxDecoration(
@@ -332,8 +307,6 @@ class _MyReportsPageState extends State<MyReportsPage>
                       ),
               ),
             ),
-            
-            // Content Section
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
