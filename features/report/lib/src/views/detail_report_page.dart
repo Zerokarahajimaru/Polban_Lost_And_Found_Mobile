@@ -372,7 +372,7 @@ class ReportDetailPage extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ReportPostPageProvider(),
+              builder: (context) => ReportPostPageProvider(item: item),
             ),
           );
         },

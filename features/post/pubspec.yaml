@@ -13,6 +13,8 @@ dependencies:
     sdk: flutter
   core_module:
     path: ../../core/core_module
+  moderation:
+    path: ../../features/moderation
 
 dev_dependencies:
   flutter_test:

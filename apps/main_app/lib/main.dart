@@ -1,3 +1,4 @@
+import 'package:claim/claim.dart';
 import 'package:core_module/core_module.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -23,8 +24,8 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SessionController()),
-        // Provide the ReportController here to be shared across tabs
         ChangeNotifierProvider(create: (_) => ReportController()),
+        ChangeNotifierProvider(create: (_) => ClaimController()),
       ],
       child: const MyApp(),
     ),
@@ -115,7 +116,15 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/report-post',
-          builder: (context, state) => const ReportPostPageProvider(),
+          builder: (context, state) => ReportPostPageProvider(item: state.extra),
+        ),
+        GoRoute(
+          path: '/claim-queue',
+          builder: (context, state) => const ClaimQueuePage(),
+        ),
+        GoRoute(
+          path: '/verification',
+          builder: (context, state) => VerificationPage(claim: state.extra as ClaimModel),
         ),
       ],
     );

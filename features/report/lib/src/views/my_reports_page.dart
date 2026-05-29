@@ -26,6 +26,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late ReportController _controller;
+  String? _userId;
 
   @override
   void initState() {
@@ -34,8 +35,10 @@ class _MyReportsPageState extends State<MyReportsPage>
     _controller = context.read<ReportController>();
     _controller.addListener(_handleControllerUpdates);
     
+    _userId = context.read<SessionController>().currentUser?.id;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controller.getReports();
+      _controller.getReports(userId: _userId);
     });
   }
 
@@ -86,37 +89,42 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
 
     if (confirm == true && mounted) {
-      await _controller.deleteReport(report.id, report.status);
+      await _controller.deleteReport(report.id, report.status, userId: _userId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ReportController>();
+    final session = context.watch<SessionController>();
+    final isTeknisi = session.isTeknisi;
     
     return Scaffold(
       backgroundColor: AppColors.softGrey,
       appBar: CustomHeader(
         title: "Riwayat Laporanku",
-        showBackButton: false, // No back button on root reports
-        extraHeight: 110, // Increased to fit the stats card
+        showBackButton: isTeknisi, // Show back button ONLY for Teknisi
+        extraHeight: 110,
         onNotificationTap: () {},
-        bottomChild: _buildStatsCard(controller.reports.length),
+        bottomChild: _buildStatsCard(controller.reports.length, isTeknisi),
       ),
       body: _buildLoadedView(controller.reports, controller.isLoading),
     );
   }
 
   Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {
-    final pendingReports = reports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
-    final historyReports = reports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
+    // Only show reports that belong to the current user
+    final myReports = reports.where((r) => r.userId == _userId).toList();
+    
+    final pendingReports = myReports.where((r) => r.status.contains('pending') || r.status == 'draft').toList();
+    final historyReports = myReports.where((r) => !r.status.contains('pending') && r.status != 'draft').toList();
 
     return Column(
       children: [
         const SizedBox(height: 12),
         _buildTabs(),
         Expanded(
-          child: isLoading && reports.isEmpty
+          child: isLoading && myReports.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 controller: _tabController,
@@ -130,7 +138,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
   }
 
-  Widget _buildStatsCard(int total) {
+  Widget _buildStatsCard(int total, bool isTeknisi) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(20),
@@ -170,6 +178,19 @@ class _MyReportsPageState extends State<MyReportsPage>
                             color: AppColors.primaryBlue))
                   ])
             ]),
+            if (isTeknisi)
+              GestureDetector(
+                onTap: () => _navigateToCreateOrEdit(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryYellow,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primaryBlue, width: 2),
+                  ),
+                  child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 24),
+                ),
+              ),
           ]),
     );
   }
@@ -192,7 +213,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     }
 
     return RefreshIndicator(
-      onRefresh: () => context.read<ReportController>().getReports(),
+      onRefresh: () => context.read<ReportController>().getReports(userId: _userId),
       child: reports.isEmpty
           ? SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),

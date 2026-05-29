@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
+import 'package:moderation/moderation.dart';
+import 'package:provider/provider.dart';
 
 // ========================
 // HALAMAN LAPORKAN KONTEN (FULL RED BACKGROUND)
 // ========================
-class ReportPostPageProvider extends StatefulWidget {
-  const ReportPostPageProvider({super.key});
+class ReportPostPageProvider extends StatelessWidget {
+  final dynamic item;
+  const ReportPostPageProvider({super.key, required this.item});
 
   @override
-  State<ReportPostPageProvider> createState() => _ReportPostPageProviderState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ModerationController(),
+      child: ReportPostPage(item: item),
+    );
+  }
 }
 
-class _ReportPostPageProviderState extends State<ReportPostPageProvider> {
+class ReportPostPage extends StatefulWidget {
+  final dynamic item;
+  const ReportPostPage({super.key, required this.item});
+
+  @override
+  State<ReportPostPage> createState() => _ReportPostPageState();
+}
+
+class _ReportPostPageState extends State<ReportPostPage> {
   String? _selectedAlasan;
 
   final List<String> _alasanList = [
@@ -23,8 +39,11 @@ class _ReportPostPageProviderState extends State<ReportPostPageProvider> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = context.watch<ModerationController>();
+    final session = context.watch<SessionController>();
+    final currentUser = session.currentUser;
+
     return Scaffold(
-      // SEKARANG BACKGROUND FULL MERAH
       backgroundColor: const Color(0xFFD32F2F), 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -41,12 +60,11 @@ class _ReportPostPageProviderState extends State<ReportPostPageProvider> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              // ICON HEADER
               Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Icon(
@@ -76,7 +94,6 @@ class _ReportPostPageProviderState extends State<ReportPostPageProvider> {
               ),
               const SizedBox(height: 32),
 
-              // DAFTAR ALASAN
               Align(
                 alignment: Alignment.centerLeft,
                 child: const Text(
@@ -93,40 +110,63 @@ class _ReportPostPageProviderState extends State<ReportPostPageProvider> {
               
               const SizedBox(height: 32),
 
-              // TOMBOL LAPORKAN
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white, // Tombol putih agar kontras dengan background merah
-                    foregroundColor: const Color(0xFFD32F2F),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              if (controller.isLoading)
+                const CircularProgressIndicator(color: Colors.white)
+              else
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFFD32F2F),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
-                  ),
-                  icon: const Icon(Icons.flag_rounded, size: 20),
-                  label: const Text(
-                    'LAPORKAN SEKARANG',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                    icon: const Icon(Icons.flag_rounded, size: 20),
+                    label: const Text(
+                      'LAPORKAN SEKARANG',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
+                    onPressed: _selectedAlasan == null
+                        ? null
+                        : () async {
+                            final isReportModel = widget.item is ReportModel;
+                            final String postId = isReportModel ? widget.item.id : widget.item.nama;
+                            final String postTitle = isReportModel ? widget.item.title : widget.item.nama;
+                            final String uploaderName = isReportModel ? 'User' : (widget.item.uploaderName ?? 'Unknown');
+                            final String? postImageUrl = isReportModel ? widget.item.imageUrl : widget.item.imageUrl;
+
+                            await controller.submitReport(
+                              postId: postId,
+                              postTitle: postTitle,
+                              reportReason: _selectedAlasan!,
+                              uploaderName: uploaderName,
+                              postImageUrl: postImageUrl,
+                              reporterName: currentUser?.name ?? 'Anonymous',
+                              reporterNim: currentUser?.id ?? '0000000000',
+                            );
+
+                            if (!mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(controller.message),
+                                backgroundColor: controller.lastOperationFailed ? Colors.red : Colors.black87,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+
+                            if (!controller.lastOperationFailed) {
+                              Navigator.pop(context);
+                            }
+                          },
                   ),
-                  onPressed: _selectedAlasan == null
-                      ? null
-                      : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Laporan berhasil dikirimkan'),
-                              backgroundColor: Colors.black87,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                          Navigator.pop(context);
-                        },
                 ),
-              ),
               const SizedBox(height: 40),
             ],
           ),
@@ -143,8 +183,7 @@ class _ReportPostPageProviderState extends State<ReportPostPageProvider> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
-          // Box transparan putih jika tidak dipilih, putih solid jika dipilih
-          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
           border: Border.all(
             color: Colors.white,
             width: 1.5,

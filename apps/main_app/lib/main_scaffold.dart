@@ -14,38 +14,42 @@ class MainScaffold extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            backgroundColor: AppColors.primaryYellow,
-            shape: const CircleBorder(
-                side: BorderSide(color: AppColors.primaryBlue, width: 4)),
-            onPressed: () => GoRouter.of(context).push('/create-report'),
-            child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Lapor',
-            style: TextStyle(
-              color: AppColors.primaryBlue,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+      floatingActionButton: isTeknisi 
+          ? null 
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  backgroundColor: AppColors.primaryYellow,
+                  shape: const CircleBorder(
+                      side: BorderSide(color: AppColors.primaryBlue, width: 4)),
+                  onPressed: () => GoRouter.of(context).push('/create-report'),
+                  child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Lapor',
+                  style: TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        notchMargin: 8,
-        shape: const CircularNotchedRectangle(),
-        child: CustomBottomNav(
-          currentIndex: _calculateSelectedIndex(context),
-          isTeknisi: isTeknisi,
-          onTap: (index) => _onItemTapped(index, context),
-        ),
-      ),
+      bottomNavigationBar: isTeknisi 
+          ? null 
+          : BottomAppBar(
+              padding: EdgeInsets.zero,
+              notchMargin: 8,
+              shape: const CircularNotchedRectangle(),
+              child: CustomBottomNav(
+                currentIndex: _calculateSelectedIndex(context),
+                isTeknisi: isTeknisi,
+                onTap: (index) => _onItemTapped(index, context),
+              ),
+            ),
     );
   }
 

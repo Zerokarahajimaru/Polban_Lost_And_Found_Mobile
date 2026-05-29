@@ -42,4 +42,37 @@ class ModerationRepository {
       rethrow;
     }
   }
+
+  Future<void> submitReport({
+    required String postId,
+    required String postTitle,
+    required String reportReason,
+    required String uploaderName,
+    String? postImageUrl,
+    required String reporterName,
+    required String reporterNim,
+  }) async {
+    try {
+      await _networkService.dio.post(
+        '/moderation',
+        data: {
+          'postId': postId,
+          'postTitle': postTitle,
+          'reportReason': reportReason,
+          'uploaderName': uploaderName,
+          'postImageUrl': postImageUrl,
+          'reporters': [
+            {
+              'name': reporterName,
+              'nim': reporterNim,
+              'reason': reportReason,
+            }
+          ],
+        },
+      );
+    } catch (e) {
+      debugPrint('[ModerationRepository] submitReport error: $e');
+      rethrow;
+    }
+  }
 }

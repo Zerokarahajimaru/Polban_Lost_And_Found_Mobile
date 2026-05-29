@@ -78,4 +78,37 @@ class ModerationController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> submitReport({
+    required String postId,
+    required String postTitle,
+    required String reportReason,
+    required String uploaderName,
+    String? postImageUrl,
+    required String reporterName,
+    required String reporterNim,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _repository.submitReport(
+        postId: postId,
+        postTitle: postTitle,
+        reportReason: reportReason,
+        uploaderName: uploaderName,
+        postImageUrl: postImageUrl,
+        reporterName: reporterName,
+        reporterNim: reporterNim,
+      );
+      _message = 'Laporan berhasil dikirimkan.';
+      _lastOperationFailed = false;
+    } catch (e) {
+      _message = 'Gagal mengirimkan laporan. Coba lagi.';
+      _lastOperationFailed = true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

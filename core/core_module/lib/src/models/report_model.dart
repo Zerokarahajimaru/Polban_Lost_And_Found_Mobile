@@ -1,5 +1,6 @@
 class ReportModel {
   final String id;
+  final String? userId; // Owner of the report
   final String title;
   final String description;
   final String category;
@@ -13,6 +14,7 @@ class ReportModel {
 
   ReportModel({
     required this.id,
+    this.userId,
     required this.title,
     required this.description,
     required this.category,
@@ -29,6 +31,7 @@ class ReportModel {
   factory ReportModel.fromMap(Map<dynamic, dynamic> map) {
     return ReportModel(
       id: map['_id']?.toString() ?? map['id']?.toString() ?? '',
+      userId: map['userId']?.toString() ?? map['user_id']?.toString(),
       title: map['nama_barang']?.toString() ?? map['title']?.toString() ?? '',
       description: map['deskripsi_barang']?.toString() ?? map['description']?.toString() ?? '',
       category: map['kategori_barang']?.toString() ?? map['category']?.toString() ?? '',
@@ -46,6 +49,7 @@ class ReportModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'userId': userId,
       'title': title,
       'description': description,
       'category': category,

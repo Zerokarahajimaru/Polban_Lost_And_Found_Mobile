@@ -29,3 +29,4 @@ class SessionController extends ChangeNotifier {
   bool get isTeknisi => _currentUser?.role == 'teknisi';
   bool get isUser => _currentUser?.role == 'user';
 }
+

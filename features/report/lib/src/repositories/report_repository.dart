@@ -8,18 +8,23 @@ class ReportRepository {
   final _hiveService = HiveService();
   final _cloudinaryService = CloudinaryService();
 
-  Future<List<ReportModel>> getReports() async {
+  Future<List<ReportModel>> getReports({String? userId}) async {
     try {
       await _syncPendingReports();
-      final response = await _networkService.dio.get('/reports');
+      final queryParams = userId != null ? {'userId': userId} : null;
+      final response = await _networkService.dio.get('/reports', queryParameters: queryParams);
       final serverData = response.data as List;
       final serverReports =
           serverData.map((item) => ReportModel.fromMap(item)).toList();
-      await _updateCacheWithServerData(serverReports);
-      return _loadAllFromCache();
+      
+      if (userId == null) {
+        await _updateCacheWithServerData(serverReports);
+      }
+      
+      return _loadAllFromCache(filterByUserId: userId);
     } catch (e) {
       debugPrint('Network unavailable. Loading from cache. Error: $e');
-      return _loadAllFromCache();
+      return _loadAllFromCache(filterByUserId: userId);
     }
   }
 
@@ -166,18 +171,26 @@ class ReportRepository {
     await _hiveService.reportsBox.putAll(pendingData);
   }
 
-  Future<List<ReportModel>> loadFromCacheOnly() async {
-    return _loadAllFromCache();
+  Future<List<ReportModel>> loadFromCacheOnly({String? userId}) async {
+    return _loadAllFromCache(filterByUserId: userId);
   }
 
-  List<ReportModel> _loadAllFromCache() {
+  List<ReportModel> _loadAllFromCache({String? filterByUserId}) {
     final reports = <ReportModel>[];
     for (final key in _hiveService.reportsBox.keys) {
       final map = _hiveService.reportsBox.get(key);
       if (map != null) {
         final dataWithId = Map<String, dynamic>.from(map);
         dataWithId['id'] = key; // Ensure the ID is always the Hive key
-        reports.add(ReportModel.fromMap(dataWithId));
+        final report = ReportModel.fromMap(dataWithId);
+        
+        if (filterByUserId != null) {
+          if (report.userId == filterByUserId) {
+            reports.add(report);
+          }
+        } else {
+          reports.add(report);
+        }
       }
     }
     return reports;

@@ -21,12 +21,12 @@ class ReportController extends ChangeNotifier {
     _message = '';
   }
 
-  Future<void> getReports() async {
+  Future<void> getReports({String? userId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final newReports = await _reportRepository.getReports();
+      final newReports = await _reportRepository.getReports(userId: userId);
       _reports = newReports;
       _lastOperationFailed = false;
     } catch (e) {
@@ -42,17 +42,20 @@ class ReportController extends ChangeNotifier {
       required Map<String, dynamic> reportData,
       File? imageFile,
       String? existingId,
+      String? userId,
     }) async {
       try {
+        final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
+        
         if (existingId != null && existingId.startsWith('draft_')) {
           if (imageFile == null) throw Exception("Gambar wajib untuk finalisasi draft.");
           try {
-            await _reportRepository.postReportOnline(reportData: reportData, imageFile: imageFile);
+            await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
             _message = 'Laporan berhasil dikirim!';
             _lastOperationFailed = false;
           } on DioException catch (e) {
             if (_isNetworkError(e)) {
-              await _reportRepository.queueCreateForSync(reportData: reportData, localImagePath: imageFile.path);
+              await _reportRepository.queueCreateForSync(reportData: dataWithUser, localImagePath: imageFile.path);
               _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
               _lastOperationFailed = false;
             } else {
@@ -62,25 +65,22 @@ class ReportController extends ChangeNotifier {
           await _reportRepository.deleteReport(existingId, 'draft');
   
         } else if (existingId != null && existingId.startsWith('pending_')) {
-          await _reportRepository.queueUpdateForSync(id: existingId, reportData: reportData, localImagePath: imageFile?.path);
+          await _reportRepository.queueUpdateForSync(id: existingId, reportData: dataWithUser, localImagePath: imageFile?.path);
           _message = 'Perubahan disimpan di antrian untuk sinkronisasi.';
           _lastOperationFailed = false;
   
         } else if (existingId != null) {
-          await _reportRepository.updateReportOnline(id: existingId, reportData: reportData, imageFile: imageFile);
+          await _reportRepository.updateReportOnline(id: existingId, reportData: dataWithUser, imageFile: imageFile);
           _message = 'Laporan berhasil diperbarui!';
           _lastOperationFailed = false;
   
         } else {
           if (imageFile == null) throw Exception("Gambar wajib untuk laporan baru.");
-          await _reportRepository.postReportOnline(reportData: reportData, imageFile: imageFile);
+          await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
           _message = 'Laporan berhasil dikirim!';
           _lastOperationFailed = false;
         }
-        // After any successful operation, refresh the state.
-        // If it was an online operation, getReports() will sync with server.
-        // Otherwise, refreshFromCache() is enough for local-only changes.
-        await getReports();
+        await getReports(userId: userId);
       } on DioException catch (e) {
         _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
         _lastOperationFailed = true;
@@ -96,29 +96,25 @@ class ReportController extends ChangeNotifier {
     required Map<String, dynamic> reportData,
     String? localImagePath,
     String? existingId,
+    String? userId,
   }) async {
     try {
+      final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
       final isRevertingSyncedPost = existingId != null &&
           !existingId.startsWith('draft_') &&
           !existingId.startsWith('pending_');
 
       if (isRevertingSyncedPost) {
-        // Case 1: Reverting a synced post.
-        // 1. Save it locally as a draft first to ensure no data loss.
         await _reportRepository.saveAsDraft(
-          reportData: reportData,
+          reportData: dataWithUser,
           localImagePath: localImagePath,
-          existingId: null, // Create new local ID
+          existingId: null, 
         );
-        
-        // 2. Delete from cloud immediately.
         await _reportRepository.deleteReport(existingId, 'synced');
-
         _message = 'Laporan online dipindahkan ke draft lokal.';
       } else {
-        // Case 2: Creating a new draft or updating an existing one.
         await _reportRepository.saveAsDraft(
-          reportData: reportData,
+          reportData: dataWithUser,
           localImagePath: localImagePath,
           existingId: existingId,
         );
@@ -126,8 +122,7 @@ class ReportController extends ChangeNotifier {
       }
 
       _lastOperationFailed = false;
-      // Critical: Refresh all data (including server sync if needed) to update UI
-      await getReports();
+      await getReports(userId: userId);
 
     } catch (e) {
       _message = 'Gagal menyimpan draft: $e';
@@ -135,19 +130,20 @@ class ReportController extends ChangeNotifier {
       notifyListeners();
     }
   }
-  Future<void> refreshFromCache() async {
-    _reports = await _reportRepository.loadFromCacheOnly();
+  
+  Future<void> refreshFromCache({String? userId}) async {
+    _reports = await _reportRepository.loadFromCacheOnly(userId: userId);
     notifyListeners();
   }
 
-  Future<void> deleteReport(String id, String status) async {
+  Future<void> deleteReport(String id, String status, {String? userId}) async {
     _isLoading = true;
     notifyListeners();
     try {
       await _reportRepository.deleteReport(id, status);
       _message = 'Laporan berhasil dihapus.';
       _lastOperationFailed = false;
-      await refreshFromCache();
+      await refreshFromCache(userId: userId);
     } catch (e) {
       _message = 'Gagal menghapus laporan: $e';
       _lastOperationFailed = true;
