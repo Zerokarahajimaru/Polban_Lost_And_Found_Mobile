@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:core_module/core_module.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:report/src/repositories/report_repository.dart';
 
 class ReportController extends ChangeNotifier {
   final _reportRepository = ReportRepository();

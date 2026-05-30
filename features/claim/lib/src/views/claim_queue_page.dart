@@ -3,7 +3,6 @@ import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../controllers/claim_controller.dart';
-import '../models/claim_model.dart';
 import 'verification_page.dart';
 
 class ClaimQueuePage extends StatefulWidget {

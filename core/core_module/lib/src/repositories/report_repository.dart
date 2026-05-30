@@ -1,7 +1,10 @@
 import 'dart:io';
-import 'package:core_module/core_module.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../models/report_model.dart';
+import '../services/hive_service.dart';
+import '../services/network_service.dart';
+import '../services/cloudinary_service.dart';
 
 class ReportRepository {
   final _networkService = NetworkService();
@@ -70,6 +73,21 @@ class ReportRepository {
     }
     final postData = {...reportData, 'imageUrl': imageUrl ?? reportData['imageUrl']};
     await _networkService.dio.put('/reports/$id', data: postData);
+  }
+
+  Future<void> updateReportStatus({
+    required String id,
+    required String status,
+    String? claimantName,
+    String? claimantId,
+  }) async {
+    final data = {
+      'status': status,
+      'claimant_name': claimantName,
+      'claimant_id': claimantId,
+      'resolved_at': DateTime.now().toIso8601String(),
+    };
+    await _networkService.dio.put('/reports/$id', data: data);
   }
   
   Future<void> queueCreateForSync({

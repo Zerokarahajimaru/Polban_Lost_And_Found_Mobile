@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:core_module/core_module.dart';
 import 'package:moderation/moderation.dart';
 import 'package:provider/provider.dart';
+import 'package:report/report.dart';
 
 class TeknisiDashboardPage extends StatelessWidget {
   const TeknisiDashboardPage({super.key});
@@ -46,7 +47,7 @@ class TeknisiDashboardPage extends StatelessWidget {
 
             GestureDetector(
               onTap: () => context.push('/claim-queue'),
-              child: _AntreanKlaimBanner(count: 0),
+              child: const _AntreanKlaimBanner(count: 0),
             ),
 
             const SizedBox(height: 24),
@@ -101,6 +102,16 @@ class TeknisiDashboardPage extends StatelessWidget {
                 ),
               ],
             ),
+            
+            const SizedBox(height: 12),
+            
+            // NEW CARDBOX FOR PDF REPORT
+            _MenuWideTile(
+              icon: Icons.picture_as_pdf_outlined,
+              label: 'Cetak Laporan Bulanan (PDF)',
+              accentColor: AppColors.primaryBlue,
+              onTap: () => _showPdfPeriodPicker(context),
+            ),
 
             const SizedBox(height: 24),
 
@@ -124,6 +135,71 @@ class TeknisiDashboardPage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showPdfPeriodPicker(BuildContext context) {
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    String selectedMonth = months[DateTime.now().month - 1];
+    String selectedYear = DateTime.now().year.toString();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Cetak Laporan PDF", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedMonth,
+                      items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                      onChanged: (val) => setModalState(() => selectedMonth = val!),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedYear,
+                      items: ['2025', '2026', '2027'].map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                      onChanged: (val) => setModalState(() => selectedYear = val!),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  onPressed: () {
+                    final reports = context.read<ReportController>().reports;
+                    PdfService.generateReport(
+                      reports: reports,
+                      month: selectedMonth,
+                      year: selectedYear,
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text("GENERATE PDF", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -320,6 +396,58 @@ class _MenuTile extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                   color: Colors.black87),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuWideTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _MenuWideTile({
+    required this.icon,
+    required this.label,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: accentColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: accentColor, size: 30),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
+            ),
+            const Spacer(),
+            Icon(Icons.arrow_forward_ios, size: 16, color: accentColor),
           ],
         ),
       ),

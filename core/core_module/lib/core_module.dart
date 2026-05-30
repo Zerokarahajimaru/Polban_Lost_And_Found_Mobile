@@ -16,6 +16,11 @@ export 'src/services/hive_service.dart';
 export 'src/services/network_service.dart';
 export 'src/services/cloudinary_service.dart';
 export 'src/services/file_service.dart';
+export 'src/services/pdf_service.dart';
+
+// Repositories
+export 'src/repositories/report_repository.dart';
+export 'src/repositories/claim_repository.dart';
 
 // Controllers
 export 'src/controllers/session_controller.dart';
@@ -23,6 +28,7 @@ export 'src/controllers/session_controller.dart';
 // Models
 export 'src/models/user_model.dart';
 export 'src/models/report_model.dart';
+export 'src/models/claim_model.dart';
 
 
 // Enums

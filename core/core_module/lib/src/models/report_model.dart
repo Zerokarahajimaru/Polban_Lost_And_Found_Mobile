@@ -7,10 +7,13 @@ class ReportModel {
   final String location;
   final String? contact;
   final String? reward;
-  final String status;
+  final String status; // 'lost', 'found', 'resolved', 'draft'
   final String imageUrl;
   final String? localImagePath;
   final DateTime createdAt;
+  final String? claimantName; // For resolved items
+  final String? claimantId;   // For resolved items (NIM)
+  final DateTime? resolvedAt;
 
   ReportModel({
     required this.id,
@@ -25,6 +28,9 @@ class ReportModel {
     required this.imageUrl,
     this.localImagePath,
     required this.createdAt,
+    this.claimantName,
+    this.claimantId,
+    this.resolvedAt,
   });
 
   // Handles data from both server (snake_case) and local cache (camelCase).
@@ -42,6 +48,9 @@ class ReportModel {
       imageUrl: map['imageUrl']?.toString() ?? '',
       localImagePath: map['local_image_path']?.toString(),
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      claimantName: map['claimantName']?.toString() ?? map['claimant_name']?.toString(),
+      claimantId: map['claimantId']?.toString() ?? map['claimant_id']?.toString(),
+      resolvedAt: DateTime.tryParse(map['resolvedAt']?.toString() ?? map['resolved_at']?.toString() ?? ''),
     );
   }
 
@@ -60,6 +69,9 @@ class ReportModel {
       'imageUrl': imageUrl,
       'localImagePath': localImagePath,
       'createdAt': createdAt.toIso8601String(),
+      'claimantName': claimantName,
+      'claimantId': claimantId,
+      'resolvedAt': resolvedAt?.toIso8601String(),
     };
   }
 }

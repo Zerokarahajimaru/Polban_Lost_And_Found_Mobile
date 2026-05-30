@@ -6,6 +6,7 @@ import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:claim/claim.dart';
 import 'package:post/post.dart';
+import 'package:report/src/controllers/report_controller.dart';
 
 // ========================
 // HALAMAN DETAIL LAPORAN
@@ -25,8 +26,10 @@ class ReportDetailPage extends StatelessWidget {
   String get normalizedStatus => status.toLowerCase();
   bool get isFound => normalizedStatus == 'found';
   bool get isLost => normalizedStatus == 'lost';
+  bool get isResolved => normalizedStatus == 'resolved';
 
   Color get statusColor {
+    if (isResolved) return Colors.green;
     if (!isReportModel) return item.statusColor;
     return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
   }
@@ -43,6 +46,7 @@ class ReportDetailPage extends StatelessWidget {
 
   String get deskripsi => isReportModel ? item.description : item.deskripsi;
   String get id => isReportModel ? item.id : item.nama;
+  String? get userId => isReportModel ? item.userId : null;
 
   // Reward section visibility
   bool get showRewardBanner => imbalan != null && imbalan!.isNotEmpty && imbalan != '-';
@@ -62,6 +66,11 @@ class ReportDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final currentUser = session.currentUser;
+    final isOwner = userId != null && currentUser != null && userId == currentUser.id;
+    final isTeknisi = session.isTeknisi;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -102,11 +111,11 @@ class ReportDetailPage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.2),
+                              color: statusColor.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              status.toUpperCase(),
+                              isResolved ? "SELESAI" : status.toUpperCase(),
                               style: TextStyle(
                                 color: statusColor,
                                 fontWeight: FontWeight.bold,
@@ -138,20 +147,36 @@ class ReportDetailPage extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // --- LOGIKA TOMBOL ---
-                      if (isFound) ...[
-                        _buildKlaimButton(context), // Claim on top for Found items
-                        const SizedBox(height: 16),
-                        _buildHubungiButton(context), // Followed by Contact button
-                        const SizedBox(height: 16),
-                      ] else if (isLost) ...[
-                        _buildHubungiButton(context), // Just Contact for Lost items
-                        const SizedBox(height: 16),
+                      if (!isResolved) ...[
+                        if (isFound) ...[
+                          _buildKlaimButton(context), // Claim on top for Found items
+                          const SizedBox(height: 16),
+                          if (isTeknisi) ...[
+                            _buildResolvedButton(context, "TANDAI SUDAH DIAMBIL"),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildHubungiButton(context), 
+                          const SizedBox(height: 16),
+                        ] else if (isLost) ...[
+                          if (isOwner) ...[
+                            _buildResolvedButton(context, "BARANG SUDAH KETEMU"),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildHubungiButton(context), 
+                          const SizedBox(height: 16),
+                        ],
+                        
+                        _buildReportButton(context),
+                      ] else ...[
+                        const Center(
+                          child: Text(
+                            "Postingan ini telah diselesaikan.",
+                            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ],
-                      
-                      // Tombol Report dengan tanda seru merah (always at bottom of action group)
-                      _buildReportButton(context),
 
-                      const SizedBox(height: 100), // Spasi bawah agar tidak tertutup
+                      const SizedBox(height: 100), 
                     ],
                   ),
                 ),
@@ -184,7 +209,7 @@ class ReportDetailPage extends StatelessWidget {
                     Positioned.fill(
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                        child: Container(color: Colors.black.withValues(alpha: 0.2)),
+                        child: Container(color: Colors.black.withOpacity(0.2)),
                       ),
                     ),
                     // Main image (100% visible)
@@ -201,14 +226,14 @@ class ReportDetailPage extends StatelessWidget {
                       color: AppColors.textGrey, size: 48),
                 ),
         ),
-        // Gradient overlay agar tombol back terlihat jelas
+        // Gradient overlay
         Container(
           height: 100,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.black.withValues(alpha: 0.5), Colors.transparent],
+              colors: [Colors.black.withOpacity(0.5), Colors.transparent],
             ),
           ),
         ),
@@ -278,7 +303,7 @@ class ReportDetailPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.secondaryBlue.withValues(alpha: 0.5)),
+          border: Border.all(color: AppColors.secondaryBlue.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -419,6 +444,85 @@ class ReportDetailPage extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildResolvedButton(BuildContext context, String label) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        ),
+        icon: const Icon(Icons.done_all, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        onPressed: () => _showResolveDialog(context),
+      ),
+    );
+  }
+
+  void _showResolveDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final idController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isFound ? "Selesaikan Laporan" : "Barang Ditemukan"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isFound 
+              ? "Masukkan data mahasiswa yang mengambil barang ini." 
+              : "Apakah barang ini sudah benar-benar Anda temukan?"),
+            if (isFound) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Nama Pengambil"),
+              ),
+              TextField(
+                controller: idController,
+                decoration: const InputDecoration(labelText: "NIM Pengambil"),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal")),
+          ElevatedButton(
+            onPressed: () async {
+              final reportRepo = ReportRepository();
+              try {
+                await reportRepo.updateReportStatus(
+                  id: id,
+                  status: 'resolved',
+                  claimantName: isFound ? nameController.text : null,
+                  claimantId: isFound ? idController.text : null,
+                );
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                  // Refresh global reports
+                  context.read<ReportController>().getReports();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Laporan berhasil diselesaikan."), backgroundColor: Colors.green)
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text("Error: $e")));
+              }
+            },
+            child: const Text("Selesaikan"),
+          ),
+        ],
       ),
     );
   }

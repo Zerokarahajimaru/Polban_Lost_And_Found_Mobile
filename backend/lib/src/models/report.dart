@@ -5,7 +5,7 @@ class ReportModel {
   final String userId;
   final String namaBarang;
   final String kategoriBarang;
-  final String statusPostingan;
+  final String statusPostingan; // 'lost', 'found', 'resolved'
   final String deskripsiBarang;
   final String lokasiKehilangan;
   final String kontak;
@@ -16,6 +16,9 @@ class ReportModel {
   final DateTime updatedAt;
   final List<String> images;
   final BountyModel? bounty;
+  final String? claimantName;
+  final String? claimantId;
+  final DateTime? resolvedAt;
 
   ReportModel({
     this.id,
@@ -33,6 +36,9 @@ class ReportModel {
     required this.isSynced,
     required this.images,
     this.bounty,
+    this.claimantName,
+    this.claimantId,
+    this.resolvedAt,
   });
 
   factory ReportModel.fromMap(Map<String, dynamic> map) {
@@ -54,6 +60,9 @@ class ReportModel {
       bounty: map['bounty'] != null
           ? BountyModel.fromMap(map['bounty'] as Map<String, dynamic>)
           : null,
+      claimantName: map['claimant_name'] as String?,
+      claimantId: map['claimant_id'] as String?,
+      resolvedAt: map['resolved_at'] != null ? DateTime.parse(map['resolved_at'] as String) : null,
     );
   }
 
@@ -74,6 +83,9 @@ class ReportModel {
       'is_synced': isSynced,
       'images': images,
       if (bounty != null) 'bounty': bounty!.toMap(),
+      if (claimantName != null) 'claimant_name': claimantName,
+      if (claimantId != null) 'claimant_id': claimantId,
+      if (resolvedAt != null) 'resolved_at': resolvedAt!.toIso8601String(),
     };
   }
 }

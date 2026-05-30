@@ -1,6 +1,6 @@
-import 'package:core_module/core_module.dart';
 import 'package:flutter/foundation.dart';
 import '../models/claim_model.dart';
+import '../services/network_service.dart';
 
 class ClaimRepository {
   final _networkService = NetworkService();

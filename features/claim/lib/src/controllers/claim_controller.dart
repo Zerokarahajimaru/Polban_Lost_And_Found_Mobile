@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../models/claim_model.dart';
-import '../repositories/claim_repository.dart';
+import 'package:core_module/core_module.dart';
 
 class ClaimController extends ChangeNotifier {
   final _repository = ClaimRepository();

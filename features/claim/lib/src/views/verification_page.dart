@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
+import 'package:report/src/controllers/report_controller.dart';
 import '../controllers/claim_controller.dart';
-import '../models/claim_model.dart';
 
 class VerificationPage extends StatelessWidget {
   final ClaimModel claim;
@@ -70,12 +70,39 @@ class VerificationPage extends StatelessWidget {
                     onPressed: controller.isLoading 
                       ? null 
                       : () async {
+                          // 1. Finalize the claim
                           final success = await controller.finalizeVerification(claim.id);
+                          
                           if (success && context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(controller.message))
-                            );
+                            // 2. Also update the report status to 'resolved'
+                            final reportRepo = ReportRepository();
+                            try {
+                              await reportRepo.updateReportStatus(
+                                id: claim.reportId,
+                                status: 'resolved',
+                                claimantName: claim.claimantName,
+                                claimantId: claim.claimantId,
+                              );
+                              
+                              if (context.mounted) {
+                                // Refresh reports global state
+                                context.read<ReportController>().getReports();
+                                
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Klaim diverifikasi & Laporan ditutup."),
+                                    backgroundColor: Colors.green,
+                                  )
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Error update laporan: $e"))
+                                );
+                              }
+                            }
                           }
                         },
                     child: controller.isLoading
