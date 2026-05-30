@@ -131,15 +131,16 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9C4), // Yellow pudar
+                      color: claim.status == 'verified' ? Colors.green.withOpacity(0.1) : const Color(0xFFFFF9C4), 
                       borderRadius: BorderRadius.circular(20),
+                      border: claim.status == 'verified' ? Border.all(color: Colors.green) : null,
                     ),
                     child: Text(
                       claim.status.toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 10,
-                        color: Color(0xFFF57C00), // Orange/Dark Yellow
+                        color: claim.status == 'verified' ? Colors.green : const Color(0xFFF57C00), 
                       ),
                     ),
                   ),

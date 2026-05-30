@@ -10,6 +10,8 @@ class VerificationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAlreadyVerified = claim.status == 'verified';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const CustomHeader(
@@ -38,83 +40,112 @@ class VerificationPage extends StatelessWidget {
             
             const SizedBox(height: 32),
             
-            const Center(
-              child: Text(
-                "Pastikan wajah pemohon sesuai dengan KTM/Profil sebelum menyerahkan barang.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
+            if (!isAlreadyVerified) ...[
+              const Center(
+                child: Text(
+                  "Pastikan wajah pemohon sesuai dengan KTM/Profil sebelum menyerahkan barang.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 32),
-
-            Consumer<ClaimController>(
-              builder: (context, controller, child) {
-                return SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    onPressed: controller.isLoading 
-                      ? null 
-                      : () async {
-                          final success = await controller.finalizeVerification(claim.id);
-                          
-                          if (success && context.mounted) {
-                            final reportRepo = ReportRepository();
-                            try {
-                              await reportRepo.updateReportStatus(
-                                id: claim.reportId,
-                                status: 'resolved',
-                                claimantName: claim.claimantName,
-                                claimantId: claim.claimantId,
-                              );
-                              
-                              if (context.mounted) {
-                                context.read<ReportController>().getReports();
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Klaim diverifikasi & Laporan ditutup."),
-                                    backgroundColor: Colors.green,
-                                  )
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Berhasil verifikasi klaim, tapi gagal tutup laporan: $e"))
-                                );
-                              }
-                            }
-                          } else if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(controller.message.isNotEmpty ? controller.message : "Gagal memverifikasi klaim."),
-                                backgroundColor: Colors.red,
-                              )
-                            );
-                          }
-                        },
-                    child: controller.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          "Selesaikan & Tutup Postingan",
-                          style: TextStyle(
-                            color: AppColors.primaryYellow,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+              const SizedBox(height: 32),
+              Consumer<ClaimController>(
+                builder: (context, controller, child) {
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
                         ),
+                      ),
+                      onPressed: controller.isLoading 
+                        ? null 
+                        : () async {
+                            final success = await controller.finalizeVerification(claim.id);
+                            
+                            if (success && context.mounted) {
+                              final reportRepo = ReportRepository();
+                              try {
+                                await reportRepo.updateReportStatus(
+                                  id: claim.reportId,
+                                  status: 'resolved',
+                                  claimantName: claim.claimantName,
+                                  claimantId: claim.claimantId,
+                                );
+                                
+                                if (context.mounted) {
+                                  context.read<ReportController>().getReports();
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Klaim diverifikasi & Laporan ditutup."),
+                                      backgroundColor: Colors.green,
+                                    )
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Berhasil verifikasi klaim, tapi gagal tutup laporan: $e"))
+                                  );
+                                }
+                              }
+                            } else if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(controller.message.isNotEmpty ? controller.message : "Gagal memverifikasi klaim."),
+                                  backgroundColor: Colors.red,
+                                )
+                              );
+                            }
+                          },
+                      child: controller.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "Selesaikan & Tutup Postingan",
+                            style: TextStyle(
+                              color: AppColors.primaryYellow,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                    ),
+                  );
+                }
+              ),
+            ] else ...[
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.green),
                   ),
-                );
-              }
-            ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text(
+                        "KLAIM TELAH DIVERIFIKASI",
+                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Center(
+                child: Text(
+                  "Laporan ini sudah ditutup dan barang sudah diserahterimakan.",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ),
+            ],
           ],
         ),
       ),

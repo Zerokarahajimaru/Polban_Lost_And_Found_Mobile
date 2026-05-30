@@ -35,10 +35,11 @@ class ReportDetailPage extends StatelessWidget {
   bool get isFound => normalizedStatus == 'found';
   bool get isLost => normalizedStatus == 'lost';
   bool get isResolved => normalizedStatus == 'resolved';
+  bool get isVerified => normalizedStatus == 'verified'; // Specifically for ClaimModel
   bool get isSynced => isReportModel && !item.id.startsWith('draft_') && !item.id.startsWith('pending_');
 
   Color get statusColor {
-    if (isResolved) return Colors.green;
+    if (isResolved || isVerified) return Colors.green;
     if (isReportModel) return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
     if (isClaimModel) return Colors.orange;
     return Colors.grey;
@@ -123,7 +124,7 @@ class ReportDetailPage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                             child: Text(
-                              isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase(),
+                              isVerified ? "VERIFIED" : (isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase()),
                               style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
@@ -143,7 +144,17 @@ class ReportDetailPage extends StatelessWidget {
 
                       // --- LOGIKA TOMBOL ---
                       if (isFromUserClaim) ...[
-                        _buildCancelClaimButton(context),
+                        if (!isVerified) ...[
+                          _buildCancelClaimButton(context),
+                        ] else ...[
+                          const Center(
+                            child: Text(
+                              "Klaim ini telah diverifikasi. Silakan ambil barang di tempat yang ditentukan.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                       ] else ...[
                         if (!isResolved) ...[
@@ -417,7 +428,13 @@ class ReportDetailPage extends StatelessWidget {
             onPressed: () async {
               final reportRepo = ReportRepository();
               try {
-                await reportRepo.updateReportStatus(id: id, status: 'resolved', claimantName: isFoundInternal ? nameController.text : null, claimantId: isFoundInternal ? idController.text : null);
+                // Ensure data is passed correctly
+                await reportRepo.updateReportStatus(
+                  id: id, 
+                  status: 'resolved', 
+                  claimantName: nameController.text.isNotEmpty ? nameController.text : null, 
+                  claimantId: idController.text.isNotEmpty ? idController.text : null
+                );
                 if (context.mounted) {
                   Navigator.pop(ctx);
                   Navigator.pop(context);
