@@ -6,15 +6,20 @@ import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:claim/claim.dart';
 import 'package:post/post.dart';
-import 'package:report/src/controllers/report_controller.dart';
+import '../controllers/report_controller.dart';
 
 // ========================
 // HALAMAN DETAIL LAPORAN
 // ========================
 class ReportDetailPage extends StatelessWidget {
   final dynamic item;
+  final bool canManage;
 
-  const ReportDetailPage({super.key, required this.item});
+  const ReportDetailPage({
+    super.key, 
+    required this.item,
+    this.canManage = false,
+  });
 
   bool get isReportModel => item is ReportModel;
 
@@ -27,6 +32,7 @@ class ReportDetailPage extends StatelessWidget {
   bool get isFound => normalizedStatus == 'found';
   bool get isLost => normalizedStatus == 'lost';
   bool get isResolved => normalizedStatus == 'resolved';
+  bool get isSynced => isReportModel && !item.id.startsWith('draft_') && !item.id.startsWith('pending_');
 
   Color get statusColor {
     if (isResolved) return Colors.green;
@@ -67,9 +73,13 @@ class ReportDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
+    final claimController = context.watch<ClaimController>();
     final currentUser = session.currentUser;
     final isOwner = userId != null && currentUser != null && userId == currentUser.id;
     final isTeknisi = session.isTeknisi;
+
+    // Check if current user already claimed this item
+    final hasAlreadyClaimed = claimController.claims.any((c) => c.reportId == id && c.claimantId == currentUser?.id);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -115,7 +125,7 @@ class ReportDetailPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              isResolved ? "SELESAI" : status.toUpperCase(),
+                              isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase(),
                               style: TextStyle(
                                 color: statusColor,
                                 fontWeight: FontWeight.bold,
@@ -148,25 +158,36 @@ class ReportDetailPage extends StatelessWidget {
 
                       // --- LOGIKA TOMBOL ---
                       if (!isResolved) ...[
-                        if (isFound) ...[
-                          _buildKlaimButton(context), // Claim on top for Found items
+                         // Only show Claim button for Found items that belong to someone else
+                        if (isFound && !isOwner) ...[
+                          _buildKlaimButton(context, hasAlreadyClaimed),
                           const SizedBox(height: 16),
-                          if (isTeknisi) ...[
+                        ],
+
+                        // Only show Resolve button if opened from "Management" (My Reports) and is Synced
+                        if (canManage && isSynced) ...[
+                          if (isFound && isTeknisi) ...[
                             _buildResolvedButton(context, "TANDAI SUDAH DIAMBIL"),
                             const SizedBox(height: 16),
-                          ],
-                          _buildHubungiButton(context), 
-                          const SizedBox(height: 16),
-                        ] else if (isLost) ...[
-                          if (isOwner) ...[
+                          ] else if (isLost && isOwner) ...[
                             _buildResolvedButton(context, "BARANG SUDAH KETEMU"),
                             const SizedBox(height: 16),
                           ],
-                          _buildHubungiButton(context), 
-                          const SizedBox(height: 16),
                         ],
-                        
-                        _buildReportButton(context),
+
+                        // Show interaction buttons ONLY if NOT the owner
+                        if (!isOwner) ...[
+                          _buildHubungiButton(context),
+                          const SizedBox(height: 16),
+                          _buildReportButton(context),
+                        ] else ...[
+                           const Center(
+                            child: Text(
+                              "Ini adalah postingan Anda.",
+                              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
                       ] else ...[
                         const Center(
                           child: Text(
@@ -326,7 +347,7 @@ class ReportDetailPage extends StatelessWidget {
   }
 
   //Tombol untuk Barang Temuan
-  Widget _buildKlaimButton(BuildContext context) {
+  Widget _buildKlaimButton(BuildContext context, bool hasAlreadyClaimed) {
     final session = context.watch<SessionController>();
     final user = session.currentUser;
 
@@ -335,16 +356,16 @@ class ReportDetailPage extends StatelessWidget {
       height: 55,
       child: ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryBlue,
+          backgroundColor: hasAlreadyClaimed ? Colors.grey : AppColors.primaryBlue, 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
-        icon: const Icon(Icons.check_circle_outline, color: AppColors.primaryYellow),
-        label: const Text(
-          "AJUKAN KLAIM",
-          style: TextStyle(
+        icon: Icon(Icons.check_circle_outline, color: hasAlreadyClaimed ? Colors.white70 : AppColors.primaryYellow),
+        label: Text(
+          hasAlreadyClaimed ? "KLAIM SEDANG DIPROSES" : "AJUKAN KLAIM", 
+          style: const TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        onPressed: () async {
+        onPressed: hasAlreadyClaimed ? null : () async {
           if (user == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Harap login untuk melakukan klaim."))
@@ -368,9 +389,10 @@ class ReportDetailPage extends StatelessWidget {
           try {
             await claimRepo.submitClaim(claim);
             if (context.mounted) {
+              context.read<ClaimController>().loadClaims(); // Refresh claims
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text("Klaim berhasil diajukan! Pantau antrean."),
+                  content: Text("Klaim berhasil diajukan! Pantau di menu Klaim Saya."),
                   backgroundColor: Colors.green,
                 )
               );

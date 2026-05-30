@@ -99,6 +99,14 @@ class MyApp extends StatelessWidget {
             StatefulShellBranch(
               routes: [
                 GoRoute(
+                  path: '/user-claims',
+                  builder: (context, state) => const UserClaimsPage(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
                   path: '/profile',
                   builder: (context, state) => const ProfilePage(),
                 ),

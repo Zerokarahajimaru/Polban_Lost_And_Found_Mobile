@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
-import 'package:report/src/controllers/report_controller.dart';
+import 'package:report/report.dart';
 import '../controllers/claim_controller.dart';
 
 class VerificationPage extends StatelessWidget {
@@ -22,27 +22,11 @@ class VerificationPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            // Hero Image
             _buildHeroImage(),
             const SizedBox(height: 20),
             
-            // Section 1: Data Pemohon Klaim
             const Text(
               "Data Pemohon Klaim",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Color(0xFF424242), // Dark grey
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildDataPemohonCard(),
-            
-            const SizedBox(height: 20),
-            
-            // Section 2: Konfirmasi Fisik
-            const Text(
-              "Konfirmasi Fisik",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -50,11 +34,20 @@ class VerificationPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _buildKonfirmasiFisikForm(),
+            _buildDataPemohonCard(),
             
             const SizedBox(height: 32),
             
-            // Bottom Button
+            const Center(
+              child: Text(
+                "Pastikan wajah pemohon sesuai dengan KTM/Profil sebelum menyerahkan barang.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+
             Consumer<ClaimController>(
               builder: (context, controller, child) {
                 return SizedBox(
@@ -70,11 +63,9 @@ class VerificationPage extends StatelessWidget {
                     onPressed: controller.isLoading 
                       ? null 
                       : () async {
-                          // 1. Finalize the claim
                           final success = await controller.finalizeVerification(claim.id);
                           
                           if (success && context.mounted) {
-                            // 2. Also update the report status to 'resolved'
                             final reportRepo = ReportRepository();
                             try {
                               await reportRepo.updateReportStatus(
@@ -85,9 +76,7 @@ class VerificationPage extends StatelessWidget {
                               );
                               
                               if (context.mounted) {
-                                // Refresh reports global state
                                 context.read<ReportController>().getReports();
-                                
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -135,7 +124,6 @@ class VerificationPage extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Image
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Container(
@@ -147,7 +135,6 @@ class VerificationPage extends StatelessWidget {
                 : const Icon(Icons.image_outlined, size: 50, color: Colors.grey),
             ),
           ),
-          // Gradient Overlay
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -155,15 +142,11 @@ class VerificationPage extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
               ),
             ),
           ),
-          // Text Details
           Positioned(
             left: 16,
             bottom: 16,
@@ -172,19 +155,11 @@ class VerificationPage extends StatelessWidget {
               children: [
                 Text(
                   "Claim#${claim.id.substring(claim.id.length - 4).toUpperCase()}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 Text(
                   claim.reportTitle,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
                 ),
               ],
             ),
@@ -203,115 +178,43 @@ class VerificationPage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Item 1: Nama & NIM
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(8)),
                 child: const Icon(Icons.person, color: AppColors.primaryYellow, size: 24),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    claim.claimantName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
-                  Text(
-                    claim.claimantId,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Text(claim.claimantName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryBlue)),
+                  Text(claim.claimantId, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),
             ],
           ),
           const Divider(height: 24, thickness: 1, color: Colors.grey),
-          // Item 2: Email
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
                 child: const Icon(Icons.email, color: Colors.blueAccent, size: 24),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Email Institusi",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  Text(
-                    claim.claimantEmail,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Color(0xFF424242),
-                    ),
-                  ),
+                  const Text("Email Institusi", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(claim.claimantEmail, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF424242))),
                 ],
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildKonfirmasiFisikForm() {
-    return Column(
-      children: [
-        TextFormField(
-          decoration: InputDecoration(
-            hintText: "Nama Lengkap Penerima (Jika Diwakilkan)",
-            hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          decoration: InputDecoration(
-            hintText: "Konfirmasi NIM",
-            hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

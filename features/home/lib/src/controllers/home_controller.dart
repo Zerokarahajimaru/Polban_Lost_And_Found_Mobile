@@ -31,8 +31,7 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Update query pencarian dengan debounce logic bisa ditambahkan di UI, 
-  /// di sini kita terima string bersihnya.
+  /// Update query pencarian
   void updateSearchQuery(String query) {
     _searchQuery = query.trim().toLowerCase();
     notifyListeners();
@@ -48,17 +47,18 @@ class HomeController extends ChangeNotifier {
   // --- The Core Logic: Multi-Level Filtering ---
 
   /// Fungsi utama untuk menyaring data yang diambil dari ReportController.
-  /// Fungsi ini akan menjalankan 3 tahap filter: Status Tab, Kategori, dan Pencarian.
   List<ReportModel> filterReports(List<ReportModel> allReports) {
     return allReports.where((report) {
       
+      // 0. Filter out RESOLVED items from public feed
+      if (report.status.toLowerCase() == 'resolved') return false;
+
       // 1. Filter berdasarkan Tab (Status Postingan)
-      // Figma: 'Kehilangan' biasanya status 'lost', 'Penemuan' status 'found'
       final bool matchesTab = (_activeTab == HomeTab.kehilangan)
           ? report.status.toLowerCase() == 'lost'
           : report.status.toLowerCase() == 'found';
 
-      // 2. Filter berdasarkan Kategori (Ikon-ikon di Figma)
+      // 2. Filter berdasarkan Kategori
       final bool matchesCategory = (_selectedCategory == 'Semua')
           ? true
           : report.category.toLowerCase() == _selectedCategory.toLowerCase();
@@ -72,7 +72,6 @@ class HomeController extends ChangeNotifier {
   }
 
   /// Menghitung berapa banyak laporan yang belum tersinkron (isSynced == false)
-  /// Ini untuk menampilkan jumlah di banner "DATA LOKAL" pada Figma.
   int getUnsyncedCount(List<ReportModel> allReports) {
     return allReports.where((report) => report.id.startsWith('pending_')).length;
   }

@@ -7,11 +7,13 @@ class ReportController extends ChangeNotifier {
   final _reportRepository = ReportRepository();
 
   List<ReportModel> _reports = [];
+  List<ReportModel> _myReports = []; // Dedicated list for personal reports
   String _message = '';
   bool _isLoading = false;
   bool _lastOperationFailed = false;
 
   List<ReportModel> get reports => _reports;
+  List<ReportModel> get myReports => _myReports;
   String get message => _message;
   bool get isLoading => _isLoading;
   bool get lastOperationFailed => _lastOperationFailed;
@@ -20,6 +22,7 @@ class ReportController extends ChangeNotifier {
     _message = '';
   }
 
+  /// Fetches ALL reports for the public feed.
   Future<void> getReports() async {
     _isLoading = true;
     notifyListeners();
@@ -27,6 +30,24 @@ class ReportController extends ChangeNotifier {
     try {
       final newReports = await _reportRepository.getReports();
       _reports = newReports;
+      _lastOperationFailed = false;
+    } catch (e) {
+      _message = e.toString();
+      _lastOperationFailed = true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Fetches reports filtered by [userId] for the "My Reports" page.
+  Future<void> getMyReports(String userId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final results = await _reportRepository.getReports(userId: userId);
+      _myReports = results;
       _lastOperationFailed = false;
     } catch (e) {
       _message = e.toString();
@@ -83,8 +104,9 @@ class ReportController extends ChangeNotifier {
         _lastOperationFailed = false;
       }
       
-      // Refresh to update Home and History
+      // Refresh both lists
       await getReports();
+      if (userId != null) await getMyReports(userId);
       
     } on DioException catch (e) {
       _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
@@ -113,7 +135,7 @@ class ReportController extends ChangeNotifier {
       );
       _message = 'Draft berhasil disimpan.';
       _lastOperationFailed = false;
-      await getReports();
+      if (userId != null) await getMyReports(userId);
     } catch (e) {
       _message = 'Gagal menyimpan draft: $e';
       _lastOperationFailed = true;
@@ -126,7 +148,7 @@ class ReportController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteReport(String id, String status) async {
+  Future<void> deleteReport(String id, String status, {String? userId}) async {
     _isLoading = true;
     notifyListeners();
     try {
@@ -134,6 +156,7 @@ class ReportController extends ChangeNotifier {
       _message = 'Laporan berhasil dihapus.';
       _lastOperationFailed = false;
       await getReports();
+      if (userId != null) await getMyReports(userId);
     } catch (e) {
       _message = 'Gagal menghapus laporan: $e';
       _lastOperationFailed = true;

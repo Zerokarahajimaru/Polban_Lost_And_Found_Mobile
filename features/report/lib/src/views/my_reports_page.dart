@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:report/src/controllers/report_controller.dart';
 import 'package:report/src/views/create_report_page.dart';
+import 'package:report/src/views/detail_report_page.dart';
 
 class MyReportsProvider extends StatelessWidget {
   const MyReportsProvider({super.key});
@@ -38,7 +39,9 @@ class _MyReportsPageState extends State<MyReportsPage>
     _userId = context.read<SessionController>().currentUser?.id;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controller.getReports(); // Fetch all reports globally
+      if (_userId != null) {
+        _controller.getMyReports(_userId!);
+      }
     });
   }
 
@@ -69,9 +72,8 @@ class _MyReportsPageState extends State<MyReportsPage>
       ),
     );
     
-    // Always refresh list after returning from edit/create
-    if (mounted) {
-      _controller.getReports();
+    if (result == true && mounted && _userId != null) {
+      _controller.getMyReports(_userId!);
     }
   }
 
@@ -94,7 +96,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     );
 
     if (confirm == true && mounted) {
-      await _controller.deleteReport(report.id, report.status);
+      await _controller.deleteReport(report.id, report.status, userId: _userId);
     }
   }
 
@@ -104,8 +106,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     final session = context.watch<SessionController>();
     final isTeknisi = session.isTeknisi;
     
-    // Filter ALL reports locally to only show reports belonging to this user
-    final reports = controller.reports.where((r) => r.userId == _userId).toList();
+    final reports = controller.myReports;
     
     return Scaffold(
       backgroundColor: AppColors.softGrey,
@@ -121,7 +122,6 @@ class _MyReportsPageState extends State<MyReportsPage>
   }
 
   Widget _buildLoadedView(List<ReportModel> reports, bool isLoading) {
-    // Correct filtering for tabs
     final pendingReports = reports.where((r) => 
       r.status.toLowerCase().contains('pending') || 
       r.status.toLowerCase() == 'draft'
@@ -131,6 +131,13 @@ class _MyReportsPageState extends State<MyReportsPage>
       !r.status.toLowerCase().contains('pending') && 
       r.status.toLowerCase() != 'draft'
     ).toList();
+
+    // SORTING: Put 'resolved' at the bottom of the history list
+    historyReports.sort((a, b) {
+      if (a.status.toLowerCase() == 'resolved' && b.status.toLowerCase() != 'resolved') return 1;
+      if (a.status.toLowerCase() != 'resolved' && b.status.toLowerCase() == 'resolved') return -1;
+      return b.createdAt.compareTo(a.createdAt);
+    });
 
     return Column(
       children: [
@@ -160,7 +167,7 @@ class _MyReportsPageState extends State<MyReportsPage>
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 5))
           ]),
@@ -171,7 +178,7 @@ class _MyReportsPageState extends State<MyReportsPage>
               Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                      color: AppColors.primaryYellow.withValues(alpha: 0.2),
+                      color: AppColors.primaryYellow.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(15)),
                   child: const Icon(Icons.history,
                       color: AppColors.primaryBlue)),
@@ -222,7 +229,9 @@ class _MyReportsPageState extends State<MyReportsPage>
 
   Widget _buildReportList(List<ReportModel> reports, bool isLoading) {
     return RefreshIndicator(
-      onRefresh: () => context.read<ReportController>().getReports(),
+      onRefresh: () async {
+        if (_userId != null) await context.read<ReportController>().getMyReports(_userId!);
+      },
       child: reports.isEmpty
           ? SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -281,6 +290,7 @@ class _MyReportsPageState extends State<MyReportsPage>
     final bool isOffline = isDraft || isPending;
     final bool canEdit = isOffline || (DateTime.now().difference(report.createdAt).inHours < 24);
     final bool isLost = report.status.toLowerCase() != 'found';
+    final bool isResolved = report.status.toLowerCase() == 'resolved';
 
     ImageProvider? imageProvider;
     if (report.localImagePath != null && report.localImagePath!.isNotEmpty) {
@@ -289,136 +299,151 @@ class _MyReportsPageState extends State<MyReportsPage>
       imageProvider = NetworkImage(report.imageUrl);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 100,
-              decoration: BoxDecoration(
-                color: AppColors.softGrey,
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
-                child: imageProvider != null
-                    ? Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image(image: imageProvider, fit: BoxFit.cover),
-                          ),
-                          Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                              child: Container(color: Colors.black.withValues(alpha: 0.1)),
-                            ),
-                          ),
-                          Center(
-                            child: Image(image: imageProvider, fit: BoxFit.contain),
-                          ),
-                        ],
-                      )
-                    : const Center(
-                        child: Icon(Icons.image_not_supported_outlined,
-                            color: AppColors.textGrey, size: 30),
-                      ),
-              ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportDetailPage(
+              item: report,
+              canManage: true, 
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildStatusBadge(
-                          isDraft ? "DRAFT" : (isPending ? "PENDING" : "TERKIRIM"),
-                          isDraft ? Colors.orange : (isPending ? Colors.blue : Colors.green),
-                        ),
-                        if (canEdit)
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () => _navigateToCreateOrEdit(report: report),
-                                child: const Icon(Icons.edit_outlined,
-                                    color: AppColors.primaryBlue, size: 18),
-                              ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _deleteAndRefresh(report),
-                                child: const Icon(Icons.delete_outline,
-                                    color: Colors.red, size: 20),
-                              ),
-                            ],
-                          )
-                        else
-                          GestureDetector(
-                            onTap: () => _deleteAndRefresh(report),
-                            child: const Icon(Icons.delete_outline,
-                                color: Colors.red, size: 20),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      report.title.isEmpty ? "(Tanpa Judul)" : report.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.primaryBlue,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 12, color: AppColors.textGrey),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            report.location.isEmpty
-                                ? "Lokasi tidak ditentukan"
-                                : report.location,
-                            style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildTypeBadge(isLost),
-                        Text(
-                          "${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}",
-                          style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.softGrey,
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                  child: imageProvider != null
+                      ? Stack(
+                          children: [
+                            Positioned.fill(
+                              child: Image(image: imageProvider, fit: BoxFit.cover),
+                            ),
+                            Positioned.fill(
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                child: Container(color: Colors.black.withOpacity(0.1)),
+                              ),
+                            ),
+                            Center(
+                              child: Image(image: imageProvider, fit: BoxFit.contain),
+                            ),
+                          ],
+                        )
+                      : const Center(
+                          child: Icon(Icons.image_not_supported_outlined,
+                              color: AppColors.textGrey, size: 30),
+                        ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatusBadge(
+                            isResolved 
+                              ? (isLost ? "BARANG SUDAH KETEMU" : "DIAMBIL PEMILIK") 
+                              : (isDraft ? "DRAFT" : (isPending ? "PENDING" : "TERKIRIM")),
+                            isResolved ? Colors.green : (isDraft ? Colors.orange : (isPending ? Colors.blue : Colors.green)),
+                          ),
+                          if (canEdit && !isResolved)
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _navigateToCreateOrEdit(report: report),
+                                  child: const Icon(Icons.edit_outlined,
+                                      color: AppColors.primaryBlue, size: 18),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () => _deleteAndRefresh(report),
+                                  child: const Icon(Icons.delete_outline,
+                                      color: Colors.red, size: 20),
+                                ),
+                              ],
+                            )
+                          else
+                            GestureDetector(
+                              onTap: () => _deleteAndRefresh(report),
+                              child: const Icon(Icons.delete_outline,
+                                  color: Colors.red, size: 20),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        report.title.isEmpty ? "(Tanpa Judul)" : report.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.primaryBlue,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined,
+                              size: 12, color: AppColors.textGrey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              report.location.isEmpty
+                                  ? "Lokasi tidak ditentukan"
+                                  : report.location,
+                              style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildTypeBadge(isLost),
+                          Text(
+                            "${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}",
+                            style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -428,9 +453,9 @@ class _MyReportsPageState extends State<MyReportsPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.5),
+        border: Border.all(color: color.withOpacity(0.5), width: 0.5),
       ),
       child: Text(
         text,

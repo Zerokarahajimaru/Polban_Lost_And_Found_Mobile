@@ -38,16 +38,14 @@ class MainScaffold extends StatelessWidget {
               ],
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: isTeknisi 
-          ? null 
-          : BottomAppBar(
+      bottomNavigationBar: BottomAppBar(
               padding: EdgeInsets.zero,
               notchMargin: 8,
               shape: const CircularNotchedRectangle(),
               child: CustomBottomNav(
                 currentIndex: _calculateSelectedIndex(context),
                 isTeknisi: isTeknisi,
-                onTap: (index) => _onItemTapped(index, context),
+                onTap: (index) => _onItemTapped(index, context, isTeknisi),
               ),
             ),
     );
@@ -61,19 +59,29 @@ class MainScaffold extends StatelessWidget {
     if (location.startsWith('/my-reports')) {
       return 1;
     }
+    if (location.startsWith('/claim-queue') || location.startsWith('/user-claims')) {
+      return 3;
+    }
     if (location.startsWith('/profile')) {
       return 4;
     }
     return 0;
   }
 
-  void _onItemTapped(int index, BuildContext context) {
+  void _onItemTapped(int index, BuildContext context, bool isTeknisi) {
     switch (index) {
       case 0:
         GoRouter.of(context).go('/home');
         break;
       case 1:
         GoRouter.of(context).go('/my-reports');
+        break;
+      case 3:
+        if (isTeknisi) {
+          GoRouter.of(context).go('/claim-queue');
+        } else {
+          GoRouter.of(context).go('/user-claims');
+        }
         break;
       case 4:
         GoRouter.of(context).go('/profile');

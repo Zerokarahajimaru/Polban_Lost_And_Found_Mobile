@@ -27,11 +27,11 @@ class CustomBottomNav extends StatelessWidget {
         children: [
           Expanded(child: _navItem(Icons.home_outlined, "Beranda", 0)),
           Expanded(child: _navItem(Icons.assignment_outlined, "Laporanku", 1)),
-          const SizedBox(width: 60), // Ruang untuk tombol (+) di tengah
+          const SizedBox(width: 60), // Space for FAB
           if (isTeknisi)
             Expanded(child: _navItem(Icons.check_box_outlined, "Klaim", 3))
           else
-            const Spacer(), // Symmetrical placeholder for regular users
+            Expanded(child: _navItem(Icons.inventory_2_outlined, "Klaim Saya", 3)),
           Expanded(child: _navItem(Icons.person_outline, "Profil", 4)),
         ],
       ),
@@ -60,7 +60,7 @@ class CustomBottomNav extends StatelessWidget {
               color: isActive
                   ? AppColors.primaryYellow
                   : Colors.white.withOpacity(0.6),
-              fontSize: 10,
+              fontSize: 9, // Slightly smaller to accommodate 5 items nicely
               fontWeight: FontWeight.bold,
             ),
           ),
