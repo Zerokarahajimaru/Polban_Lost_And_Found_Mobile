@@ -29,4 +29,10 @@ class ClaimRepository {
       modify.set('status', status),
     );
   }
+
+  Future<void> deleteClaim(String id) async {
+    final db = await MongodbService.db;
+    final collection = db.collection('claims');
+    await collection.deleteOne(where.id(ObjectId.fromHexString(id)));
+  }
 }

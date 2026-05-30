@@ -38,7 +38,9 @@ class MainScaffold extends StatelessWidget {
               ],
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
+      bottomNavigationBar: isTeknisi 
+          ? null 
+          : BottomAppBar(
               padding: EdgeInsets.zero,
               notchMargin: 8,
               shape: const CircularNotchedRectangle(),

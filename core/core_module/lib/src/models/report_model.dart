@@ -1,18 +1,18 @@
 class ReportModel {
   final String id;
-  final String? userId; // Owner of the report
+  final String? userId; 
   final String title;
   final String description;
   final String category;
   final String location;
   final String? contact;
   final String? reward;
-  final String status; // 'lost', 'found', 'resolved', 'draft'
+  final String status; 
   final String imageUrl;
   final String? localImagePath;
   final DateTime createdAt;
-  final String? claimantName; // For resolved items
-  final String? claimantId;   // For resolved items (NIM)
+  final String? claimantName; 
+  final String? claimantId;   
   final DateTime? resolvedAt;
 
   ReportModel({
@@ -33,8 +33,13 @@ class ReportModel {
     this.resolvedAt,
   });
 
-  // Handles data from both server (snake_case) and local cache (camelCase).
   factory ReportModel.fromMap(Map<dynamic, dynamic> map) {
+    // Determine image URL - handle both 'imageUrl' and 'images' (list from backend)
+    String img = map['imageUrl']?.toString() ?? '';
+    if (img.isEmpty && map['images'] != null && (map['images'] as List).isNotEmpty) {
+      img = (map['images'] as List).first.toString();
+    }
+
     return ReportModel(
       id: map['_id']?.toString() ?? map['id']?.toString() ?? '',
       userId: map['userId']?.toString() ?? map['user_id']?.toString(),
@@ -45,7 +50,7 @@ class ReportModel {
       contact: map['kontak']?.toString() ?? map['contact']?.toString(),
       reward: map['reward']?.toString(),
       status: map['status_postingan']?.toString() ?? map['status']?.toString() ?? 'draft',
-      imageUrl: map['imageUrl']?.toString() ?? '',
+      imageUrl: img,
       localImagePath: map['local_image_path']?.toString(),
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
       claimantName: map['claimantName']?.toString() ?? map['claimant_name']?.toString(),
@@ -54,7 +59,6 @@ class ReportModel {
     );
   }
 
-  // Creates a map suitable for caching.
   Map<String, dynamic> toMap() {
     return {
       'id': id,

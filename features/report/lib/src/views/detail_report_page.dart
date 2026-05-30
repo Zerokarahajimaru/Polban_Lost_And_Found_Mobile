@@ -14,18 +14,21 @@ import '../controllers/report_controller.dart';
 class ReportDetailPage extends StatelessWidget {
   final dynamic item;
   final bool canManage;
+  final bool isFromUserClaim; // Flag for "Klaim Saya" view
 
   const ReportDetailPage({
     super.key, 
     required this.item,
     this.canManage = false,
+    this.isFromUserClaim = false,
   });
 
   bool get isReportModel => item is ReportModel;
+  bool get isClaimModel => item is ClaimModel;
 
-  String get nama => isReportModel ? item.title : item.nama;
-  String get lokasi => isReportModel ? item.location : item.lokasi;
-  String get status => isReportModel ? item.status : item.status;
+  String get nama => isReportModel ? item.title : (isClaimModel ? item.reportTitle : item.nama);
+  String get lokasi => isReportModel ? item.location : (isClaimModel ? "Lihat di Beranda" : item.lokasi);
+  String get status => isReportModel ? item.status : (isClaimModel ? item.status : item.status);
   
   // Normalize status to lowercase for comparison
   String get normalizedStatus => status.toLowerCase();
@@ -36,38 +39,41 @@ class ReportDetailPage extends StatelessWidget {
 
   Color get statusColor {
     if (isResolved) return Colors.green;
-    if (!isReportModel) return item.statusColor;
-    return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
+    if (isReportModel) return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
+    if (isClaimModel) return Colors.orange;
+    return Colors.grey;
   }
 
-  String get imageUrl => isReportModel ? item.imageUrl : item.imageUrl;
+  String get imageUrl => isReportModel ? item.imageUrl : (isClaimModel ? (item.reportImageUrl ?? '') : item.imageUrl);
   String? get localImagePath => isReportModel ? item.localImagePath : null;
-  String? get imbalan => isReportModel ? item.reward : item.imbalan;
-  String get kategori => isReportModel ? item.category : item.kategori;
+  String? get imbalan => isReportModel ? item.reward : null;
+  String get kategori => isReportModel ? item.category : "Barang Temuan";
   String get waktuLapor {
-    if (!isReportModel) return item.waktuLapor;
-    final createdAt = item.createdAt as DateTime;
-    return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    if (isReportModel) {
+      final createdAt = item.createdAt as DateTime;
+      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    }
+    if (isClaimModel) {
+      final createdAt = item.createdAt as DateTime;
+      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    }
+    return "";
   }
 
-  String get deskripsi => isReportModel ? item.description : item.deskripsi;
-  String get id => isReportModel ? item.id : item.nama;
-  String? get userId => isReportModel ? item.userId : null;
+  String get deskripsi => isReportModel ? item.description : (isClaimModel ? "Detail klaim yang sedang diajukan." : item.deskripsi);
+  String get id => isReportModel ? item.id : (isClaimModel ? item.id : item.nama);
+  String? get userId => isReportModel ? item.userId : (isClaimModel ? item.claimantId : null);
 
   // Reward section visibility
   bool get showRewardBanner => imbalan != null && imbalan!.isNotEmpty && imbalan != '-';
 
   ImageProvider<Object>? get imageProvider {
     if (isReportModel) {
-      if (localImagePath != null && localImagePath!.isNotEmpty) {
-        return FileImage(File(localImagePath!));
-      }
-      if (imageUrl.isNotEmpty) {
-        return NetworkImage(imageUrl);
-      }
-      return null;
+      if (localImagePath != null && localImagePath!.isNotEmpty) return FileImage(File(localImagePath!));
+      if (imageUrl.isNotEmpty) return NetworkImage(imageUrl);
     }
-    return imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null;
+    if (isClaimModel && imageUrl.isNotEmpty) return NetworkImage(imageUrl);
+    return null;
   }
 
   @override
@@ -78,8 +84,8 @@ class ReportDetailPage extends StatelessWidget {
     final isOwner = userId != null && currentUser != null && userId == currentUser.id;
     final isTeknisi = session.isTeknisi;
 
-    // Check if current user already claimed this item
-    final hasAlreadyClaimed = claimController.claims.any((c) => c.reportId == id && c.claimantId == currentUser?.id);
+    // Check if current user already claimed this item (only if not already in claim management)
+    final hasAlreadyClaimed = !isFromUserClaim && claimController.claims.any((c) => c.reportId == id && c.claimantId == currentUser?.id);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -110,27 +116,15 @@ class ReportDetailPage extends StatelessWidget {
                           Expanded(
                             child: Text(
                               nama,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryBlue,
-                              ),
+                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                             child: Text(
                               isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase(),
-                              style: TextStyle(
-                                color: statusColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
                         ],
@@ -138,18 +132,9 @@ class ReportDetailPage extends StatelessWidget {
                       const SizedBox(height: 16),
 
                       // Deskripsi
-                      const Text(
-                        "Deskripsi",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryBlue),
-                      ),
+                      const Text("Deskripsi", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
                       const SizedBox(height: 8),
-                      Text(
-                        deskripsi,
-                        style: const TextStyle(
-                            color: AppColors.textGrey, height: 1.5),
-                      ),
+                      Text(deskripsi, style: const TextStyle(color: AppColors.textGrey, height: 1.5)),
                       const SizedBox(height: 24),
 
                       // Info Chips (Kategori, Lokasi, Waktu)
@@ -157,44 +142,39 @@ class ReportDetailPage extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // --- LOGIKA TOMBOL ---
-                      if (!isResolved) ...[
-                         // Only show Claim button for Found items that belong to someone else
-                        if (isFound && !isOwner) ...[
-                          _buildKlaimButton(context, hasAlreadyClaimed),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Only show Resolve button if opened from "Management" (My Reports) and is Synced
-                        if (canManage && isSynced) ...[
-                          if (isFound && isTeknisi) ...[
-                            _buildResolvedButton(context, "TANDAI SUDAH DIAMBIL"),
-                            const SizedBox(height: 16),
-                          ] else if (isLost && isOwner) ...[
-                            _buildResolvedButton(context, "BARANG SUDAH KETEMU"),
+                      if (isFromUserClaim) ...[
+                        _buildCancelClaimButton(context),
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        if (!isResolved) ...[
+                           // Only show Claim button for Found items that belong to someone else
+                          if (isFound && !isOwner) ...[
+                            _buildKlaimButton(context, hasAlreadyClaimed),
                             const SizedBox(height: 16),
                           ],
-                        ],
 
-                        // Show interaction buttons ONLY if NOT the owner
-                        if (!isOwner) ...[
-                          _buildHubungiButton(context),
-                          const SizedBox(height: 16),
-                          _buildReportButton(context),
+                          // Only show Resolve button if opened from "Management" (My Reports) and is Synced
+                          if (canManage && isSynced) ...[
+                            if (isFound && isTeknisi) ...[
+                              _buildResolvedButton(context, "TANDAI SUDAH DIAMBIL"),
+                              const SizedBox(height: 16),
+                            ] else if (isLost && isOwner) ...[
+                              _buildResolvedButton(context, "BARANG SUDAH KETEMU"),
+                              const SizedBox(height: 16),
+                            ],
+                          ],
+
+                          // Show interaction buttons ONLY if NOT the owner
+                          if (!isOwner) ...[
+                            _buildHubungiButton(context),
+                            const SizedBox(height: 16),
+                            _buildReportButton(context),
+                          ] else ...[
+                             const Center(child: Text("Ini adalah postingan Anda.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))),
+                          ],
                         ] else ...[
-                           const Center(
-                            child: Text(
-                              "Ini adalah postingan Anda.",
-                              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-                            ),
-                          ),
+                          const Center(child: Text("Postingan ini telah diselesaikan.", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
                         ],
-                      ] else ...[
-                        const Center(
-                          child: Text(
-                            "Postingan ini telah diselesaikan.",
-                            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                          ),
-                        ),
                       ],
 
                       const SizedBox(height: 100), 
@@ -221,53 +201,23 @@ class ReportDetailPage extends StatelessWidget {
               ? Stack(
                   children: [
                     // Blurred background
-                    Positioned.fill(
-                      child: Image(
-                        image: provider,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                        child: Container(color: Colors.black.withOpacity(0.2)),
-                      ),
-                    ),
+                    Positioned.fill(child: Image(image: provider, fit: BoxFit.cover)),
+                    Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), child: Container(color: Colors.black.withOpacity(0.2)))),
                     // Main image (100% visible)
-                    Center(
-                      child: Image(
-                        image: provider,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                    Center(child: Image(image: provider, fit: BoxFit.contain)),
                   ],
                 )
-              : const Center(
-                  child: Icon(Icons.image_not_supported_outlined,
-                      color: AppColors.textGrey, size: 48),
-                ),
+              : const Center(child: Icon(Icons.image_not_supported_outlined, color: AppColors.textGrey, size: 48)),
         ),
         // Gradient overlay
         Container(
           height: 100,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.black.withOpacity(0.5), Colors.transparent],
-            ),
-          ),
+          decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.5), Colors.transparent])),
         ),
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlue),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
+            child: CircleAvatar(backgroundColor: Colors.white, child: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlue), onPressed: () => Navigator.pop(context))),
           ),
         ),
       ],
@@ -277,10 +227,7 @@ class ReportDetailPage extends StatelessWidget {
   Widget _buildImbalanBanner() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primaryYellow,
-        borderRadius: BorderRadius.circular(15),
-      ),
+      decoration: BoxDecoration(color: AppColors.primaryYellow, borderRadius: BorderRadius.circular(15)),
       child: Row(
         children: [
           const Icon(Icons.card_giftcard, color: AppColors.primaryBlue),
@@ -288,20 +235,8 @@ class ReportDetailPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Imbalan bagi Penemu",
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue),
-              ),
-              Text(
-                imbalan ?? "-",
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primaryBlue),
-              ),
+              const Text("Imbalan bagi Penemu", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+              Text(imbalan ?? "-", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primaryBlue)),
             ],
           ),
         ],
@@ -323,23 +258,14 @@ class ReportDetailPage extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.secondaryBlue.withOpacity(0.5)),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(border: Border.all(color: AppColors.secondaryBlue.withOpacity(0.5)), borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, size: 20, color: AppColors.secondaryBlue),
             const SizedBox(height: 8),
-            Text(label,
-                style: const TextStyle(fontSize: 10, color: AppColors.textGrey)),
-            Text(value,
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue),
-                overflow: TextOverflow.ellipsis),
+            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textGrey)),
+            Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryBlue), overflow: TextOverflow.ellipsis),
           ],
         ),
       ),
@@ -355,56 +281,64 @@ class ReportDetailPage extends StatelessWidget {
       width: double.infinity,
       height: 55,
       child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: hasAlreadyClaimed ? Colors.grey : AppColors.primaryBlue, 
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
+        style: ElevatedButton.styleFrom(backgroundColor: hasAlreadyClaimed ? Colors.grey : AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         icon: Icon(Icons.check_circle_outline, color: hasAlreadyClaimed ? Colors.white70 : AppColors.primaryYellow),
-        label: Text(
-          hasAlreadyClaimed ? "KLAIM SEDANG DIPROSES" : "AJUKAN KLAIM", 
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
+        label: Text(hasAlreadyClaimed ? "KLAIM SEDANG DIPROSES" : "AJUKAN KLAIM", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         onPressed: hasAlreadyClaimed ? null : () async {
           if (user == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Harap login untuk melakukan klaim."))
-            );
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Harap login untuk melakukan klaim.")));
             return;
           }
 
           final claimRepo = ClaimRepository();
-          final claim = ClaimModel(
-            id: '', // Will be generated by server
-            reportId: id,
-            reportTitle: nama,
-            claimantName: user.name,
-            claimantId: user.id,
-            claimantEmail: user.email,
-            reportImageUrl: imageUrl,
-            status: 'pending',
-            createdAt: DateTime.now(),
-          );
+          final claim = ClaimModel(id: '', reportId: id, reportTitle: nama, claimantName: user.name, claimantId: user.id, claimantEmail: user.email, reportImageUrl: imageUrl, status: 'pending', createdAt: DateTime.now());
 
           try {
             await claimRepo.submitClaim(claim);
             if (context.mounted) {
               context.read<ClaimController>().loadClaims(); // Refresh claims
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Klaim berhasil diajukan! Pantau di menu Klaim Saya."),
-                  backgroundColor: Colors.green,
-                )
-              );
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Klaim berhasil diajukan! Pantau di menu Klaim Saya."), backgroundColor: Colors.green));
             }
           } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Gagal mengajukan klaim: $e"),
-                  backgroundColor: Colors.red,
-                )
-              );
+            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal mengajukan klaim: $e"), backgroundColor: Colors.red));
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildCancelClaimButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+        icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+        label: const Text("BATALKAN KLAIM", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+        onPressed: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text("Batalkan Klaim?"),
+              content: const Text("Apakah Anda yakin ingin membatalkan pengajuan klaim ini?"),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Tidak")),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Ya, Batalkan", style: TextStyle(color: Colors.red))),
+              ],
+            ),
+          );
+
+          if (confirm == true && context.mounted) {
+            final claimRepo = ClaimRepository();
+            try {
+              await claimRepo.deleteClaim(id); // Using the claim ID
+              if (context.mounted) {
+                context.read<ClaimController>().loadClaims();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Klaim berhasil dibatalkan.")));
+              }
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
             }
           }
         },
@@ -418,23 +352,11 @@ class ReportDetailPage extends StatelessWidget {
       width: double.infinity,
       height: 55,
       child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.primaryBlue, width: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
+        style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         icon: const Icon(Icons.chat_outlined, color: AppColors.primaryBlue),
-        label: const Text(
-          "HUBUNGI PELAPOR",
-          style: TextStyle(
-              color: AppColors.primaryBlue,
-              fontWeight: FontWeight.bold,
-              fontSize: 16),
-        ),
+        label: const Text("HUBUNGI PELAPOR", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 16)),
         onPressed: () {
-          // Tambahkan logika WhatsApp/Chat di sini
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Menghubungi pelapor...")),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Menghubungi pelapor...")));
         },
       ),
     );
@@ -446,25 +368,11 @@ class ReportDetailPage extends StatelessWidget {
       width: double.infinity,
       height: 55,
       child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.red, width: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
+        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         icon: const Icon(Icons.warning_outlined, color: Colors.red),
-        label: const Text(
-          "LAPORKAN POSTINGAN",
-          style: TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-              fontSize: 16),
-        ),
+        label: const Text("LAPORKAN POSTINGAN", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ReportPostPageProvider(item: item),
-            ),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ReportPostPageProvider(item: item)));
         },
       ),
     );
@@ -475,16 +383,9 @@ class ReportDetailPage extends StatelessWidget {
       width: double.infinity,
       height: 55,
       child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         icon: const Icon(Icons.done_all, color: Colors.white),
-        label: Text(
-          label,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
+        label: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         onPressed: () => _showResolveDialog(context),
       ),
     );
@@ -493,27 +394,20 @@ class ReportDetailPage extends StatelessWidget {
   void _showResolveDialog(BuildContext context) {
     final nameController = TextEditingController();
     final idController = TextEditingController();
+    final isFoundInternal = normalizedStatus == 'found';
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isFound ? "Selesaikan Laporan" : "Barang Ditemukan"),
+        title: Text(isFoundInternal ? "Selesaikan Laporan" : "Barang Ditemukan"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(isFound 
-              ? "Masukkan data mahasiswa yang mengambil barang ini." 
-              : "Apakah barang ini sudah benar-benar Anda temukan?"),
-            if (isFound) ...[
+            Text(isFoundInternal ? "Masukkan data mahasiswa yang mengambil barang ini." : "Apakah barang ini sudah benar-benar Anda temukan?"),
+            if (isFoundInternal) ...[
               const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "Nama Pengambil"),
-              ),
-              TextField(
-                controller: idController,
-                decoration: const InputDecoration(labelText: "NIM Pengambil"),
-              ),
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Nama Pengambil")),
+              TextField(controller: idController, decoration: const InputDecoration(labelText: "NIM Pengambil")),
             ],
           ],
         ),
@@ -523,20 +417,12 @@ class ReportDetailPage extends StatelessWidget {
             onPressed: () async {
               final reportRepo = ReportRepository();
               try {
-                await reportRepo.updateReportStatus(
-                  id: id,
-                  status: 'resolved',
-                  claimantName: isFound ? nameController.text : null,
-                  claimantId: isFound ? idController.text : null,
-                );
+                await reportRepo.updateReportStatus(id: id, status: 'resolved', claimantName: isFoundInternal ? nameController.text : null, claimantId: isFoundInternal ? idController.text : null);
                 if (context.mounted) {
                   Navigator.pop(ctx);
                   Navigator.pop(context);
-                  // Refresh global reports
                   context.read<ReportController>().getReports();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Laporan berhasil diselesaikan."), backgroundColor: Colors.green)
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Laporan berhasil diselesaikan."), backgroundColor: Colors.green));
                 }
               } catch (e) {
                 ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text("Error: $e")));

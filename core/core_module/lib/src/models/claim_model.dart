@@ -24,8 +24,15 @@ class ClaimModel {
   });
 
   factory ClaimModel.fromJson(Map<String, dynamic> json) {
+    String rawId = json['_id']?.toString() ?? json['id']?.toString() ?? '';
+    
+    // Normalize ObjectId("...") to just "..."
+    if (rawId.startsWith('ObjectId("') && rawId.endsWith('")')) {
+      rawId = rawId.substring(10, rawId.length - 2);
+    }
+
     return ClaimModel(
-      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      id: rawId,
       reportId: json['reportId']?.toString() ?? '',
       reportTitle: json['reportTitle']?.toString() ?? '',
       claimantName: json['claimantName']?.toString() ?? '',

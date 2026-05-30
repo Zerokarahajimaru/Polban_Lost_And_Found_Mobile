@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
+import 'package:report/report.dart';
 import '../controllers/claim_controller.dart';
 
 class UserClaimsPage extends StatefulWidget {
@@ -74,56 +75,71 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
     bool isVerified = claim.status == 'verified';
     bool isRejected = claim.status == 'rejected';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              image: claim.reportImageUrl != null
-                  ? DecorationImage(image: NetworkImage(claim.reportImageUrl!), fit: BoxFit.cover)
-                  : null,
+    return InkWell(
+      onTap: () {
+        // Navigate to detail page in "Claim Detail" mode
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportDetailPage(
+              item: claim, // Passing ClaimModel instead of ReportModel
+              isFromUserClaim: true,
             ),
-            child: claim.reportImageUrl == null ? const Icon(Icons.image_outlined, color: Colors.grey) : null,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  claim.reportTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Status: ${claim.status.toUpperCase()}",
-                  style: TextStyle(
-                    color: isVerified ? Colors.green : (isRejected ? Colors.red : Colors.orange),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                image: claim.reportImageUrl != null
+                    ? DecorationImage(image: NetworkImage(claim.reportImageUrl!), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: claim.reportImageUrl == null ? const Icon(Icons.image_outlined, color: Colors.grey) : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    claim.reportTitle,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Diajukan pada: ${claim.createdAt.day}/${claim.createdAt.month}/${claim.createdAt.year}",
-                  style: const TextStyle(color: Colors.grey, fontSize: 10),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    "Status: ${claim.status.toUpperCase()}",
+                    style: TextStyle(
+                      color: isVerified ? Colors.green : (isRejected ? Colors.red : Colors.orange),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Diajukan pada: ${claim.createdAt.day}/${claim.createdAt.month}/${claim.createdAt.year}",
+                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

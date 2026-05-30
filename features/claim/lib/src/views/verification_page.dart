@@ -88,10 +88,17 @@ class VerificationPage extends StatelessWidget {
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Error update laporan: $e"))
+                                  SnackBar(content: Text("Berhasil verifikasi klaim, tapi gagal tutup laporan: $e"))
                                 );
                               }
                             }
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(controller.message.isNotEmpty ? controller.message : "Gagal memverifikasi klaim."),
+                                backgroundColor: Colors.red,
+                              )
+                            );
                           }
                         },
                     child: controller.isLoading
@@ -154,7 +161,7 @@ class VerificationPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Claim#${claim.id.substring(claim.id.length - 4).toUpperCase()}",
+                  "Claim#${claim.id.length > 4 ? claim.id.substring(claim.id.length - 4).toUpperCase() : claim.id.toUpperCase()}",
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 Text(

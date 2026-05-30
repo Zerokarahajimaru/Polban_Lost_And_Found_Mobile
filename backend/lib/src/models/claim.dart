@@ -1,3 +1,5 @@
+import 'package:mongo_dart/mongo_dart.dart';
+
 class Claim {
   final String? id;
   final String reportId;
@@ -22,16 +24,24 @@ class Claim {
   });
 
   factory Claim.fromMap(Map<String, dynamic> map) {
+    String? idStr;
+    final idVal = map['_id'] ?? map['id'];
+    if (idVal is ObjectId) {
+      idStr = idVal.toHexString();
+    } else {
+      idStr = idVal?.toString();
+    }
+
     return Claim(
-      id: map['_id']?.toString() ?? map['id']?.toString(),
-      reportId: map['reportId'] as String,
-      reportTitle: map['reportTitle'] as String,
-      claimantName: map['claimantName'] as String,
-      claimantId: map['claimantId'] as String,
-      claimantEmail: map['claimantEmail'] as String,
-      reportImageUrl: map['reportImageUrl'] as String?,
-      status: map['status'] as String,
-      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      id: idStr,
+      reportId: (map['reportId'] ?? map['report_id'])?.toString() ?? '',
+      reportTitle: (map['reportTitle'] ?? map['report_title'])?.toString() ?? '',
+      claimantName: (map['claimantName'] ?? map['claimant_name'])?.toString() ?? '',
+      claimantId: (map['claimantId'] ?? map['claimant_id'])?.toString() ?? '',
+      claimantEmail: (map['claimantEmail'] ?? map['claimant_email'])?.toString() ?? '',
+      reportImageUrl: (map['reportImageUrl'] ?? map['report_image_url'])?.toString(),
+      status: map['status']?.toString() ?? 'pending',
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? map['created_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 

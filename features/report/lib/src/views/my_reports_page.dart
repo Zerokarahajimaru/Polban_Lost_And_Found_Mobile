@@ -132,7 +132,6 @@ class _MyReportsPageState extends State<MyReportsPage>
       r.status.toLowerCase() != 'draft'
     ).toList();
 
-    // SORTING: Put 'resolved' at the bottom of the history list
     historyReports.sort((a, b) {
       if (a.status.toLowerCase() == 'resolved' && b.status.toLowerCase() != 'resolved') return 1;
       if (a.status.toLowerCase() != 'resolved' && b.status.toLowerCase() == 'resolved') return -1;
@@ -374,28 +373,30 @@ class _MyReportsPageState extends State<MyReportsPage>
                               : (isDraft ? "DRAFT" : (isPending ? "PENDING" : "TERKIRIM")),
                             isResolved ? Colors.green : (isDraft ? Colors.orange : (isPending ? Colors.blue : Colors.green)),
                           ),
-                          if (canEdit && !isResolved)
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () => _navigateToCreateOrEdit(report: report),
-                                  child: const Icon(Icons.edit_outlined,
-                                      color: AppColors.primaryBlue, size: 18),
-                                ),
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: () => _deleteAndRefresh(report),
-                                  child: const Icon(Icons.delete_outline,
-                                      color: Colors.red, size: 20),
-                                ),
-                              ],
-                            )
-                          else
-                            GestureDetector(
-                              onTap: () => _deleteAndRefresh(report),
-                              child: const Icon(Icons.delete_outline,
-                                  color: Colors.red, size: 20),
-                            ),
+                          // HIDE DELETE FOR RESOLVED AS REQUESTED
+                          if (!isResolved)
+                            if (canEdit)
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => _navigateToCreateOrEdit(report: report),
+                                    child: const Icon(Icons.edit_outlined,
+                                        color: AppColors.primaryBlue, size: 18),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () => _deleteAndRefresh(report),
+                                    child: const Icon(Icons.delete_outline,
+                                        color: Colors.red, size: 20),
+                                  ),
+                                ],
+                              )
+                            else
+                              GestureDetector(
+                                onTap: () => _deleteAndRefresh(report),
+                                child: const Icon(Icons.delete_outline,
+                                    color: Colors.red, size: 20),
+                              ),
                         ],
                       ),
                       const SizedBox(height: 8),

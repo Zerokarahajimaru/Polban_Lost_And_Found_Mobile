@@ -12,7 +12,7 @@ class ClaimRepository {
       return data.map((json) => ClaimModel.fromJson(json)).toList();
     } catch (e) {
       debugPrint('[ClaimRepository] fetchClaims error: $e');
-      return []; // Return empty list on error for safety
+      return []; 
     }
   }
 
@@ -30,6 +30,15 @@ class ClaimRepository {
       await _networkService.dio.post('/claims/$claimId', data: {'action': action});
     } catch (e) {
       debugPrint('[ClaimRepository] verifyClaim error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteClaim(String claimId) async {
+    try {
+      await _networkService.dio.delete('/claims/$claimId');
+    } catch (e) {
+      debugPrint('[ClaimRepository] deleteClaim error: $e');
       rethrow;
     }
   }

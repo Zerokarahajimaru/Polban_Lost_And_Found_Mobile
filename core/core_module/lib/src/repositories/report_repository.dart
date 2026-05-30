@@ -20,7 +20,6 @@ class ReportRepository {
       final serverReports =
           serverData.map((item) => ReportModel.fromMap(item)).toList();
       
-      // Update cache with server results. 
       await _updateCache(serverReports);
       
       return _loadAllFromCache(filterByUserId: userId);
@@ -30,9 +29,7 @@ class ReportRepository {
     }
   }
 
-  /// Merges server reports into the Hive cache.
   Future<void> _updateCache(List<ReportModel> serverReports) async {
-    // Put each server report into Hive. 
     for (final report in serverReports) {
       await _hiveService.reportsBox.put(report.id, report.toMap());
     }
@@ -58,7 +55,20 @@ class ReportRepository {
     required File imageFile,
   }) async {
     final imageUrl = await _cloudinaryService.uploadImage(imageFile);
-    final postData = {...reportData, 'imageUrl': imageUrl};
+    
+    // Map to backend snake_case
+    final postData = {
+      'userId': reportData['userId'],
+      'nama_barang': reportData['title'],
+      'deskripsi_barang': reportData['description'],
+      'lokasi_kehilangan': reportData['location'],
+      'kontak': reportData['contact'],
+      'kategori_barang': reportData['category'],
+      'reward': reportData['reward'],
+      'status_postingan': reportData['status'],
+      'images': [imageUrl],
+    };
+    
     await _networkService.dio.post('/reports', data: postData);
   }
 
@@ -71,8 +81,19 @@ class ReportRepository {
     if (imageFile != null) {
       imageUrl = await _cloudinaryService.uploadImage(imageFile);
     }
-    final postData = {...reportData, 'imageUrl': imageUrl ?? reportData['imageUrl']};
-    await _networkService.dio.put('/reports/$id', data: postData);
+    
+    final putData = {
+      'nama_barang': reportData['title'],
+      'deskripsi_barang': reportData['description'],
+      'lokasi_kehilangan': reportData['location'],
+      'kontak': reportData['contact'],
+      'kategori_barang': reportData['category'],
+      'reward': reportData['reward'],
+      'status_postingan': reportData['status'],
+      if (imageUrl != null) 'images': [imageUrl],
+    };
+    
+    await _networkService.dio.put('/reports/$id', data: putData);
   }
 
   Future<void> updateReportStatus({
@@ -82,7 +103,7 @@ class ReportRepository {
     String? claimantId,
   }) async {
     final data = {
-      'status': status,
+      'status_postingan': status,
       'claimant_name': claimantName,
       'claimant_id': claimantId,
       'resolved_at': DateTime.now().toIso8601String(),
@@ -144,41 +165,38 @@ class ReportRepository {
   Future<void> _syncPendingReports() async {
     final keys = _hiveService.reportsBox.keys.toList();
     
-    // Sync creations and updates
-    final pendingSyncKeys = keys.where((k) => k.toString().startsWith('pending_') && !k.toString().startsWith('pending_delete_')).toList();
-    for (final key in pendingSyncKeys) {
-      final data = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
-      final imagePath = data['local_image_path'] as String?;
-      File? imageFile = imagePath != null ? File(imagePath) : null;
-      
-      try {
-        if (key.toString().startsWith('pending_create_')) {
-          if (imageFile == null) continue;
-          await postReportOnline(reportData: data, imageFile: imageFile);
-        } else if (key.toString().startsWith('pending_update_')) {
-          final id = key.toString().split('pending_update_').last;
-          await updateReportOnline(id: id, reportData: data, imageFile: imageFile);
+    for (final key in keys) {
+      if (key.toString().startsWith('pending_create_')) {
+        final data = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
+        final imagePath = data['local_image_path'] as String?;
+        if (imagePath == null) continue;
+        try {
+          await postReportOnline(reportData: data, imageFile: File(imagePath));
+          await _hiveService.reportsBox.delete(key);
+        } catch (e) {
+          if (e is DioException && _isNetworkError(e)) break;
         }
-        await _hiveService.reportsBox.delete(key);
-      } catch (e) {
-        debugPrint('Failed to sync item $key: $e');
-        if (e is DioException && _isNetworkError(e)) break;
-      }
-    }
-
-    // Sync deletions
-    final pendingDeleteKeys = keys.where((k) => k.toString().startsWith('pending_delete_')).toList();
-    for (final key in pendingDeleteKeys) {
-      final data = _hiveService.reportsBox.get(key);
-      if (data == null) continue;
-      final reportId = data['id'] as String;
-      try {
-        await _networkService.dio.delete('/reports/$reportId');
-        await _hiveService.reportsBox.delete(key);
-        await _hiveService.reportsBox.delete(reportId);
-      } catch (e) {
-        debugPrint('Failed to sync deletion for $reportId: $e');
-        if (e is DioException && _isNetworkError(e)) break;
+      } else if (key.toString().startsWith('pending_update_')) {
+        final data = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
+        final id = key.toString().split('pending_update_').last;
+        final imagePath = data['local_image_path'] as String?;
+        try {
+          await updateReportOnline(id: id, reportData: data, imageFile: imagePath != null ? File(imagePath) : null);
+          await _hiveService.reportsBox.delete(key);
+        } catch (e) {
+          if (e is DioException && _isNetworkError(e)) break;
+        }
+      } else if (key.toString().startsWith('pending_delete_')) {
+        final data = _hiveService.reportsBox.get(key);
+        if (data == null) continue;
+        final reportId = data['id'] as String;
+        try {
+          await _networkService.dio.delete('/reports/$reportId');
+          await _hiveService.reportsBox.delete(key);
+          await _hiveService.reportsBox.delete(reportId);
+        } catch (e) {
+          if (e is DioException && _isNetworkError(e)) break;
+        }
       }
     }
   }
