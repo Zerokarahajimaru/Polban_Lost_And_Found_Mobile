@@ -49,24 +49,37 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           backgroundColor: AppColors.softGrey,
-          appBar: CustomHeader(
-            title: 'Beranda Publik',
-            showBackButton: false, // No back button on root home
-            onNotificationTap: () => context.push('/notifications'),
-            extraHeight: 60, // Space for search bar
-            bottomChild: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildSearchBar(context, homeController),
-            ),
-          ),
+          // 1. Remove appBar property to handle layering manually
+          appBar: null,
           body: Column(
             children: [
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildTabSelector(homeController),
+              // 2. Header and Floating Tab Section
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // The existing CustomHeader
+                  CustomHeader(
+                    title: 'Beranda Publik',
+                    showBackButton: false,
+                    onNotificationTap: () => context.push('/notifications'),
+                    extraHeight: 60,
+                    bottomChild: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: _buildSearchBar(context, homeController),
+                    ),
+                  ),
+                  // The Tab Selector perfectly sitting on the bottom border
+                  Positioned(
+                    bottom: -25,
+                    left: 16,
+                    right: 16,
+                    child: _buildTabSelector(homeController),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              
+              // 3. Scrollable List Section
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
@@ -75,6 +88,9 @@ class _HomePageState extends State<HomePage> {
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
+                      // Space for the floating tab overlap
+                      const SliverToBoxAdapter(child: SizedBox(height: 35)),
+                      
                       SliverToBoxAdapter(
                         child: _buildDataLokalBanner(context, unsyncedCount),
                       ),
@@ -150,17 +166,14 @@ class _HomePageState extends State<HomePage> {
                       else
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverGrid(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 0.75,
-                            ),
+                          sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
                                 final item = filteredReports[index];
-                                return _buildLaporanCard(context, item);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildLaporanCard(context, item),
+                                );
                               },
                               childCount: filteredReports.length,
                             ),
@@ -211,6 +224,13 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         color: const Color(0xFFE6F0FF),
         borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -239,8 +259,6 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 color: active ? AppColors.primaryYellow : const Color(0xFF90AEE0),
                 fontWeight: active ? FontWeight.bold : FontWeight.w500,
-
-
                 fontSize: 14,
               ),
             ),
@@ -300,6 +318,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildLaporanCard(BuildContext context, dynamic item) {
+    final status = item.status?.toString().toLowerCase() ?? 'lost';
+    final isLost = status == 'lost';
+    final statusText = isLost ? 'Sedang Dicari' : 'Baru Ditemukan';
+    final imageUrl = item.imageUrl ?? '';
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -312,11 +335,12 @@ class _HomePageState extends State<HomePage> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade300),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.08),
-              blurRadius: 8,
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
@@ -324,98 +348,124 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 5,
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(15)),
-                    child: Container(
-                      width: double.infinity,
-                      color: AppColors.softGrey,
-                      child: Stack(
-                        children: [
+            // Image Section with 3-Layer Blur Background Fallback
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: Container(
+                    height: 180,
+                    width: double.infinity,
+                    color: AppColors.softGrey,
+                    child: Stack(
+                      children: [
+                        // Layer 1: Background (BoxFit.cover)
+                        if (imageUrl.isNotEmpty)
                           Positioned.fill(
                             child: Image.network(
-                              item.imageUrl ?? '',
+                              imageUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox(),
                             ),
                           ),
-                          Positioned.fill(
-                            child: Container(
-                              color: Colors.black.withValues(alpha: 0.1),
-                            ),
+                        // Layer 2: Blur Effect Overlay
+                        Positioned.fill(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: Container(color: Colors.black.withOpacity(0.1)),
                           ),
-                          Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(color: Colors.transparent),
-                            ),
+                        ),
+                        // Layer 3: Main Foreground Image (BoxFit.contain)
+                        Center(
+                          child: Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: AppColors.textGrey, size: 48),
                           ),
-                          Center(
-                            child: Image.network(
-                              item.imageUrl ?? '',
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.image_not_supported_outlined,
-                                    color: AppColors.textGrey, size: 32),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Status Badge Overlay (Pill-shaped, top-left)
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB3D7FF),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: const TextStyle(
+                        color: Color(0xFF002299),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF6B35).withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        item.status ?? 'Pending',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+            // Body Section
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.title ?? 'No Title',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: AppColors.primaryBlue,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.title ?? 'No Title',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Color(0xFF002299),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Conditional Imbalan Badge (Pill-shaped, yellow with dark blue border)
+                      if (item.reward != null && item.reward!.toString().isNotEmpty && item.reward != '-')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE100),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF002299), width: 1),
+                          ),
+                          child: const Text(
+                            'Imbalan',
+                            style: TextStyle(
+                              color: Color(0xFF002299),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 8),
+                  // Location Row
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined,
-                          size: 12, color: AppColors.textGrey),
-                      const SizedBox(width: 2),
+                      const Icon(Icons.location_on_rounded,
+                          size: 18, color: Color(0xFF3399FF)),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           item.location ?? 'Unknown location',
                           style: const TextStyle(
-                              fontSize: 10, color: AppColors.textGrey),
+                            fontSize: 14,
+                            color: Color(0xFF3399FF),
+                            fontWeight: FontWeight.w600,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
