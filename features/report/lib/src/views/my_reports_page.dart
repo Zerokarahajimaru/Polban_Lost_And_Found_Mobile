@@ -110,14 +110,38 @@ class _MyReportsPageState extends State<MyReportsPage>
     
     return Scaffold(
       backgroundColor: AppColors.softGrey,
-      appBar: CustomHeader(
-        title: "Riwayat Laporanku",
-        showBackButton: isTeknisi, 
-        extraHeight: 110,
-        onNotificationTap: () {},
-        bottomChild: _buildStatsCard(reports.length, isTeknisi),
+      // 1. Remove appBar property to handle manual layering
+      appBar: null,
+      body: Column(
+        children: [
+          // 2. Header and Floating Stats Card Section
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              // CustomHeader with reduced extraHeight and no bottomChild
+              CustomHeader(
+                title: "Riwayat Laporanku",
+                showBackButton: isTeknisi, 
+                extraHeight: 60,
+                onNotificationTap: () {},
+              ),
+              // The Stats Card perfectly sitting on the bottom border
+              Positioned(
+                bottom: -40,
+                left: 0,
+                right: 0,
+                child: _buildStatsCard(reports.length, isTeknisi),
+              ),
+            ],
+          ),
+          
+          // 3. Scrollable Content Section
+          Expanded(
+            child: _buildLoadedView(reports, controller.isLoading),
+          ),
+        ],
       ),
-      body: _buildLoadedView(reports, controller.isLoading),
     );
   }
 
@@ -140,7 +164,8 @@ class _MyReportsPageState extends State<MyReportsPage>
 
     return Column(
       children: [
-        const SizedBox(height: 12),
+        // 4. Extra spacing for floating stats card
+        const SizedBox(height: 60),
         _buildTabs(),
         Expanded(
           child: isLoading && reports.isEmpty
