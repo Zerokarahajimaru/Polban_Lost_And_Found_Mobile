@@ -82,7 +82,7 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
           context,
           MaterialPageRoute(
             builder: (context) => ReportDetailPage(
-              item: claim, // Passing ClaimModel instead of ReportModel
+              item: claim, 
               isFromUserClaim: true,
             ),
           ),
@@ -92,8 +92,9 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: isRejected ? Colors.red.withOpacity(0.03) : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(16),
+          border: isRejected ? Border.all(color: Colors.red.withOpacity(0.2)) : null,
         ),
         child: Row(
           children: [
@@ -116,19 +117,17 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
                 children: [
                   Text(
                     claim.reportTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16,
+                      color: isRejected ? Colors.grey : Colors.black,
+                      decoration: isRejected ? TextDecoration.lineThrough : null,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    "Status: ${claim.status.toUpperCase()}",
-                    style: TextStyle(
-                      color: isVerified ? Colors.green : (isRejected ? Colors.red : Colors.orange),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
+                  _buildStatusBadge(claim.status),
                   const SizedBox(height: 4),
                   Text(
                     "Diajukan pada: ${claim.createdAt.day}/${claim.createdAt.month}/${claim.createdAt.year}",
@@ -139,6 +138,41 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
             ),
             const Icon(Icons.chevron_right, color: Colors.grey),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    String text;
+    
+    switch (status.toLowerCase()) {
+      case 'verified':
+        color = Colors.green;
+        text = "DISETUJUI";
+        break;
+      case 'rejected':
+        color = Colors.red;
+        text = "DITOLAK (BARANG DIAMBIL ORANG LAIN)";
+        break;
+      default:
+        color = Colors.orange;
+        text = "MENUNGGU PROSES";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
         ),
       ),
     );

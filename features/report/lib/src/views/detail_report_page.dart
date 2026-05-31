@@ -36,10 +36,12 @@ class ReportDetailPage extends StatelessWidget {
   bool get isLost => normalizedStatus == 'lost';
   bool get isResolved => normalizedStatus == 'resolved';
   bool get isVerified => normalizedStatus == 'verified'; // Specifically for ClaimModel
+  bool get isRejected => normalizedStatus == 'rejected'; // Specifically for ClaimModel
   bool get isSynced => isReportModel && !item.id.startsWith('draft_') && !item.id.startsWith('pending_');
 
   Color get statusColor {
     if (isResolved || isVerified) return Colors.green;
+    if (isRejected) return Colors.red;
     if (isReportModel) return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
     if (isClaimModel) return Colors.orange;
     return Colors.grey;
@@ -124,7 +126,7 @@ class ReportDetailPage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                             child: Text(
-                              isVerified ? "VERIFIED" : (isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase()),
+                              isVerified ? "VERIFIED" : (isRejected ? "REJECTED" : (isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase())),
                               style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
@@ -144,9 +146,7 @@ class ReportDetailPage extends StatelessWidget {
 
                       // --- LOGIKA TOMBOL ---
                       if (isFromUserClaim) ...[
-                        if (!isVerified) ...[
-                          _buildCancelClaimButton(context),
-                        ] else ...[
+                        if (isVerified) ...[
                           const Center(
                             child: Text(
                               "Klaim ini telah diverifikasi. Silakan ambil barang di tempat yang ditentukan.",
@@ -154,6 +154,16 @@ class ReportDetailPage extends StatelessWidget {
                               style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
                             ),
                           ),
+                        ] else if (isRejected) ...[
+                          const Center(
+                            child: Text(
+                              "Klaim ditolak. Barang kemungkinan besar telah diserahkan kepada pemilik yang sah.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ] else ...[
+                          _buildCancelClaimButton(context),
                         ],
                         const SizedBox(height: 16),
                       ] else ...[

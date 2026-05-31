@@ -28,26 +28,39 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
       appBar: CustomHeader(
         title: "Antrean Klaim Barang",
         showBackButton: true,
-        onNotificationTap: () {
-          // Placeholder for notification tap
-        },
+        onNotificationTap: () {},
       ),
       body: Consumer<ClaimController>(
         builder: (context, controller, child) {
-          if (controller.isLoading && controller.claims.isEmpty) {
+          // ONLY SHOW PENDING CLAIMS IN THE QUEUE
+          final pendingClaims = controller.claims.where((c) => c.status == 'pending').toList();
+
+          if (controller.isLoading && pendingClaims.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (controller.claims.isEmpty) {
+          if (pendingClaims.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[300]),
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    "Belum ada antrean klaim",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    "Antrean Kosong",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Belum ada klaim baru yang masuk.",
+                    style: TextStyle(color: Colors.grey[400], fontSize: 13),
                   ),
                 ],
               ),
@@ -58,9 +71,9 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
             onRefresh: controller.loadClaims,
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: controller.claims.length,
+              itemCount: pendingClaims.length,
               itemBuilder: (context, index) {
-                return _buildClaimCard(context, controller.claims[index]);
+                return _buildClaimCard(context, pendingClaims[index]);
               },
             ),
           );
@@ -78,12 +91,18 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5), // Light grey
+          color: const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            // Left: Image
             Container(
               width: 60,
               height: 60,
@@ -102,7 +121,6 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
                   : null,
             ),
             const SizedBox(width: 16),
-            // Right: Text Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,35 +136,40 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    claim.claimantName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppColors.primaryBlue,
-                    ),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline, size: 14, color: AppColors.primaryBlue),
+                      const SizedBox(width: 4),
+                      Text(
+                        claim.claimantName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
-                  // Badge Status
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: claim.status == 'verified' ? Colors.green.withOpacity(0.1) : const Color(0xFFFFF9C4), 
+                      color: const Color(0xFFFFF9C4), // Yellow
                       borderRadius: BorderRadius.circular(20),
-                      border: claim.status == 'verified' ? Border.all(color: Colors.green) : null,
                     ),
-                    child: Text(
-                      claim.status.toUpperCase(),
+                    child: const Text(
+                      "MENUNGGU VERIFIKASI",
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                        color: claim.status == 'verified' ? Colors.green : const Color(0xFFF57C00), 
+                        fontWeight: FontWeight.w900,
+                        fontSize: 8,
+                        color: Color(0xFFF57C00),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),

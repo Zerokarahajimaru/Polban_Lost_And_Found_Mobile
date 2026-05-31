@@ -17,8 +17,14 @@ Future<Response> onRequest(RequestContext context, String id) async {
       final action = body['action'] as String?;
 
       if (action == 'verify' || action == 'verified') {
-        await _repo.updateClaimStatus(cleanId, 'verified');
-        return Response.json(body: {'message': 'Klaim berhasil diverifikasi.'});
+        // NEW LOGICA: Verify this one and reject others for the same report
+        final claim = await _repo.getClaimById(cleanId);
+        if (claim == null) {
+          return Response(statusCode: HttpStatus.notFound, body: 'Claim not found');
+        }
+        
+        await _repo.verifyAndRejectOthers(cleanId, claim.reportId);
+        return Response.json(body: {'message': 'Klaim berhasil diverifikasi dan klaim lain otomatis ditolak.'});
       } else if (action == 'reject' || action == 'rejected') {
         await _repo.updateClaimStatus(cleanId, 'rejected');
         return Response.json(body: {'message': 'Klaim ditolak.'});
