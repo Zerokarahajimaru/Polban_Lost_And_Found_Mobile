@@ -49,38 +49,11 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           backgroundColor: AppColors.softGrey,
-          // 1. Remove appBar property to handle layering manually
           appBar: null,
-          body: Column(
+          body: Stack(
             children: [
-              // 2. Header and Floating Tab Section
-              Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.bottomCenter,
-                children: [
-                  // The existing CustomHeader
-                  CustomHeader(
-                    title: 'Beranda Publik',
-                    showBackButton: false,
-                    onNotificationTap: () => context.push('/notifications'),
-                    extraHeight: 60,
-                    bottomChild: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: _buildSearchBar(context, homeController),
-                    ),
-                  ),
-                  // The Tab Selector perfectly sitting on the bottom border
-                  Positioned(
-                    bottom: -25,
-                    left: 16,
-                    right: 16,
-                    child: _buildTabSelector(homeController),
-                  ),
-                ],
-              ),
-              
-              // 3. Scrollable List Section
-              Expanded(
+              // 1. SCROLLABLE CONTENT (Layer Paling Bawah)
+              Positioned.fill(
                 child: RefreshIndicator(
                   onRefresh: () async {
                     await context.read<ReportController>().getReports();
@@ -88,8 +61,9 @@ class _HomePageState extends State<HomePage> {
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      // Space for the floating tab overlap
-                      const SliverToBoxAdapter(child: SizedBox(height: 35)),
+                      // Spacer agar konten tidak tertutup header + tab melayang
+                      // (Tinggi Header ~116 + 60 Extra + 22 Setengah Tab = ~200)
+                      const SliverToBoxAdapter(child: SizedBox(height: 200)),
                       
                       SliverToBoxAdapter(
                         child: _buildDataLokalBanner(context, unsyncedCount),
@@ -179,9 +153,38 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      const SliverToBoxAdapter(child: SizedBox(height: 100)),
                     ],
                   ),
+                ),
+              ),
+
+              // 2. HEADER & FLOATING TAB (Layer Atas, membayangi konten saat scroll)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    CustomHeader(
+                      title: 'Beranda Publik',
+                      showBackButton: false,
+                      onNotificationTap: () => context.push('/notifications'),
+                      extraHeight: 60,
+                      bottomChild: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: _buildSearchBar(context, homeController),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: -22, 
+                      left: 60,
+                      right: 60,
+                      child: _buildTabSelector(homeController),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -220,7 +223,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTabSelector(HomeController controller) {
     return Container(
-      height: 50,
+      height: 44, // Reduced height for a sleeker look
       decoration: BoxDecoration(
         color: const Color(0xFFE6F0FF),
         borderRadius: BorderRadius.circular(30),
@@ -259,7 +262,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 color: active ? AppColors.primaryYellow : const Color(0xFF90AEE0),
                 fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                fontSize: 14,
+                fontSize: 13, // Slightly reduced font size to fit compact design
               ),
             ),
           ),
@@ -348,7 +351,6 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Section with 3-Layer Blur Background Fallback
             Stack(
               children: [
                 ClipRRect(
@@ -359,7 +361,6 @@ class _HomePageState extends State<HomePage> {
                     color: AppColors.softGrey,
                     child: Stack(
                       children: [
-                        // Layer 1: Background (BoxFit.cover)
                         if (imageUrl.isNotEmpty)
                           Positioned.fill(
                             child: Image.network(
@@ -367,14 +368,12 @@ class _HomePageState extends State<HomePage> {
                               fit: BoxFit.cover,
                             ),
                           ),
-                        // Layer 2: Blur Effect Overlay
                         Positioned.fill(
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                             child: Container(color: Colors.black.withOpacity(0.1)),
                           ),
                         ),
-                        // Layer 3: Main Foreground Image (BoxFit.contain)
                         Center(
                           child: Image.network(
                             imageUrl,
@@ -388,7 +387,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                // Status Badge Overlay (Pill-shaped, top-left)
                 Positioned(
                   top: 12,
                   left: 12,
@@ -410,7 +408,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            // Body Section
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -431,7 +428,6 @@ class _HomePageState extends State<HomePage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Conditional Imbalan Badge (Pill-shaped, yellow with dark blue border)
                       if (item.reward != null && item.reward!.toString().isNotEmpty && item.reward != '-')
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -452,7 +448,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Location Row
                   Row(
                     children: [
                       const Icon(Icons.location_on_rounded,
