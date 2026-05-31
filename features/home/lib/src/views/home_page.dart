@@ -1,9 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
+import 'package:timeago/timeago.dart' as timeago_lib;
 import '../controllers/home_controller.dart';
 
 // ========================
@@ -31,12 +34,47 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+  double _headerOpacity = 1.0;
+  String _headerTitle = 'Beranda Publik';
+
   @override
   void initState() {
     super.initState();
+    // Initialize timeago Indonesian
+    timeago_lib.setLocaleMessages('id', timeago_lib.IdMessages());
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportController>().getReports();
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // [4] Dynamic App Bar Logic
+    double offset = _scrollController.offset;
+    if (offset > 50) {
+      if (_headerTitle != 'Cari Barangmu...') {
+        setState(() {
+          _headerTitle = 'Cari Barangmu...';
+          _headerOpacity = 0.8;
+        });
+      }
+    } else {
+      if (_headerTitle != 'Beranda Publik') {
+        setState(() {
+          _headerTitle = 'Beranda Publik';
+          _headerOpacity = 1.0;
+        });
+      }
+    }
   }
 
   @override
@@ -59,10 +97,9 @@ class _HomePageState extends State<HomePage> {
                     await context.read<ReportController>().getReports();
                   },
                   child: CustomScrollView(
+                    controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      // Spacer agar konten tidak tertutup header + tab melayang
-                      // (Tinggi Header ~116 + 60 Extra + 22 Setengah Tab = ~200)
                       const SliverToBoxAdapter(child: SizedBox(height: 200)),
                       
                       SliverToBoxAdapter(
@@ -77,7 +114,7 @@ class _HomePageState extends State<HomePage> {
                                   color: AppColors.primaryBlue, size: 22),
                               SizedBox(width: 8),
                               Text(
-                                'Laporan Terverifikasi',
+                                'Laporan Terbaru',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -96,46 +133,7 @@ class _HomePageState extends State<HomePage> {
                       else if (filteredReports.isEmpty)
                         SliverFillRemaining(
                           hasScrollBody: false,
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(40.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.search_off_rounded,
-                                      size: 64,
-                                      color: AppColors.textGrey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  const Text(
-                                    "Tidak Ada Laporan",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryBlue,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    "Coba cari dengan kata kunci lain atau tarik ke bawah untuk memuat ulang.",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.textGrey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          child: _buildEmptyState(),
                         )
                       else
                         SliverPadding(
@@ -159,7 +157,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // 2. HEADER & FLOATING TAB (Layer Atas, membayangi konten saat scroll)
+              // 2. HEADER & FLOATING TAB (Layer Atas)
               Positioned(
                 top: 0,
                 left: 0,
@@ -168,21 +166,32 @@ class _HomePageState extends State<HomePage> {
                   clipBehavior: Clip.none,
                   alignment: Alignment.bottomCenter,
                   children: [
-                    CustomHeader(
-                      title: 'Beranda Publik',
-                      showBackButton: false,
-                      onNotificationTap: () => context.push('/notifications'),
-                      extraHeight: 60,
-                      bottomChild: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: _buildSearchBar(context, homeController),
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _headerOpacity,
+                      child: CustomHeader(
+                        title: _headerTitle,
+                        showBackButton: false,
+                        onNotificationTap: () => context.push('/notifications'),
+                        extraHeight: 60,
+                        bottomChild: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: _buildSearchBar(context, homeController),
+                        ),
                       ),
                     ),
+                    // [2] Glassmorphism Floating Tab Selector
                     Positioned(
                       bottom: -22, 
                       left: 60,
                       right: 60,
-                      child: _buildTabSelector(homeController),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: _buildTabSelector(homeController),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -194,12 +203,56 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // [10] Lottie Empty State Illustration
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.network(
+              'https://assets9.lottiefiles.com/packages/lf20_t9gkkhz4.json', // Search magnifying glass animation
+              height: 200,
+              repeat: true,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "Tidak Ada Laporan",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF002299),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Coba cari dengan kata kunci lain atau tarik ke bawah untuk memuat ulang.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchBar(BuildContext context, HomeController controller) {
     return Container(
       height: 48,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryBlue.withOpacity(0.05), // [5] Soft Elevation
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ]
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -223,17 +276,11 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTabSelector(HomeController controller) {
     return Container(
-      height: 44, // Reduced height for a sleeker look
+      height: 44,
       decoration: BoxDecoration(
-        color: const Color(0xFFE6F0FF),
+        color: const Color(0xFFE6F0FF).withOpacity(0.7), // Glassmorphism base
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -262,7 +309,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 color: active ? AppColors.primaryYellow : const Color(0xFF90AEE0),
                 fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                fontSize: 13, // Slightly reduced font size to fit compact design
+                fontSize: 13,
               ),
             ),
           ),
@@ -281,6 +328,13 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: AppColors.primaryYellow,
           borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlue.withOpacity(0.05), // [5] Soft Elevation
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
         ),
         child: Row(
           children: [
@@ -291,7 +345,7 @@ class _HomePageState extends State<HomePage> {
                 color: AppColors.primaryBlue,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.download_rounded,
+              child: const Icon(Icons.sync_problem_rounded,
                   color: AppColors.primaryYellow, size: 24),
             ),
             const SizedBox(width: 12),
@@ -299,7 +353,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'DATA LOKAL',
+                  'DRAFT & PENDING',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -309,7 +363,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$unsyncedCount laporan menunggu disinkronkan',
+                  '$unsyncedCount item belum terkirim',
                   style: const TextStyle(fontSize: 11, color: AppColors.primaryBlue),
                 ),
               ],
@@ -325,6 +379,10 @@ class _HomePageState extends State<HomePage> {
     final isLost = status == 'lost';
     final statusText = isLost ? 'Sedang Dicari' : 'Baru Ditemukan';
     final imageUrl = item.imageUrl ?? '';
+    
+    // Relative Time calculation
+    final DateTime createdAt = item.createdAt is DateTime ? item.createdAt : DateTime.now();
+    final String relativeTime = timeago_lib.format(createdAt, locale: 'id');
 
     return GestureDetector(
       onTap: () {
@@ -339,12 +397,12 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: Colors.grey.shade100),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: AppColors.primaryBlue.withOpacity(0.04), // [5] Soft Elevation
+              blurRadius: 15,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -371,7 +429,7 @@ class _HomePageState extends State<HomePage> {
                         Positioned.fill(
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(color: Colors.black.withOpacity(0.1)),
+                            child: Container(color: Colors.black.withOpacity(0.05)),
                           ),
                         ),
                         Center(
@@ -387,6 +445,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+                // Status Badge Overlay (top-left)
                 Positioned(
                   top: 12,
                   left: 12,
@@ -401,6 +460,26 @@ class _HomePageState extends State<HomePage> {
                       style: const TextStyle(
                         color: Color(0xFF002299),
                         fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                // Relative Time Badge (top-right)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      relativeTime,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
