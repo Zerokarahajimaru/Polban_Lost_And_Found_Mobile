@@ -24,49 +24,135 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final userId = session.currentUser?.id;
+    final claimController = context.watch<ClaimController>();
+    final myClaims = claimController.claims.where((c) => c.claimantId == userId).toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: const CustomHeader(
-        title: "Klaim Saya",
-        showBackButton: false,
-      ),
-      body: Consumer<ClaimController>(
-        builder: (context, controller, child) {
-          final myClaims = controller.claims.where((c) => c.claimantId == userId).toList();
-
-          if (controller.isLoading && myClaims.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (myClaims.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[300]),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Anda belum mengajukan klaim.",
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-                  ),
-                ],
+      backgroundColor: AppColors.softGrey,
+      // 1. Remove appBar property for manual layering
+      appBar: null,
+      body: Column(
+        children: [
+          // 2. Header and Floating Stats Card Section
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              const CustomHeader(
+                title: "Klaim Saya",
+                showBackButton: false,
+                extraHeight: 60,
               ),
-            );
-          }
+              // The Stats Card perfectly sitting on the bottom border
+              Positioned(
+                bottom: -40,
+                left: 0,
+                right: 0,
+                child: _buildStatsCard(myClaims.length),
+              ),
+            ],
+          ),
 
-          return RefreshIndicator(
-            onRefresh: controller.loadClaims,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: myClaims.length,
-              itemBuilder: (context, index) {
-                final claim = myClaims[index];
-                return _buildUserClaimCard(claim);
+          // 3. Content Section
+          Expanded(
+            child: Consumer<ClaimController>(
+              builder: (context, controller, child) {
+                if (controller.isLoading && myClaims.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (myClaims.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return Column(
+                  children: [
+                    const SizedBox(height: 60), // Extra spacing for floating stats card
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: controller.loadClaims,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                          itemCount: myClaims.length,
+                          itemBuilder: (context, index) {
+                            return _buildUserClaimCard(myClaims[index]);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                );
               },
             ),
-          );
-        },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsCard(int total) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5))
+          ]),
+      child: Row(
+          children: [
+            Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: AppColors.primaryYellow.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(15)),
+                child: const Icon(Icons.inventory_2_outlined,
+                    color: AppColors.primaryBlue)),
+            const SizedBox(width: 15),
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("TOTAL KLAIM",
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold)),
+                  Text("$total Pengajuan",
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryBlue))
+                ])
+          ]),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[300]),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "Belum Ada Klaim",
+            style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Ajukan klaim pada barang temuan yang\nmungkin milik Anda.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ],
       ),
     );
   }
@@ -77,7 +163,6 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
 
     return InkWell(
       onTap: () {
-        // Navigate to detail page in "Claim Detail" mode
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -92,18 +177,21 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isRejected ? Colors.red.withOpacity(0.03) : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(16),
-          border: isRejected ? Border.all(color: Colors.red.withOpacity(0.2)) : null,
+          color: isRejected ? Colors.red.withOpacity(0.03) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isRejected ? Colors.red.withOpacity(0.2) : Colors.white),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
+          ]
         ),
         child: Row(
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 70,
+              height: 70,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.softGrey,
+                borderRadius: BorderRadius.circular(15),
                 image: claim.reportImageUrl != null
                     ? DecorationImage(image: NetworkImage(claim.reportImageUrl!), fit: BoxFit.cover)
                     : null,
@@ -120,23 +208,29 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold, 
                       fontSize: 16,
-                      color: isRejected ? Colors.grey : Colors.black,
+                      color: isRejected ? Colors.grey : AppColors.primaryBlue,
                       decoration: isRejected ? TextDecoration.lineThrough : null,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   _buildStatusBadge(claim.status),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Diajukan pada: ${claim.createdAt.day}/${claim.createdAt.month}/${claim.createdAt.year}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Diajukan pada: ${claim.createdAt.day}/${claim.createdAt.month}/${claim.createdAt.year}",
+                        style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
           ],
         ),
       ),
@@ -154,26 +248,22 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
         break;
       case 'rejected':
         color = Colors.red;
-        text = "DITOLAK (BARANG DIAMBIL ORANG LAIN)";
+        text = "DITOLAK";
         break;
       default:
         color = Colors.orange;
-        text = "MENUNGGU PROSES";
+        text = "PROSES";
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 9,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 8, letterSpacing: 0.5),
       ),
     );
   }
