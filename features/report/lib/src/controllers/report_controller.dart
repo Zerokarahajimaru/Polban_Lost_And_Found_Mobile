@@ -79,7 +79,7 @@ class ReportController extends ChangeNotifier {
         } on DioException catch (e) {
           if (_isNetworkError(e)) {
             await _reportRepository.queueCreateForSync(reportData: dataWithUser, localImagePath: imageFile.path);
-            _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi.';
+            _message = 'Koneksi Gagal. Laporan disimpan untuk sinkronisasi otomatis.';
             _lastOperationFailed = false;
           } else {
             rethrow;
@@ -99,9 +99,23 @@ class ReportController extends ChangeNotifier {
 
       } else {
         if (imageFile == null) throw Exception("Gambar wajib untuk laporan baru.");
-        await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
-        _message = 'Laporan berhasil dikirim!';
-        _lastOperationFailed = false;
+        try {
+          await _reportRepository.postReportOnline(reportData: dataWithUser, imageFile: imageFile);
+          _message = 'Laporan berhasil dikirim!';
+          _lastOperationFailed = false;
+        } on DioException catch (e) {
+          if (_isNetworkError(e)) {
+            // [QA] Auto-save as draft on network failure for NEW reports
+            await _reportRepository.saveAsDraft(
+              reportData: dataWithUser,
+              localImagePath: imageFile.path,
+            );
+            _message = 'Koneksi Bermasalah. Laporan otomatis disimpan sebagai Draft.';
+            _lastOperationFailed = false; // Set to false because we handled it by saving as draft
+          } else {
+            rethrow;
+          }
+        }
       }
       
       // Refresh both lists

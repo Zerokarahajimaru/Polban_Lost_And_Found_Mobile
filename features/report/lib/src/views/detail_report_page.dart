@@ -52,13 +52,9 @@ class ReportDetailPage extends StatelessWidget {
   String? get imbalan => isReportModel ? item.reward : null;
   String get kategori => isReportModel ? item.category : "Barang Temuan";
   String get waktuLapor {
-    if (isReportModel) {
+    if (isReportModel || isClaimModel) {
       final createdAt = item.createdAt as DateTime;
-      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-    }
-    if (isClaimModel) {
-      final createdAt = item.createdAt as DateTime;
-      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+      return TimeHelper.formatRelative(createdAt);
     }
     return "";
   }
@@ -108,6 +104,17 @@ class ReportDetailPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // [19] PROGRESS STEPPER
+                      if (isFromUserClaim) ...[
+                        // Stepper for Claimant
+                        ClaimProgressStepper(status: status),
+                        const SizedBox(height: 24),
+                      ] else if (canManage) ...[
+                        // Stepper for Report Owner (My Reports)
+                        ReportProgressStepper(status: status, isLost: isLost),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Banner Imbalan hanya muncul jika ada imbalan
                       if (showRewardBanner) _buildImbalanBanner(),
                       if (showRewardBanner) const SizedBox(height: 20),
@@ -270,7 +277,7 @@ class ReportDetailPage extends StatelessWidget {
       children: [
         _infoCard("Kategori", kategori, Icons.category_outlined),
         const SizedBox(width: 10),
-        _infoCard("Lokasi", lokasi, Icons.location_on_outlined),
+        _infoCard("Waktu", waktuLapor, Icons.access_time_outlined),
       ],
     );
   }
@@ -415,21 +422,18 @@ class ReportDetailPage extends StatelessWidget {
   void _showResolveDialog(BuildContext context) {
     final nameController = TextEditingController();
     final idController = TextEditingController();
-    final isFoundInternal = normalizedStatus == 'found';
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isFoundInternal ? "Selesaikan Laporan" : "Barang Ditemukan"),
+        title: const Text("Selesaikan Laporan"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(isFoundInternal ? "Masukkan data mahasiswa yang mengambil barang ini." : "Apakah barang ini sudah benar-benar Anda temukan?"),
-            if (isFoundInternal) ...[
-              const SizedBox(height: 16),
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Nama Pengambil")),
-              TextField(controller: idController, decoration: const InputDecoration(labelText: "NIM Pengambil")),
-            ],
+            const Text("Masukkan data pengambil barang."),
+            const SizedBox(height: 16),
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Nama Pengambil")),
+            TextField(controller: idController, decoration: const InputDecoration(labelText: "NIM Pengambil")),
           ],
         ),
         actions: [
@@ -438,12 +442,11 @@ class ReportDetailPage extends StatelessWidget {
             onPressed: () async {
               final reportRepo = ReportRepository();
               try {
-                // Ensure data is passed correctly
                 await reportRepo.updateReportStatus(
                   id: id, 
                   status: 'resolved', 
-                  claimantName: nameController.text.isNotEmpty ? nameController.text : null, 
-                  claimantId: idController.text.isNotEmpty ? idController.text : null
+                  claimantName: nameController.text, 
+                  claimantId: idController.text
                 );
                 if (context.mounted) {
                   Navigator.pop(ctx);

@@ -13,7 +13,6 @@ class CreateReportProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We use the root-level ReportController now
     return CreateReportPage(existingReport: existingReport);
   }
 }
@@ -31,6 +30,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
   File? _imageFile;
   String? _selectedCategory;
   late ReportController _reportController;
+  bool _isFinalizing = false;
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -38,6 +38,15 @@ class _CreateReportPageState extends State<CreateReportPage> {
   final _rewardController = TextEditingController();
   final _locationController = TextEditingController();
   final _picker = ImagePicker();
+
+  final List<Map<String, dynamic>> _categories = [
+    {"name": "Dokumen", "icon": Icons.description_outlined},
+    {"name": "Elektronik", "icon": Icons.devices_outlined},
+    {"name": "Kunci", "icon": Icons.vpn_key_outlined},
+    {"name": "Dompet", "icon": Icons.account_balance_wallet_outlined},
+    {"name": "Pakaian", "icon": Icons.checkroom_outlined},
+    {"name": "Lainnya", "icon": Icons.more_horiz_outlined}
+  ];
 
   @override
   void initState() {
@@ -58,19 +67,29 @@ class _CreateReportPageState extends State<CreateReportPage> {
       _phoneController.text = report.contact ?? '';
       _rewardController.text = report.reward ?? '';
       _selectedCategory = report.category;
-      // Only allow Teknisi to edit found items
       isLost = session.isTeknisi ? (report.status != 'found') : true;
     }
   }
 
   void _handleControllerUpdates() {
     if (!mounted) return;
-    if (_reportController.message.isNotEmpty) {
-      NotificationBanner.show(
-        context,
-        _reportController.message,
-        isError: _reportController.lastOperationFailed,
-      );
+    if (_reportController.message.isNotEmpty && _isFinalizing) {
+      _isFinalizing = false;
+      if (!_reportController.lastOperationFailed) {
+        StatusDialog.show(
+          context,
+          title: "Berhasil!",
+          message: _reportController.message,
+          onConfirm: () => Navigator.pop(context),
+        );
+      } else {
+         StatusDialog.show(
+          context,
+          isSuccess: false,
+          title: "Info Sistem",
+          message: _reportController.message,
+        );
+      }
       _reportController.clearMessage();
     }
   }
@@ -126,16 +145,10 @@ class _CreateReportPageState extends State<CreateReportPage> {
     final session = context.read<SessionController>();
     final currentUser = session.currentUser;
     
-    if (!session.isTeknisi && !isLost) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
-          backgroundColor: Colors.red));
-      return;
-    }
-
     File? imageToFinalize;
     if (_imageFile != null) {
-      imageToFinalize = _imageFile;
+      // [14] Image Compressor before upload
+      imageToFinalize = await ImageCompressService.compressImage(_imageFile!);
     } else if (widget.existingReport?.localImagePath != null &&
         widget.existingReport!.localImagePath!.isNotEmpty) {
       imageToFinalize = File(widget.existingReport!.localImagePath!);
@@ -143,25 +156,13 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
     final oldImageExists = widget.existingReport?.imageUrl != null && widget.existingReport!.imageUrl.isNotEmpty;
     if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null || oldImageExists)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Harap isi semua kolom yang wajib diisi (*)"),
-          backgroundColor: Colors.red));
+      setState(() {}); // Show validation errors
       return;
     }
 
-    if (isLost && _phoneController.text.isNotEmpty) {
-      final phoneRegex = RegExp(r'^08[0-9]{8,11}$');
-      if (!phoneRegex.hasMatch(_phoneController.text)) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Nomor WhatsApp tidak valid. Contoh: 081234567890"),
-            backgroundColor: Colors.red));
-        return;
-      }
-    }
-    
-    Navigator.pop(context, true);
+    setState(() => _isFinalizing = true);
 
-    context.read<ReportController>().finalizeReport(
+    await context.read<ReportController>().finalizeReport(
       reportData: {
         'title': _nameController.text,
         'description': _descController.text,
@@ -183,13 +184,6 @@ class _CreateReportPageState extends State<CreateReportPage> {
     final session = context.read<SessionController>();
     final currentUser = session.currentUser;
 
-    if (!session.isTeknisi && !isLost) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Anda tidak memiliki izin untuk membuat laporan barang temuan."),
-          backgroundColor: Colors.red));
-      return;
-    }
-
     if (_nameController.text.isEmpty && _descController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Isi setidaknya judul atau deskripsi untuk menyimpan draft."),
@@ -198,25 +192,6 @@ class _CreateReportPageState extends State<CreateReportPage> {
     }
 
     String? finalLocalImagePath = _imageFile?.path ?? widget.existingReport?.localImagePath;
-
-    final isRevertingSyncedPost = widget.existingReport != null &&
-        !widget.existingReport!.status.contains('draft') &&
-        !widget.existingReport!.status.contains('pending');
-
-    // If reverting a synced post and no new image is chosen, download the existing one first.
-    if (isRevertingSyncedPost && _imageFile == null && widget.existingReport!.imageUrl.isNotEmpty) {
-      final downloadedPath = await FileService.downloadImageAndGetPath(widget.existingReport!.imageUrl);
-      if (downloadedPath == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Gagal mengunduh gambar untuk disimpan sebagai draft.'),
-          backgroundColor: Colors.red,
-        ));
-        return; // Stop if download fails.
-      }
-      finalLocalImagePath = downloadedPath;
-    }
-
-    Navigator.pop(context, true);
 
     context.read<ReportController>().saveAsDraft(
       reportData: {
@@ -228,11 +203,18 @@ class _CreateReportPageState extends State<CreateReportPage> {
         'reward': _rewardController.text,
         'status': 'draft',
         'createdAt': widget.existingReport?.createdAt.toIso8601String(),
-        'imageUrl': '', // We prioritize the local path for drafts.
+        'imageUrl': '',
       },
       localImagePath: finalLocalImagePath,
       existingId: widget.existingReport?.id,
       userId: currentUser?.id,
+    );
+    
+    StatusDialog.show(
+      context,
+      title: "Draft Disimpan",
+      message: "Laporan Anda telah disimpan sebagai draft.",
+      onConfirm: () => Navigator.pop(context),
     );
   }
 
@@ -241,8 +223,6 @@ class _CreateReportPageState extends State<CreateReportPage> {
         _descController.text.isNotEmpty &&
         _selectedCategory != null;
     if (isFinalizing) {
-      // When finalizing, an image is always required.
-      // This can be a new file or an existing one from a draft.
       basicValid = basicValid && hasImage;
     }
     if (isLost) {
@@ -255,6 +235,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final isEditing = widget.existingReport != null;
+    final controller = context.watch<ReportController>();
+    final isLoading = controller.isLoading;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -262,133 +244,162 @@ class _CreateReportPageState extends State<CreateReportPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
             const SizedBox(height: 24),
             _buildPhotoPicker(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            
+            _buildLabel("Nama Barang", isRequired: true),
             CustomTextField(
-                label: "Nama Barang",
+                label: "", 
                 hint: "Misal: KTM atas nama Lu Guang",
-                isRequired: true,
                 controller: _nameController,
                 onChanged: (_) => setState(() {})),
+            if (_isFinalizing && _nameController.text.isEmpty) _buildErrorText("Judul laporan wajib diisi"),
+            
+            const SizedBox(height: 16),
+
             if (isLost) ...[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(children: [
-                    Text("Nomor WhatsApp (Aktif)",
-                        style: TextStyle(
-                            color: AppColors.primaryBlue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12)),
-                    Text(" *", style: TextStyle(color: Colors.red))
-                  ]),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
-                    maxLength: 13,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: "08xxxxxxxxx",
-                      counterText: "",
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: const BorderSide(
-                              color: AppColors.secondaryBlue, width: 2)),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+              _buildLabel("Nomor WhatsApp (Aktif)", isRequired: true),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                maxLength: 13,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: "08xxxxxxxxx",
+                  counterText: "",
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(
+                        color: _phoneController.text.isEmpty && _isFinalizing ? Colors.red : AppColors.secondaryBlue, 
+                        width: 2
+                      )),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                ),
               ),
+              if (_isFinalizing && _phoneController.text.isEmpty) _buildErrorText("Nomor WhatsApp wajib diisi"),
+              const SizedBox(height: 16),
             ],
-            CustomDropdown(
-                label: "Kategori",
-                items: const [
-                  "Dokumen",
-                  "Elektronik",
-                  "Kunci",
-                  "Dompet",
-                  "Pakaian",
-                  "Lainnya"
-                ],
-                value: _selectedCategory,
-                isRequired: true,
-                onChanged: (value) =>
-                    setState(() => _selectedCategory = value)),
+
+            _buildLabel("Kategori", isRequired: true),
+            _buildCategoryChips(),
+            if (_isFinalizing && _selectedCategory == null) _buildErrorText("Silakan pilih kategori barang"),
+            const SizedBox(height: 16),
+
+            _buildLabel("Lokasi Terakhir (Opsional)"),
             CustomTextField(
-                label: "Lokasi (Opsional)",
-                hint: "Lokasi Terakhir Diingat",
+                label: "",
+                hint: "Misal: Kantin atau Gedung P",
                 controller: _locationController,
                 onChanged: (_) => setState(() {})),
+            
+            const SizedBox(height: 16),
+            
+            _buildLabel("Deskripsi Barang", isRequired: true),
             CustomTextField(
-                label: "Deskripsi Barang",
-                hint: "Detail Ciri Khusus Barang",
-                isRequired: true,
+                label: "",
+                hint: "Contoh: Casing warna biru, ada stiker kucing.",
                 maxLines: 4,
                 controller: _descController,
                 onChanged: (_) => setState(() {})),
+            if (_isFinalizing && _descController.text.isEmpty) _buildErrorText("Deskripsi wajib diisi"),
+            
             if (isLost) _buildRewardSection(),
           ],
         ),
       ),
-      bottomNavigationBar: _buildActionButtons(false),
+      bottomNavigationBar: _buildActionButtons(isLoading),
+    );
+  }
+
+  Widget _buildLabel(String text, {bool isRequired = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Text(text, style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
+          if (isRequired) const Text(" *", style: TextStyle(color: Colors.red)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorText(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(text, style: const TextStyle(color: Colors.red, fontSize: 11)),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _categories.map((cat) {
+        final isSelected = _selectedCategory == cat["name"];
+        return ChoiceChip(
+          avatar: Icon(cat["icon"], size: 16, color: isSelected ? Colors.white : AppColors.primaryBlue),
+          label: Text(cat["name"]),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() => _selectedCategory = selected ? cat["name"] : null);
+          },
+          selectedColor: AppColors.primaryBlue,
+          labelStyle: TextStyle(
+            color: isSelected ? Colors.white : AppColors.primaryBlue,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 12,
+          ),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isSelected ? AppColors.primaryBlue : AppColors.secondaryBlue.withOpacity(0.5)),
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildActionButtons(bool isLoading) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]
+      ),
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton(
               onPressed: isLoading ? null : _onSaveDraft,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.primaryBlue),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
+                side: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: const Text("Simpan Draft",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBlue)),
+              child: const Text("SIMPAN DRAFT", style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryBlue, fontSize: 12)),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton(
               onPressed: isLoading ? null : _onFinalize,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 0,
               ),
               child: isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : const Text("Finalisasi & Kirim",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: 14)),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("KIRIM LAPORAN", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 12)),
             ),
           ),
         ],
@@ -399,20 +410,15 @@ class _CreateReportPageState extends State<CreateReportPage> {
   Widget _buildTabSelector({required bool isEditing, required bool isTeknisi}) {
     return AbsorbPointer(
       absorbing: isEditing,
-      child: Opacity(
-        opacity: isEditing ? 0.5 : 1.0,
-        child: Container(
-            decoration: BoxDecoration(
-                color: AppColors.secondaryBlue.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(30)),
-            child: Row(children: [
-              _tabButton("Barang Hilang", isLost,
-                  () => setState(() => isLost = true)),
-              if (isTeknisi)
-                _tabButton("Barang Temuan", !isLost,
-                    () => setState(() => isLost = false))
-            ])),
-      ),
+      child: Container(
+          decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(30)),
+          child: Row(children: [
+            _tabButton("KEHILANGAN", isLost, () => setState(() => isLost = true)),
+            if (isTeknisi)
+              _tabButton("PENEMUAN", !isLost, () => setState(() => isLost = false))
+          ])),
     );
   }
 
@@ -420,26 +426,19 @@ class _CreateReportPageState extends State<CreateReportPage> {
     return Expanded(
         child: GestureDetector(
             onTap: onTap,
-            child: Container(
+            child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                     color: active ? AppColors.primaryBlue : Colors.transparent,
                     borderRadius: BorderRadius.circular(30)),
                 child: Center(
-                    child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                      if (active)
-                        const Icon(Icons.check,
-                            color: AppColors.primaryYellow, size: 16),
-                      if (active) const SizedBox(width: 8),
-                      Text(text,
-                          style: TextStyle(
-                              color: active
-                                  ? AppColors.primaryYellow
-                                  : AppColors.primaryBlue.withOpacity(0.5),
-                              fontWeight: FontWeight.bold))
-                    ])))));
+                    child: Text(text,
+                        style: TextStyle(
+                            color: active ? AppColors.primaryYellow : Colors.grey,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 1))))));
   }
 
   Widget _buildPhotoPicker() {
@@ -455,63 +454,43 @@ class _CreateReportPageState extends State<CreateReportPage> {
       }
     }
 
+    final hasError = (_imageFile == null && (widget.existingReport?.imageUrl.isEmpty ?? true) && (widget.existingReport?.localImagePath?.isEmpty ?? true)) && _isFinalizing;
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Row(
-        children: [
-          Text("Upload Foto Bukti",
-              style: TextStyle(
-                  color: AppColors.primaryBlue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12)),
-          Text(" *", style: TextStyle(color: Colors.red)),
-        ],
-      ),
-      const SizedBox(height: 8),
+      _buildLabel("Upload Foto Bukti", isRequired: true),
       GestureDetector(
           onTap: _showPickerOptions,
-          child: Container(
+          child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
               width: double.infinity,
-              height: 150,
+              height: 180,
               decoration: BoxDecoration(
-                  color: AppColors.softGrey,
-                  border: Border.all(color: AppColors.secondaryBlue, width: 2),
+                  color: const Color(0xFFF5F5F5),
+                  border: Border.all(color: hasError ? Colors.red : AppColors.secondaryBlue, width: 2),
                   borderRadius: BorderRadius.circular(15)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(13),
                 child: imageProvider != null
                     ? Stack(
                         children: [
-                          Positioned.fill(
-                            child: Image(
-                              image: imageProvider,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(color: Colors.black.withValues(alpha: 0.1)),
-                            ),
-                          ),
-                          Center(
-                            child: Image(
-                              image: imageProvider,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
+                          Positioned.fill(child: Image(image: imageProvider, fit: BoxFit.cover)),
+                          Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: Container(color: Colors.black.withOpacity(0.1)))),
+                          Center(child: Image(image: imageProvider, fit: BoxFit.contain)),
+                          Positioned(
+                            right: 8, top: 8,
+                            child: CircleAvatar(backgroundColor: Colors.white, child: IconButton(icon: const Icon(Icons.edit, color: AppColors.primaryBlue), onPressed: _showPickerOptions)),
+                          )
                         ],
                       )
-                    : const Column(
+                    : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                            Icon(Icons.camera_alt_outlined,
-                                size: 48, color: AppColors.secondaryBlue),
-                            Text("Ambil Foto atau dari Galeri",
-                                style: TextStyle(
-                                    color: AppColors.secondaryBlue,
-                                    fontWeight: FontWeight.bold))
+                            Icon(Icons.add_a_photo_outlined, size: 48, color: hasError ? Colors.red : AppColors.secondaryBlue),
+                            const SizedBox(height: 8),
+                            Text("Klik untuk Ambil Foto", style: TextStyle(color: hasError ? Colors.red : AppColors.secondaryBlue, fontWeight: FontWeight.bold))
                           ]),
-              )))
+              ))),
+      if (hasError) _buildErrorText("Foto barang wajib diunggah"),
     ]);
   }
 
@@ -520,17 +499,15 @@ class _CreateReportPageState extends State<CreateReportPage> {
         margin: const EdgeInsets.only(top: 20),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: AppColors.primaryYellow,
-            borderRadius: BorderRadius.circular(15)),
+            color: AppColors.primaryYellow.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppColors.primaryYellow)),
         child: Column(children: [
           const Row(children: [
             Icon(Icons.card_giftcard, size: 20, color: AppColors.primaryBlue),
             SizedBox(width: 8),
             Text("Tawarkan Imbalan (Opsional)",
-                style: TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12))
+                style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12))
           ]),
           const SizedBox(height: 10),
           TextField(
@@ -540,15 +517,11 @@ class _CreateReportPageState extends State<CreateReportPage> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                   hintText: "Misal: 50000",
-                  hintStyle:
-                      const TextStyle(color: AppColors.textGrey, fontSize: 13),
+                  hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 13),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.6),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16)))
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16)))
         ]));
   }
 }
