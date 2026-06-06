@@ -8,7 +8,8 @@ class HomeController extends ChangeNotifier {
   // --- State Properties ---
   HomeTab _activeTab = HomeTab.kehilangan;
   String _searchQuery = '';
-  String _selectedCategory = 'Semua'; // Sesuai filter ikon di Figma
+  String _selectedCategory = 'Semua'; 
+  List<String> _hiddenPosts = []; // Local filter for reported posts
 
   // --- Getters ---
   HomeTab get activeTab => _activeTab;
@@ -17,46 +18,55 @@ class HomeController extends ChangeNotifier {
 
   // --- Logic Functions ---
 
-  /// Mengubah tab aktif (Kehilangan/Penemuan)
   void setActiveTab(HomeTab tab) {
     if (_activeTab == tab) return;
     _activeTab = tab;
     notifyListeners();
   }
 
-  /// Mengubah kategori filter (Elektronik, Dokumen, dll)
   void setCategory(String category) {
     if (_selectedCategory == category) return;
     _selectedCategory = category;
     notifyListeners();
   }
 
-  /// Update query pencarian
   void updateSearchQuery(String query) {
     _searchQuery = query.trim().toLowerCase();
     notifyListeners();
   }
 
-  /// Reset semua filter ke kondisi awal
   void resetFilters() {
     _searchQuery = '';
     _selectedCategory = 'Semua';
     notifyListeners();
   }
 
+  /// Loads hidden posts from local storage
+  Future<void> loadHiddenPosts() async {
+    final hive = HiveService();
+    final data = hive.settingsBox.get('hidden_posts', defaultValue: <String>[]) as List<dynamic>;
+    _hiddenPosts = List<String>.from(data);
+    notifyListeners();
+  }
+
   // --- The Core Logic: Multi-Level Filtering ---
 
-  /// Fungsi utama untuk menyaring data yang diambil dari ReportController.
-  List<ReportModel> filterReports(List<ReportModel> allReports) {
+  List<ReportModel> filterReports(List<ReportModel> allReports, {HomeTab? tab}) {
+    final targetTab = tab ?? _activeTab;
+    
     return allReports.where((report) {
       
-      // 0. Filter out RESOLVED items from public feed
-      if (report.status.toLowerCase() == 'resolved') return false;
+      // 0. Filter out RESOLVED, BLOCKED, and UNDER_REVIEW items from public feed
+      final reportStatus = report.status.toLowerCase();
+      if (reportStatus == 'resolved' || reportStatus == 'blocked' || reportStatus == 'under_review') return false;
+
+      // 0.1 Filter out locally hidden posts (reported by user)
+      if (_hiddenPosts.contains(report.id)) return false;
 
       // 1. Filter berdasarkan Tab (Status Postingan)
-      final bool matchesTab = (_activeTab == HomeTab.kehilangan)
-          ? report.status.toLowerCase() == 'lost'
-          : report.status.toLowerCase() == 'found';
+      final bool matchesTab = (targetTab == HomeTab.kehilangan)
+          ? reportStatus == 'lost'
+          : reportStatus == 'found';
 
       // 2. Filter berdasarkan Kategori
       final bool matchesCategory = (_selectedCategory == 'Semua')
@@ -71,7 +81,6 @@ class HomeController extends ChangeNotifier {
     }).toList();
   }
 
-  /// Menghitung berapa banyak laporan yang belum tersinkron (isSynced == false)
   int getUnsyncedCount(List<ReportModel> allReports) {
     return allReports.where((report) => report.id.startsWith('pending_')).length;
   }

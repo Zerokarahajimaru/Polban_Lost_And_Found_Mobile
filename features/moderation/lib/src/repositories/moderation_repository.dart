@@ -61,13 +61,8 @@ class ModerationRepository {
           'reportReason': reportReason,
           'uploaderName': uploaderName,
           'postImageUrl': postImageUrl,
-          'reporters': [
-            {
-              'name': reporterName,
-              'nim': reporterNim,
-              'reason': reportReason,
-            }
-          ],
+          'reporterName': reporterName,
+          'reporterNim': reporterNim,
         },
       );
     } catch (e) {

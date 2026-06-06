@@ -18,11 +18,20 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = context.read<SessionController>().currentUser?.id;
-      if (userId != null) {
-        context.read<NotificationController>().loadNotifications(userId);
-      }
+      _refreshNotifs();
     });
+  }
+
+  void _refreshNotifs() {
+    final session = context.read<SessionController>();
+    final userId = session.currentUser?.id;
+    if (userId != null) {
+      final ids = [userId];
+      if (session.isTeknisi) {
+        ids.add('staff_general');
+      }
+      context.read<NotificationController>().loadNotifications(ids);
+    }
   }
 
   @override
@@ -42,10 +51,7 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              final userId = context.read<SessionController>().currentUser?.id;
-              if (userId != null) {
-                await controller.loadNotifications(userId);
-              }
+              _refreshNotifs();
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),

@@ -8,23 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:timeago/timeago.dart' as timeago_lib;
 import '../controllers/home_controller.dart';
-
-// ========================
-// HALAMAN UTAMA (HOME) - PROVIDER WRAPPER
-// ========================
-class HomePageProvider extends StatelessWidget {
-  const HomePageProvider({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => HomeController()),
-      ],
-      child: const HomePage(),
-    );
-  }
-}
+import 'home_page_provider.dart'; // Ensure it's imported if needed, but usually it's just the HomePage class here
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,6 +30,7 @@ class _HomePageState extends State<HomePage> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportController>().getReports();
+      context.read<HomeController>().loadHiddenPosts(); // [1] Load local filters
     });
     _scrollController.addListener(_onScroll);
   }

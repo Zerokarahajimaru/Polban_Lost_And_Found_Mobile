@@ -104,11 +104,24 @@ class ModerationController extends ChangeNotifier {
       _message = 'Laporan berhasil dikirimkan.';
       _lastOperationFailed = false;
     } catch (e) {
-      _message = 'Gagal mengirimkan laporan. Coba lagi.';
+      _message = e.toString().contains("sudah melaporkan") 
+          ? "Anda sudah melaporkan postingan ini sebelumnya." 
+          : 'Gagal mengirimkan laporan. Coba lagi.';
       _lastOperationFailed = true;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> checkIfUserReported(String postId, String nim) async {
+    try {
+      // In a real app, we might have a specific endpoint for this.
+      // For now, we search in the existing reports list.
+      final list = await _repository.fetchReports();
+      return list.any((r) => r.id.contains(postId) && r.reporters.any((rep) => rep.nim == nim));
+    } catch (e) {
+      return false;
     }
   }
 }

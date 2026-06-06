@@ -27,6 +27,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ReportController()),
         ChangeNotifierProvider(create: (_) => ClaimController()),
         ChangeNotifierProvider(create: (_) => NotificationController()),
+        ChangeNotifierProvider(create: (_) => HomeController()), // Moved to top-level
       ],
       child: const MyApp(),
     ),
@@ -85,7 +86,7 @@ class MyApp extends StatelessWidget {
               routes: [
                 GoRoute(
                   path: '/home',
-                  builder: (context, state) => const HomePageProvider(),
+                  builder: (context, state) => HomePageProvider(),
                 ),
               ],
             ),

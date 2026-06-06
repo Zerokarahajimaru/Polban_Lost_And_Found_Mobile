@@ -14,12 +14,22 @@ class NotificationController extends ChangeNotifier {
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
-  Future<void> loadNotifications(String userId) async {
+  Future<void> loadNotifications(dynamic userId) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      _notifications = await _repository.fetchNotifications(userId);
+      if (userId is List<String>) {
+        List<NotificationModel> combined = [];
+        for (var id in userId) {
+          final results = await _repository.fetchNotifications(id);
+          combined.addAll(results);
+        }
+        combined.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _notifications = combined;
+      } else {
+        _notifications = await _repository.fetchNotifications(userId.toString());
+      }
       _message = 'Notifikasi berhasil dimuat';
     } catch (e) {
       _message = 'Gagal memuat notifikasi: $e';

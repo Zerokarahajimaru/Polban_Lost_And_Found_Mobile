@@ -17,6 +17,7 @@ class HiveService {
 
   /// The name for the box that will store report data.
   static const String reportsBoxName = 'reports_box';
+  static const String settingsBoxName = 'settings_box';
 
   /// Initializes the Hive database.
   ///
@@ -27,11 +28,15 @@ class HiveService {
     // We open a box to store raw Map data (JSON-like) for simplicity.
     // This avoids the need for TypeAdapters if the model is simple.
     await Hive.openBox<Map>(reportsBoxName);
-    debugPrint('Hive initialized successfully and reports box opened.');
+    await Hive.openBox(settingsBoxName);
+    debugPrint('Hive initialized successfully.');
   }
 
   /// Provides access to the 'reports' box.
   Box<Map> get reportsBox => Hive.box<Map>(reportsBoxName);
+
+  /// Provides access to the 'settings' box for app preferences.
+  Box get settingsBox => Hive.box(settingsBoxName);
 
   /// Closes all open Hive boxes.
   Future<void> close() async {

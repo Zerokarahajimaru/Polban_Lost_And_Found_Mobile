@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:moderation/moderation.dart';
 import 'package:provider/provider.dart';
+import 'package:home/home.dart';
 
 // ========================
-// HALAMAN LAPORKAN KONTEN (FULL RED BACKGROUND)
+// HALAMAN LAPORKAN KONTEN
 // ========================
 class ReportPostPageProvider extends StatelessWidget {
   final dynamic item;
@@ -12,8 +13,10 @@ class ReportPostPageProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ModerationController(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ModerationController()),
+      ],
       child: ReportPostPage(item: item),
     );
   }
@@ -28,188 +31,264 @@ class ReportPostPage extends StatefulWidget {
 }
 
 class _ReportPostPageState extends State<ReportPostPage> {
-  String? _selectedAlasan;
+  String? _selectedReason;
+  bool _isHidingPost = false; // [1] Hide Post Option
 
-  final List<String> _alasanList = [
-    'SPAM/IKLAN',
-    'Penyampaian palsu (Isi tidak sesuai)',
-    'Konten tidak pantas',
-    'Sudah ditemukan',
+  final List<String> _reasons = [
+    'Spam atau Iklan',
+    'Penipuan atau Barang Palsu',
+    'Konten Tidak Pantas/Kasar',
+    'Informasi Salah (Hoax)',
+    'Sudah Ditemukan tapi Belum Ditutup',
+    'Lainnya',
   ];
+
+  String get _itemTitle => widget.item is ReportModel ? widget.item.title : widget.item.namaBarang;
+  String get _itemOwner => widget.item is ReportModel ? (widget.item.userId ?? 'Unknown') : widget.item.userId;
+  String get _itemImage => widget.item is ReportModel ? widget.item.imageUrl : (widget.item.images?.isNotEmpty == true ? widget.item.images[0] : '');
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<ModerationController>();
-    final session = context.watch<SessionController>();
-    final currentUser = session.currentUser;
+    final modController = context.watch<ModerationController>();
+    final session = context.read<SessionController>();
+    final user = session.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFD32F2F), 
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: const CustomHeader(title: 'Laporkan Postingan'),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.flag_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'LAPORKAN KONTEN',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Pilih alasan mengapa konten ini melanggar peraturan kami.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Preview Postingan
+            _buildPostPreview(),
 
-              Align(
-                alignment: Alignment.centerLeft,
-                child: const Text(
-                  'Alasan Pelaporan:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.white,
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Mengapa Anda melaporkan ini?",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ..._alasanList.map((alasan) => _buildAlasanTile(alasan)),
-              
-              const SizedBox(height: 32),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Laporan Anda membantu kami menjaga komunitas Polban tetap aman.",
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
 
-              if (controller.isLoading)
-                const CircularProgressIndicator(color: Colors.white)
-              else
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFD32F2F),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                  // List Alasan
+                  ..._reasons.map((reason) => _buildReasonItem(reason)),
+                  
+                  const SizedBox(height: 32),
+
+                  // [1] Hide Post Toggle
+                  _buildHideToggle(),
+
+                  const SizedBox(height: 40),
+
+                  // Tombol Kirim
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _selectedReason == null
+                            ? Colors.grey.shade300
+                            : const Color(0xFFD32F2F), // Red for Warning
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
                       ),
-                    ),
-                    icon: const Icon(Icons.flag_rounded, size: 20),
-                    label: const Text(
-                      'LAPORKAN SEKARANG',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    onPressed: _selectedAlasan == null
-                        ? null
-                        : () async {
-                            final isReportModel = widget.item is ReportModel;
-                            final String postId = isReportModel ? widget.item.id : widget.item.nama;
-                            final String postTitle = isReportModel ? widget.item.title : widget.item.nama;
-                            final String uploaderName = isReportModel ? 'User' : (widget.item.uploaderName ?? 'Unknown');
-                            final String? postImageUrl = isReportModel ? widget.item.imageUrl : widget.item.imageUrl;
-
-                            await controller.submitReport(
-                              postId: postId,
-                              postTitle: postTitle,
-                              reportReason: _selectedAlasan!,
-                              uploaderName: uploaderName,
-                              postImageUrl: postImageUrl,
-                              reporterName: currentUser?.name ?? 'Anonymous',
-                              reporterNim: currentUser?.id ?? '0000000000',
-                            );
-
-                            if (!mounted) return;
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(controller.message),
-                                backgroundColor: controller.lastOperationFailed ? Colors.red : Colors.black87,
-                                behavior: SnackBarBehavior.floating,
+                      onPressed: (_selectedReason == null || modController.isLoading)
+                          ? null
+                          : () => _submitReport(context, modController, user),
+                      child: modController.isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              "KIRIM LAPORAN",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                               ),
-                            );
-
-                            if (!controller.lastOperationFailed) {
-                              Navigator.pop(context);
-                            }
-                          },
+                            ),
+                    ),
                   ),
-                ),
-              const SizedBox(height: 40),
-            ],
-          ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildAlasanTile(String alasan) {
-    final isSelected = _selectedAlasan == alasan;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedAlasan = alasan),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
-          border: Border.all(
-            color: Colors.white,
-            width: 1.5,
+  Widget _buildPostPreview() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      color: Colors.white,
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 60,
+              height: 60,
+              color: AppColors.softGrey,
+              child: _itemImage.isNotEmpty
+                  ? Image.network(_itemImage, fit: BoxFit.cover)
+                  : const Icon(Icons.image_outlined, color: Colors.grey),
+            ),
           ),
-          borderRadius: BorderRadius.circular(16),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _itemTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Oleh: $_itemOwner",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHideToggle() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.visibility_off_outlined, color: Colors.grey),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              "Sembunyikan postingan ini dari beranda saya",
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+          Switch(
+            value: _isHidingPost,
+            onChanged: (val) => setState(() => _isHidingPost = val),
+            activeColor: AppColors.primaryBlue,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReasonItem(String reason) {
+    bool isSelected = _selectedReason == reason;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedReason = reason),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFEBEE) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD32F2F) : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                alasan,
+                reason,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFFD32F2F) : Colors.white,
+                  color: isSelected ? const Color(0xFFD32F2F) : Colors.black87,
                 ),
               ),
             ),
             Icon(
               isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: isSelected ? const Color(0xFFD32F2F) : Colors.white70,
+              color: isSelected ? const Color(0xFFD32F2F) : Colors.grey.shade300,
               size: 22,
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _submitReport(BuildContext context, ModerationController controller, dynamic user) async {
+    final postId = widget.item.id;
+    
+    await controller.submitReport(
+      postId: postId,
+      postTitle: _itemTitle,
+      reportReason: _selectedReason!,
+      uploaderName: _itemOwner,
+      postImageUrl: _itemImage.isNotEmpty ? _itemImage : null,
+      reporterName: user?.name ?? 'Anonymous',
+      reporterNim: user?.id ?? '-',
+    );
+
+    if (!mounted) return;
+
+    if (controller.lastOperationFailed) {
+      StatusDialog.show(
+        context,
+        isSuccess: false,
+        title: "Gagal",
+        message: controller.message,
+      );
+    } else {
+      // [1] Handle local hiding if selected
+      if (_isHidingPost) {
+        final hive = HiveService();
+        final hiddenPosts = hive.settingsBox.get('hidden_posts', defaultValue: <String>[]) as List<dynamic>;
+        final newList = List<String>.from(hiddenPosts);
+        if (!newList.contains(postId)) {
+          newList.add(postId);
+          await hive.settingsBox.put('hidden_posts', newList);
+          
+          // Force home feed to reload local filters
+          if (mounted) {
+            context.read<HomeController>().loadHiddenPosts();
+          }
+        }
+      }
+
+      StatusDialog.show(
+        context,
+        title: "Laporan Terkirim",
+        message: "Terima kasih, laporan Anda sedang ditinjau oleh tim moderasi.",
+        onConfirm: () {
+          Navigator.pop(context); // Close dialog
+          Navigator.pop(context); // Back to detail/home
+        },
+      );
+    }
   }
 }

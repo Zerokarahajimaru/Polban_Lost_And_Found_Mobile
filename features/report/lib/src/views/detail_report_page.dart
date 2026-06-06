@@ -7,15 +7,16 @@ import 'package:provider/provider.dart';
 import 'package:claim/claim.dart';
 import 'package:post/post.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:moderation/moderation.dart';
 import '../controllers/report_controller.dart';
 
 // ========================
 // HALAMAN DETAIL LAPORAN
 // ========================
-class ReportDetailPage extends StatelessWidget {
+class ReportDetailPage extends StatefulWidget {
   final dynamic item;
   final bool canManage;
-  final bool isFromUserClaim; // Flag for "Klaim Saya" view
+  final bool isFromUserClaim; 
 
   const ReportDetailPage({
     super.key, 
@@ -24,21 +25,58 @@ class ReportDetailPage extends StatelessWidget {
     this.isFromUserClaim = false,
   });
 
-  bool get isReportModel => item is ReportModel;
-  bool get isClaimModel => item is ClaimModel;
+  @override
+  State<ReportDetailPage> createState() => _ReportDetailPageState();
+}
 
-  String get nama => isReportModel ? item.title : (isClaimModel ? item.reportTitle : item.nama);
-  String get lokasi => isReportModel ? item.location : (isClaimModel ? "Lihat di Beranda" : item.lokasi);
-  String get status => isReportModel ? item.status : (isClaimModel ? item.status : item.status);
+class _ReportDetailPageState extends State<ReportDetailPage> {
+  bool _hasAlreadyReported = false;
+  bool _isCheckingReport = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkReportStatus();
+  }
+
+  Future<void> _checkReportStatus() async {
+    final session = context.read<SessionController>();
+    final user = session.currentUser;
+    if (user == null) {
+      setState(() => _isCheckingReport = false);
+      return;
+    }
+
+    final modRepo = ModerationRepository();
+    try {
+      final reports = await modRepo.fetchReports();
+      final String postId = widget.item is ReportModel ? widget.item.id : (widget.item is ClaimModel ? widget.item.reportId : widget.item.id);
+      final reported = reports.any((r) => (r.id.contains(postId) || r.postTitle == nama) && r.reporters.any((rep) => rep.nim == user.id));
+      if (mounted) {
+        setState(() {
+          _hasAlreadyReported = reported;
+          _isCheckingReport = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isCheckingReport = false);
+    }
+  }
+
+  bool get isReportModel => widget.item is ReportModel;
+  bool get isClaimModel => widget.item is ClaimModel;
+
+  String get nama => isReportModel ? widget.item.title : (isClaimModel ? widget.item.reportTitle : widget.item.nama);
+  String get lokasi => isReportModel ? widget.item.location : (isClaimModel ? "Lihat di Beranda" : widget.item.lokasi);
+  String get status => isReportModel ? widget.item.status : (isClaimModel ? widget.item.status : widget.item.status);
   
-  // Normalize status to lowercase for comparison
   String get normalizedStatus => status.toLowerCase();
   bool get isFound => normalizedStatus == 'found';
   bool get isLost => normalizedStatus == 'lost';
   bool get isResolved => normalizedStatus == 'resolved';
-  bool get isVerified => normalizedStatus == 'verified'; // Specifically for ClaimModel
-  bool get isRejected => normalizedStatus == 'rejected'; // Specifically for ClaimModel
-  bool get isSynced => isReportModel && !item.id.startsWith('draft_') && !item.id.startsWith('pending_');
+  bool get isVerified => normalizedStatus == 'verified'; 
+  bool get isRejected => normalizedStatus == 'rejected'; 
+  bool get isSynced => isReportModel && !widget.item.id.startsWith('draft_') && !widget.item.id.startsWith('pending_');
 
   Color get statusColor {
     if (isResolved || isVerified) return Colors.green;
@@ -48,24 +86,23 @@ class ReportDetailPage extends StatelessWidget {
     return Colors.grey;
   }
 
-  String get imageUrl => isReportModel ? item.imageUrl : (isClaimModel ? (item.reportImageUrl ?? '') : item.imageUrl);
-  String? get localImagePath => isReportModel ? item.localImagePath : null;
-  String? get imbalan => isReportModel ? item.reward : null;
-  String get kategori => isReportModel ? item.category : "Barang Temuan";
+  String get imageUrl => isReportModel ? widget.item.imageUrl : (isClaimModel ? (widget.item.reportImageUrl ?? '') : widget.item.imageUrl);
+  String? get localImagePath => isReportModel ? widget.item.localImagePath : null;
+  String? get imbalan => isReportModel ? widget.item.reward : null;
+  String get kategori => isReportModel ? widget.item.category : "Barang Temuan";
   String get waktuLapor {
     if (isReportModel || isClaimModel) {
-      final createdAt = item.createdAt as DateTime;
+      final createdAt = widget.item.createdAt as DateTime;
       return TimeHelper.formatRelative(createdAt);
     }
     return "";
   }
 
-  String get deskripsi => isReportModel ? item.description : (isClaimModel ? "Detail klaim yang sedang diajukan." : item.deskripsi);
-  String get id => isReportModel ? item.id : (isClaimModel ? item.id : item.nama);
-  String? get userId => isReportModel ? item.userId : (isClaimModel ? item.claimantId : null);
-  String? get kontak => isReportModel ? item.contact : null;
+  String get deskripsi => isReportModel ? widget.item.description : (isClaimModel ? "Detail klaim yang sedang diajukan." : widget.item.deskripsi);
+  String get id => isReportModel ? widget.item.id : (isClaimModel ? widget.item.id : widget.item.nama);
+  String? get userId => isReportModel ? widget.item.userId : (isClaimModel ? widget.item.claimantId : null);
+  String? get kontak => isReportModel ? widget.item.contact : null;
 
-  // Reward section visibility
   bool get showRewardBanner => imbalan != null && imbalan!.isNotEmpty && imbalan != '-';
 
   ImageProvider<Object>? get imageProvider {
@@ -85,8 +122,7 @@ class ReportDetailPage extends StatelessWidget {
     final isOwner = userId != null && currentUser != null && userId == currentUser.id;
     final isTeknisi = session.isTeknisi;
 
-    // Check if current user already claimed this item (only if not already in claim management)
-    final hasAlreadyClaimed = !isFromUserClaim && claimController.claims.any((c) => c.reportId == id && c.claimantId == currentUser?.id);
+    final hasAlreadyClaimed = !widget.isFromUserClaim && claimController.claims.any((c) => c.reportId == id && c.claimantId == currentUser?.id);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -96,32 +132,24 @@ class ReportDetailPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Foto + Tombol Back Overlay
                 _buildHeroImage(context),
-
                 const SizedBox(height: 20),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // [19] PROGRESS STEPPER
-                      if (isFromUserClaim) ...[
-                        // Stepper for Claimant
+                      if (widget.isFromUserClaim) ...[
                         ClaimProgressStepper(status: status),
                         const SizedBox(height: 24),
-                      ] else if (canManage) ...[
-                        // Stepper for Report Owner (My Reports)
+                      ] else if (widget.canManage) ...[
                         ReportProgressStepper(status: status, isLost: isLost),
                         const SizedBox(height: 24),
                       ],
 
-                      // Banner Imbalan hanya muncul jika ada imbalan
                       if (showRewardBanner) _buildImbalanBanner(),
                       if (showRewardBanner) const SizedBox(height: 20),
 
-                      // Nama Barang & Status
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -142,19 +170,14 @@ class ReportDetailPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // Deskripsi
                       const Text("Deskripsi", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
                       const SizedBox(height: 8),
                       Text(deskripsi, style: const TextStyle(color: AppColors.textGrey, height: 1.5)),
                       const SizedBox(height: 24),
-
-                      // Info Chips (Kategori, Lokasi, Waktu)
                       _buildInfoGrid(),
                       const SizedBox(height: 32),
 
-                      // --- LOGIKA TOMBOL ---
-                      if (isFromUserClaim) ...[
+                      if (widget.isFromUserClaim) ...[
                         if (isVerified) ...[
                           const Center(
                             child: Text(
@@ -177,14 +200,12 @@ class ReportDetailPage extends StatelessWidget {
                         const SizedBox(height: 16),
                       ] else ...[
                         if (!isResolved) ...[
-                           // Only show Claim button for Found items that belong to someone else
                           if (isFound && !isOwner) ...[
                             _buildKlaimButton(context, hasAlreadyClaimed),
                             const SizedBox(height: 16),
                           ],
 
-                          // Only show Resolve button if opened from "Management" (My Reports) and is Synced
-                          if (canManage && isSynced) ...[
+                          if (widget.canManage && isSynced) ...[
                             if (isFound && isTeknisi) ...[
                               _buildResolvedButton(context, "TANDAI SUDAH DIAMBIL"),
                               const SizedBox(height: 16),
@@ -194,7 +215,6 @@ class ReportDetailPage extends StatelessWidget {
                             ],
                           ],
 
-                          // Show interaction buttons ONLY if NOT the owner
                           if (!isOwner) ...[
                             _buildHubungiButton(context),
                             const SizedBox(height: 16),
@@ -230,16 +250,13 @@ class ReportDetailPage extends StatelessWidget {
           child: provider != null
               ? Stack(
                   children: [
-                    // Blurred background
                     Positioned.fill(child: Image(image: provider, fit: BoxFit.cover)),
                     Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), child: Container(color: Colors.black.withOpacity(0.2)))),
-                    // Main image (100% visible)
                     Center(child: Image(image: provider, fit: BoxFit.contain)),
                   ],
                 )
               : const Center(child: Icon(Icons.image_not_supported_outlined, color: AppColors.textGrey, size: 48)),
         ),
-        // Gradient overlay
         Container(
           height: 100,
           decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.5), Colors.transparent])),
@@ -302,7 +319,6 @@ class ReportDetailPage extends StatelessWidget {
     );
   }
 
-  //Tombol untuk Barang Temuan
   Widget _buildKlaimButton(BuildContext context, bool hasAlreadyClaimed) {
     final session = context.watch<SessionController>();
     final user = session.currentUser;
@@ -326,7 +342,7 @@ class ReportDetailPage extends StatelessWidget {
           try {
             await claimRepo.submitClaim(claim);
             if (context.mounted) {
-              context.read<ClaimController>().loadClaims(); // Refresh claims
+              context.read<ClaimController>().loadClaims(); 
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Klaim berhasil diajukan! Pantau di menu Klaim Saya."), backgroundColor: Colors.green));
             }
           } catch (e) {
@@ -361,7 +377,7 @@ class ReportDetailPage extends StatelessWidget {
           if (confirm == true && context.mounted) {
             final claimRepo = ClaimRepository();
             try {
-              await claimRepo.deleteClaim(id); // Using the claim ID
+              await claimRepo.deleteClaim(id); 
               if (context.mounted) {
                 context.read<ClaimController>().loadClaims();
                 Navigator.pop(context);
@@ -376,7 +392,6 @@ class ReportDetailPage extends StatelessWidget {
     );
   }
 
-  // Tombol Hubungi Pelapor
   Widget _buildHubungiButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -391,7 +406,6 @@ class ReportDetailPage extends StatelessWidget {
             return;
           }
 
-          // Clean the number
           String phone = kontak!.replaceAll(RegExp(r'[^0-9]'), '');
           if (phone.startsWith('0')) {
             phone = '62${phone.substring(1)}';
@@ -403,7 +417,6 @@ class ReportDetailPage extends StatelessWidget {
             if (await canLaunchUrl(whatsappUri)) {
               await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
             } else {
-              // Fallback to dial pad
               final Uri telUri = Uri.parse("tel:$phone");
               if (await canLaunchUrl(telUri)) {
                 await launchUrl(telUri);
@@ -419,17 +432,29 @@ class ReportDetailPage extends StatelessWidget {
     );
   }
 
-  // Tombol Report dengan tanda seru merah
   Widget _buildReportButton(BuildContext context) {
+    if (_isCheckingReport) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SizedBox(
       width: double.infinity,
       height: 55,
       child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-        icon: const Icon(Icons.warning_outlined, color: Colors.red),
-        label: const Text("LAPORKAN POSTINGAN", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => ReportPostPageProvider(item: item)));
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: _hasAlreadyReported ? Colors.grey : Colors.red, width: 2), 
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
+        ),
+        icon: Icon(Icons.warning_outlined, color: _hasAlreadyReported ? Colors.grey : Colors.red),
+        label: Text(
+          _hasAlreadyReported ? "ANDA TELAH MELAPORKAN INI" : "LAPORKAN POSTINGAN", 
+          style: TextStyle(color: _hasAlreadyReported ? Colors.grey : Colors.red, fontWeight: FontWeight.bold, fontSize: 16)
+        ),
+        onPressed: _hasAlreadyReported ? null : () async {
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => ReportPostPageProvider(item: widget.item)));
+          if (result == true) {
+            _checkReportStatus(); // Refresh status
+          }
         },
       ),
     );

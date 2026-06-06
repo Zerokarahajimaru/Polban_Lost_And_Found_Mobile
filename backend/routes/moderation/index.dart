@@ -38,24 +38,19 @@ Future<Response> _onPost(RequestContext context) async {
   try {
     final body = await context.request.json() as Map<String, dynamic>;
 
-    final report = ModerationReportModel(
+    await _repo.submitUserReport(
       postId: body['postId']?.toString() ?? '',
       postTitle: body['postTitle']?.toString() ?? '',
-      reportReason: body['reportReason']?.toString() ?? '',
       uploaderName: body['uploaderName']?.toString() ?? '',
       postImageUrl: body['postImageUrl']?.toString(),
-      reporters: (body['reporters'] as List<dynamic>? ?? [])
-          .map((r) =>
-              ModerationReporter.fromMap(r as Map<String, dynamic>))
-          .toList(),
-      status: 'pending',
-      reportedAt: DateTime.now(),
+      reporterName: body['reporterName']?.toString() ?? 'Anonymous',
+      reporterNim: body['reporterNim']?.toString() ?? '-',
+      reason: body['reportReason']?.toString() ?? 'Lainnya',
     );
 
-    final id = await _repo.createReport(report);
     return Response.json(
       statusCode: HttpStatus.created,
-      body: {'id': id, 'message': 'Laporan moderasi berhasil dibuat.'},
+      body: {'message': 'Laporan berhasil dikirim.'},
     );
   } catch (e) {
     return Response(statusCode: 500, body: 'Error: $e');
