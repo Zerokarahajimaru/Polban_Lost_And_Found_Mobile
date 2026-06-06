@@ -71,7 +71,7 @@ class _HomePageState extends State<HomePage> {
           appBar: null,
           body: Stack(
             children: [
-              // 1. SCROLLABLE CONTENT (Layer Paling Bawah)
+              // 1. BACKGROUND LAYER: Scrollable Content
               Positioned.fill(
                 child: RefreshIndicator(
                   edgeOffset: 170,
@@ -83,7 +83,8 @@ class _HomePageState extends State<HomePage> {
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      const SliverToBoxAdapter(child: SizedBox(height: 200)),
+                      // Header Spacer
+                      const SliverToBoxAdapter(child: SizedBox(height: 180)),
                       
                       SliverToBoxAdapter(
                         child: _buildDataLokalBanner(context, unsyncedCount),
@@ -140,14 +141,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // 2. HEADER & FLOATING TAB (Layer Atas)
-              // FIX: Re-architected for perfect hit-testing using Column + Transform
+              // 2. FOREGROUND LAYER: Fixed Header + Floating Tab
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     CustomHeader(
                       title: _headerTitle,
@@ -159,14 +159,11 @@ class _HomePageState extends State<HomePage> {
                         child: _buildSearchBar(context, homeController),
                       ),
                     ),
-                    // FIX: Using Transform.translate to visually overlap the tabs while 
-                    // keeping them in the natural layout flow for perfect hit-testing.
-                    Transform.translate(
-                      offset: const Offset(0, -22),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 60),
-                        child: _buildTabSelector(homeController),
-                      ),
+                    Positioned(
+                      bottom: -22,
+                      left: 60,
+                      right: 60,
+                      child: _buildTabSelector(homeController),
                     ),
                   ],
                 ),

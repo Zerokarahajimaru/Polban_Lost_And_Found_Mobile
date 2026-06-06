@@ -110,16 +110,13 @@ class _ReviewPostinganPageState extends State<ReviewPostinganPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: const CustomHeader(
-        title: 'Review Postingan',
-        showBackButton: true,
-      ),
       body: Consumer<ModerationController>(
         builder: (context, ctrl, _) {
           return Stack(
             children: [
+              // 1. SCROLLABLE CONTENT (Layer Paling Bawah)
               SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 100),
+                padding: const EdgeInsets.only(top: 120, bottom: 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -130,6 +127,18 @@ class _ReviewPostinganPageState extends State<ReviewPostinganPage> {
                 ),
               ),
 
+              // 2. FIXED HEADER (Layer Atas - ISSUE 3 FIX)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: CustomHeader(
+                  title: 'Review Postingan',
+                  showBackButton: true,
+                ),
+              ),
+
+              // 3. BOTTOM ACTION BAR
               Positioned(
                 left: 0,
                 right: 0,

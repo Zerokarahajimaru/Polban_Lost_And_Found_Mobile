@@ -9,10 +9,12 @@ import 'package:post/post.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
 import 'package:teknisi_dashboard/teknisi_dashboard.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'main_scaffold.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   await HiveService().init();
   CloudinaryService().init(
     cloudName: 'dd9ziyeaj',

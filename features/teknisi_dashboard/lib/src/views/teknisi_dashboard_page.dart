@@ -30,104 +30,130 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
 
     return Scaffold(
       backgroundColor: AppColors.softGrey,
-      appBar: const CustomHeader(
-        title: 'Beranda Staff',
-        showBackButton: false,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.kPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Text(
-              'Halo, $userName!',
-              style: const TextStyle(
-                fontSize: 24, 
-                fontWeight: FontWeight.bold, 
-                color: AppColors.primaryBlue,
-                letterSpacing: -0.5,
+      appBar: null,
+      body: Stack(
+        children: [
+          // 1. BACKGROUND LAYER: Scrollable Content
+          Positioned.fill(
+            child: RefreshIndicator(
+              edgeOffset: 120,
+              onRefresh: () async {
+                await context.read<ClaimController>().loadClaims();
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  // Reduced Header Spacer to fix the large gap
+                  const SliverToBoxAdapter(child: SizedBox(height: 85)),
+                  
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppTheme.kPadding),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const SizedBox(height: 8),
+                        Text(
+                          'Halo, $userName!',
+                          style: const TextStyle(
+                            fontSize: 24, 
+                            fontWeight: FontWeight.bold, 
+                            color: AppColors.primaryBlue,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const Text(
+                          'Selamat bertugas! Kelola laporan dan inventaris hari ini.',
+                          style: TextStyle(fontSize: 14, color: AppColors.textGrey),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // REACTIVE CLAIM BANNER (Priority Focus)
+                        Consumer<ClaimController>(
+                          builder: (context, claimController, child) {
+                            final pendingClaims = claimController.claims.where((c) => c.status == 'pending').length;
+                            return GestureDetector(
+                              onTap: () => context.push('/claim-queue'),
+                              child: _AntreanKlaimBanner(count: pendingClaims),
+                            );
+                          }
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _MenuWideTile(
+                          icon: Icons.picture_as_pdf_rounded,
+                          label: 'Cetak Laporan Bulanan (PDF)',
+                          accentColor: AppColors.primaryBlue,
+                          backgroundColor: const Color(0xFFE3F2FD), // Soft Blue
+                          onTap: () => _showPdfPeriodPicker(context),
+                        ),
+
+                        const SizedBox(height: 28),
+                        
+                        const Text(
+                          'Menu Utama',
+                          style: TextStyle(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold, 
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.25,
+                          children: [
+                            _MenuTile(
+                              icon: Icons.add_rounded,
+                              label: 'Input Laporan',
+                              color: AppColors.primaryBlue,
+                              onTap: () => context.push('/my-reports'),
+                            ),
+                            _MenuTile(
+                              icon: Icons.inventory_2_rounded,
+                              label: 'Inventaris',
+                              color: AppColors.warning,
+                              onTap: () => _showPlaceholderSnackBar(context, 'Inventaris Barang'),
+                            ),
+                            _MenuTile(
+                              icon: Icons.gavel_rounded,
+                              label: 'Moderasi',
+                              color: AppColors.error,
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ModerasiPostinganProvider())),
+                            ),
+                            _MenuTile(
+                              icon: Icons.bar_chart_rounded,
+                              label: 'Statistik',
+                              color: AppColors.info,
+                              onTap: () => _showPlaceholderSnackBar(context, 'Statistik Laporan'),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 40),
+                      ]),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Text(
-              'Selamat bertugas! Kelola laporan dan inventaris hari ini.',
-              style: TextStyle(fontSize: 14, color: AppColors.textGrey),
-            ),
-            const SizedBox(height: 24),
+          ),
 
-            // REACTIVE CLAIM BANNER (Priority Focus)
-            Consumer<ClaimController>(
-              builder: (context, claimController, child) {
-                final pendingClaims = claimController.claims.where((c) => c.status == 'pending').length;
-                return GestureDetector(
-                  onTap: () => context.push('/claim-queue'),
-                  child: _AntreanKlaimBanner(count: pendingClaims),
-                );
-              }
+          // 2. FOREGROUND LAYER: Fixed Header Only (Stats Card removed)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: CustomHeader(
+              title: 'Beranda Staff',
+              showBackButton: false,
             ),
-
-            const SizedBox(height: 28),
-            
-            // MENU SECTION HEADER
-            const Text(
-              'Menu Utama',
-              style: TextStyle(
-                fontSize: 16, 
-                fontWeight: FontWeight.bold, 
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // MODERNIZED GRID MENU
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.25, // Wider aspect ratio for better proportions
-              children: [
-                _MenuTile(
-                  icon: Icons.add_rounded,
-                  label: 'Input Laporan',
-                  color: AppColors.primaryBlue,
-                  onTap: () => context.push('/my-reports'),
-                ),
-                _MenuTile(
-                  icon: Icons.inventory_2_rounded,
-                  label: 'Inventaris',
-                  color: AppColors.warning,
-                  onTap: () => _showPlaceholderSnackBar(context, 'Inventaris Barang'),
-                ),
-                _MenuTile(
-                  icon: Icons.gavel_rounded,
-                  label: 'Moderasi',
-                  color: AppColors.error,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ModerasiPostinganProvider())),
-                ),
-                _MenuTile(
-                  icon: Icons.bar_chart_rounded,
-                  label: 'Statistik',
-                  color: AppColors.info,
-                  onTap: () => _showPlaceholderSnackBar(context, 'Statistik Laporan'),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // SECONDARY ACTIONS
-            _MenuWideTile(
-              icon: Icons.picture_as_pdf_rounded,
-              label: 'Cetak Laporan Bulanan (PDF)',
-              accentColor: AppColors.primaryBlue,
-              onTap: () => _showPdfPeriodPicker(context),
-            ),
-            
-            const SizedBox(height: 40), // Bottom padding for content breathing room
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
