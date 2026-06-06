@@ -29,28 +29,33 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     final userName = session.currentUser?.name ?? 'Teknisi';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.softGrey,
       appBar: const CustomHeader(
-        title: 'Beranda',
+        title: 'Beranda Staff',
         showBackButton: false,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.kPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
             Text(
               'Halo, $userName!',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+              style: const TextStyle(
+                fontSize: 24, 
+                fontWeight: FontWeight.bold, 
+                color: AppColors.primaryBlue,
+                letterSpacing: -0.5,
+              ),
             ),
             const Text(
-              'Kelola barang temuan hari ini',
-              style: TextStyle(fontSize: 13, color: AppColors.textGrey),
+              'Selamat bertugas! Kelola laporan dan inventaris hari ini.',
+              style: TextStyle(fontSize: 14, color: AppColors.textGrey),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // REACTIVE CLAIM BANNER
+            // REACTIVE CLAIM BANNER (Priority Focus)
             Consumer<ClaimController>(
               builder: (context, claimController, child) {
                 final pendingClaims = claimController.claims.where((c) => c.status == 'pending').length;
@@ -61,58 +66,66 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
               }
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
+            
+            // MENU SECTION HEADER
+            const Text(
+              'Menu Utama',
+              style: TextStyle(
+                fontSize: 16, 
+                fontWeight: FontWeight.bold, 
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // MODERNIZED GRID MENU
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.05,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.25, // Wider aspect ratio for better proportions
               children: [
                 _MenuTile(
-                  icon: Icons.add_circle_outline,
-                  label: 'Input\nLaporan',
-                  accentColor: AppColors.primaryBlue,
+                  icon: Icons.add_rounded,
+                  label: 'Input Laporan',
+                  color: AppColors.primaryBlue,
                   onTap: () => context.push('/my-reports'),
                 ),
                 _MenuTile(
-                  icon: Icons.access_time_outlined,
-                  label: 'Inventaris\nBarang',
-                  accentColor: AppColors.primaryYellow,
+                  icon: Icons.inventory_2_rounded,
+                  label: 'Inventaris',
+                  color: AppColors.warning,
                   onTap: () => _showPlaceholderSnackBar(context, 'Inventaris Barang'),
                 ),
                 _MenuTile(
-                  icon: Icons.warning_amber_outlined,
-                  label: 'Moderasi\nLaporan',
-                  accentColor: AppColors.primaryYellow,
+                  icon: Icons.gavel_rounded,
+                  label: 'Moderasi',
+                  color: AppColors.error,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ModerasiPostinganProvider())),
                 ),
                 _MenuTile(
-                  icon: Icons.insert_drive_file_outlined,
-                  label: 'Statistik\nLaporan',
-                  accentColor: AppColors.primaryBlue,
+                  icon: Icons.bar_chart_rounded,
+                  label: 'Statistik',
+                  color: AppColors.info,
                   onTap: () => _showPlaceholderSnackBar(context, 'Statistik Laporan'),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            
+            const SizedBox(height: 16),
+            
+            // SECONDARY ACTIONS
             _MenuWideTile(
-              icon: Icons.picture_as_pdf_outlined,
+              icon: Icons.picture_as_pdf_rounded,
               label: 'Cetak Laporan Bulanan (PDF)',
               accentColor: AppColors.primaryBlue,
               onTap: () => _showPdfPeriodPicker(context),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.logout, color: Colors.red),
-                label: const Text('Keluar Portal', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                onPressed: () => _showLogoutConfirmation(context),
-              ),
-            ),
+            
+            const SizedBox(height: 40), // Bottom padding for content breathing room
           ],
         ),
       ),
@@ -129,20 +142,29 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Cetak Laporan PDF", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+              ),
               const SizedBox(height: 20),
+              const Text("Cetak Laporan PDF", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+              const SizedBox(height: 8),
+              const Text("Pilih periode laporan yang ingin diunduh", style: TextStyle(color: AppColors.textGrey, fontSize: 13)),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
+                    child: DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'Bulan'),
                       value: selectedMonth,
                       items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                       onChanged: (val) => setModalState(() => selectedMonth = val!),
@@ -150,8 +172,8 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
+                    child: DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'Tahun'),
                       value: selectedYear,
                       items: ['2025', '2026', '2027'].map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                       onChanged: (val) => setModalState(() => selectedYear = val!),
@@ -160,65 +182,23 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                 ],
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                  onPressed: () {
-                    final reports = context.read<ReportController>().reports;
-                    PdfService.generateReport(reports: reports, month: selectedMonth, year: selectedYear);
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text("GENERATE PDF", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
+              ElevatedButton(
+                onPressed: () {
+                  final reports = context.read<ReportController>().reports;
+                  PdfService.generateReport(reports: reports, month: selectedMonth, year: selectedYear);
+                  Navigator.pop(ctx);
+                },
+                child: const Text("GENERATE PDF"),
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  void _showLogoutConfirmation(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.logout_rounded, color: Colors.red, size: 40)),
-              const SizedBox(height: 20),
-              const Text('Konfirmasi Keluar', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-              const SizedBox(height: 12),
-              const Text('Apakah Anda yakin ingin keluar dari portal teknisi?', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey, fontSize: 14)),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx, false), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), side: const BorderSide(color: AppColors.primaryBlue)), child: const Text('Batal', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)))),
-                  const SizedBox(width: 12),
-                  Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0), child: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (confirm == true && context.mounted) {
-      context.read<ReportController>().clearData();
-      context.read<ClaimController>().clearData();
-      context.read<NotificationController>().clearData();
-      context.read<SessionController>().logout();
-    }
   }
 
   void _showPlaceholderSnackBar(BuildContext context, String name) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name — belum diimplementasikan.'), behavior: SnackBarBehavior.floating));
+    NotificationBanner.show(context, '$name — Fitur sedang dikembangkan.');
   }
 }
 
@@ -229,22 +209,45 @@ class _AntreanKlaimBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(14)),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue, 
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryBlue.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ]
+      ),
       child: Row(
         children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.inbox_outlined, color: Colors.white, size: 26)),
-          const SizedBox(width: 14),
+          Container(
+            padding: const EdgeInsets.all(12), 
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15), 
+              borderRadius: BorderRadius.circular(15)
+            ), 
+            child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 28)
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Antrean Klaim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                Text('$count menunggu proses', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                const Text(
+                  'Antrean Klaim', 
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)
+                ),
+                Text(
+                  '$count permintaan verifikasi masuk', 
+                  style: const TextStyle(color: Colors.white70, fontSize: 13)
+                ),
               ],
             ),
           ),
-          Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.chevron_right, color: Colors.white, size: 20)),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
         ],
       ),
     );
@@ -254,22 +257,52 @@ class _AntreanKlaimBanner extends StatelessWidget {
 class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color accentColor;
+  final Color color;
   final VoidCallback onTap;
-  const _MenuTile({required this.icon, required this.label, required this.accentColor, required this.onTap});
+  
+  const _MenuTile({
+    required this.icon, 
+    required this.label, 
+    required this.color, 
+    required this.onTap
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: accentColor, width: 2), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))]),
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(AppTheme.kRadius), 
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05), 
+              blurRadius: 10, 
+              offset: const Offset(0, 4)
+            )
+          ]
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: accentColor, size: 36),
-            const SizedBox(height: 8),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87)),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 30),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label, 
+              style: const TextStyle(
+                fontSize: 14, 
+                fontWeight: FontWeight.w600, 
+                color: AppColors.textDark
+              )
+            ),
           ],
         ),
       ),
@@ -281,8 +314,16 @@ class _MenuWideTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color accentColor;
+  final Color? backgroundColor;
   final VoidCallback onTap;
-  const _MenuWideTile({required this.icon, required this.label, required this.accentColor, required this.onTap});
+  
+  const _MenuWideTile({
+    required this.icon, 
+    required this.label, 
+    required this.accentColor, 
+    this.backgroundColor,
+    required this.onTap
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -290,15 +331,39 @@ class _MenuWideTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: accentColor, width: 2), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))]),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? Colors.white, 
+          borderRadius: BorderRadius.circular(AppTheme.kRadius), 
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04), 
+              blurRadius: 8, 
+              offset: const Offset(0, 3)
+            )
+          ]
+        ),
         child: Row(
           children: [
-            Icon(icon, color: accentColor, size: 30),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(backgroundColor != null ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: accentColor, size: 24),
+            ),
             const SizedBox(width: 16),
-            Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(
+              label, 
+              style: const TextStyle(
+                fontSize: 15, 
+                fontWeight: FontWeight.bold, 
+                color: AppColors.textDark
+              )
+            ),
             const Spacer(),
-            Icon(Icons.arrow_forward_ios, size: 16, color: accentColor),
+            Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey[backgroundColor != null ? 600 : 400]),
           ],
         ),
       ),
