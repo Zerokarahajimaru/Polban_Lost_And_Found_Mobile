@@ -143,10 +143,7 @@ class MyApp extends StatelessWidget {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       title: 'Polban Lost and Found',
-      theme: ThemeData(
-        primaryColor: AppColors.primaryBlue,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
     );
   }
 }

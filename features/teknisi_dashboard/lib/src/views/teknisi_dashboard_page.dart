@@ -5,6 +5,7 @@ import 'package:moderation/moderation.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
 import 'package:claim/claim.dart';
+import 'package:notification/notification.dart';
 
 class TeknisiDashboardPage extends StatefulWidget {
   const TeknisiDashboardPage({super.key});
@@ -208,7 +209,12 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         ),
       ),
     );
-    if (confirm == true && context.mounted) context.read<SessionController>().logout();
+    if (confirm == true && context.mounted) {
+      context.read<ReportController>().clearData();
+      context.read<ClaimController>().clearData();
+      context.read<NotificationController>().clearData();
+      context.read<SessionController>().logout();
+    }
   }
 
   void _showPlaceholderSnackBar(BuildContext context, String name) {

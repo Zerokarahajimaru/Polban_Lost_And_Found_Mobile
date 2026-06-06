@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/color_service.dart';
+import '../theme/theme_service.dart';
 
 class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -19,13 +20,15 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.softGrey,
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
       ),
       child: Stack(
         children: [
-          // Yellow accent line at the very bottom of the curve
+          // Yellow accent line (Shadow/Depth effect)
           Positioned(
             bottom: 0,
             left: 0,
@@ -35,8 +38,8 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
               decoration: const BoxDecoration(
                 color: AppColors.primaryYellow,
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(44),
-                  bottomRight: Radius.circular(44),
+                  bottomLeft: Radius.circular(AppTheme.kRadiusLarge * 2),
+                  bottomRight: Radius.circular(AppTheme.kRadiusLarge * 2),
                 ),
               ),
             ),
@@ -47,71 +50,48 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
             decoration: const BoxDecoration(
               color: AppColors.primaryBlue,
               borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
+                bottomLeft: Radius.circular(AppTheme.kRadiusLarge * 1.8),
+                bottomRight: Radius.circular(AppTheme.kRadiusLarge * 1.8),
               ),
             ),
             child: SafeArea(
+              bottom: false,
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.kPadding,
+                      vertical: AppTheme.kPaddingSmall,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            if (showBackButton)
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.chevron_left,
-                                  color: AppColors.primaryYellow,
-                                  size: 32,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              if (showBackButton)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.chevron_left_rounded,
+                                    color: AppColors.primaryYellow,
+                                    size: 32,
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
                                 ),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.notifications_none_rounded,
-                                color: AppColors.primaryYellow,
-                                size: 28,
-                              ),
-                              onPressed: onNotificationTap ?? () {},
-                            ),
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFE34234),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Text(
-                                  '3',
-                                  style: TextStyle(
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
                                     color: Colors.white,
-                                    fontSize: 8,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        _buildNotificationIcon(context),
                       ],
                     ),
                   ),
@@ -122,6 +102,42 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotificationIcon(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.primaryYellow,
+            size: 28,
+          ),
+          onPressed: onNotificationTap ?? () {},
+        ),
+        Positioned(
+          right: 8,
+          top: 8,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.error,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primaryBlue, width: 1.5),
+            ),
+            child: const Text(
+              '3',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

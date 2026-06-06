@@ -12,6 +12,12 @@ class ClaimController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get message => _message;
 
+  void clearData() {
+    _claims = [];
+    _message = '';
+    notifyListeners();
+  }
+
   Future<void> loadClaims() async {
     _isLoading = true;
     notifyListeners();

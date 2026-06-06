@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../theme/color_service.dart';
+import '../theme/theme_service.dart';
 
 class StatusDialog extends StatelessWidget {
   final String title;
@@ -37,59 +38,53 @@ class StatusDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
+      ),
+      backgroundColor: theme.colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppTheme.kPaddingLarge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Lottie.network(
               isSuccess
-                  ? 'https://assets10.lottiefiles.com/packages/lf20_afwjhign.json' // Success checkmark
-                  : 'https://assets10.lottiefiles.com/packages/lf20_ghunp9cd.json', // Error cross
+                  ? 'https://assets10.lottiefiles.com/packages/lf20_afwjhign.json'
+                  : 'https://assets10.lottiefiles.com/packages/lf20_ghunp9cd.json',
               height: 120,
               repeat: false,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.kPadding),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 20,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: isSuccess ? AppColors.primaryBlue : AppColors.error,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryBlue,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.kPaddingSmall),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textGrey, fontSize: 14),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  if (onConfirm != null) onConfirm!();
-                },
-                child: const Text(
-                  "OK",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textGrey,
               ),
+            ),
+            const SizedBox(height: AppTheme.kPaddingLarge),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSuccess ? AppColors.primaryBlue : AppColors.error,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                if (onConfirm != null) onConfirm!();
+              },
+              child: const Text("MENGERTI"),
             ),
           ],
         ),

@@ -233,82 +233,71 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final session = context.watch<SessionController>();
     final isEditing = widget.existingReport != null;
     final controller = context.watch<ReportController>();
     final isLoading = controller.isLoading;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: CustomHeader(title: isEditing ? "Edit Laporan" : "Buat Laporan"),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.kPadding,
+          AppTheme.kPadding,
+          AppTheme.kPadding,
+          120,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.kPaddingLarge),
             _buildPhotoPicker(),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.kPaddingLarge),
             
-            _buildLabel("Nama Barang", isRequired: true),
             CustomTextField(
-                label: "", 
-                hint: "Misal: KTM atas nama Lu Guang",
-                controller: _nameController,
-                onChanged: (_) => setState(() {})),
+              label: "Nama Barang",
+              hint: "Misal: KTM atas nama Lu Guang",
+              isRequired: true,
+              controller: _nameController,
+              onChanged: (_) => setState(() {}),
+            ),
             if (_isFinalizing && _nameController.text.isEmpty) _buildErrorText("Judul laporan wajib diisi"),
-            
-            const SizedBox(height: 16),
 
             if (isLost) ...[
-              _buildLabel("Nomor WhatsApp (Aktif)", isRequired: true),
-              TextField(
+              CustomTextField(
+                label: "Nomor WhatsApp (Aktif)",
+                hint: "08xxxxxxxxx",
+                isRequired: true,
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                maxLength: 13,
                 onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: "08xxxxxxxxx",
-                  counterText: "",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide(
-                        color: _phoneController.text.isEmpty && _isFinalizing ? Colors.red : AppColors.secondaryBlue, 
-                        width: 2
-                      )),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                ),
               ),
               if (_isFinalizing && _phoneController.text.isEmpty) _buildErrorText("Nomor WhatsApp wajib diisi"),
-              const SizedBox(height: 16),
             ],
 
             _buildLabel("Kategori", isRequired: true),
             _buildCategoryChips(),
             if (_isFinalizing && _selectedCategory == null) _buildErrorText("Silakan pilih kategori barang"),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.kPadding),
 
-            _buildLabel("Lokasi Terakhir (Opsional)"),
             CustomTextField(
-                label: "",
-                hint: "Misal: Kantin atau Gedung P",
-                controller: _locationController,
-                onChanged: (_) => setState(() {})),
+              label: "Lokasi Terakhir (Opsional)",
+              hint: "Misal: Kantin atau Gedung P",
+              controller: _locationController,
+              onChanged: (_) => setState(() {}),
+            ),
             
-            const SizedBox(height: 16),
-            
-            _buildLabel("Deskripsi Barang", isRequired: true),
             CustomTextField(
-                label: "",
-                hint: "Contoh: Casing warna biru, ada stiker kucing.",
-                maxLines: 4,
-                controller: _descController,
-                onChanged: (_) => setState(() {})),
+              label: "Deskripsi Barang",
+              hint: "Contoh: Casing warna biru, ada stiker kucing.",
+              isRequired: true,
+              maxLines: 4,
+              controller: _descController,
+              onChanged: (_) => setState(() {}),
+            ),
             if (_isFinalizing && _descController.text.isEmpty) _buildErrorText("Deskripsi wajib diisi"),
             
             if (isLost) _buildRewardSection(),
@@ -320,12 +309,23 @@ class _CreateReportPageState extends State<CreateReportPage> {
   }
 
   Widget _buildLabel(String text, {bool isRequired = false}) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppTheme.kPaddingSmall),
       child: Row(
         children: [
-          Text(text, style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
-          if (isRequired) const Text(" *", style: TextStyle(color: Colors.red)),
+          Text(
+            text,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.primaryBlue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (isRequired)
+            const Text(
+              " *",
+              style: TextStyle(color: AppColors.error),
+            ),
         ],
       ),
     );
@@ -333,34 +333,42 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   Widget _buildErrorText(String text) {
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Text(text, style: const TextStyle(color: Colors.red, fontSize: 11)),
+      padding: const EdgeInsets.only(top: 4, bottom: AppTheme.kPaddingSmall),
+      child: Text(
+        text,
+        style: const TextStyle(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w500),
+      ),
     );
   }
 
   Widget _buildCategoryChips() {
+    final theme = Theme.of(context);
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: AppTheme.kPaddingSmall,
+      runSpacing: AppTheme.kPaddingSmall,
       children: _categories.map((cat) {
         final isSelected = _selectedCategory == cat["name"];
         return ChoiceChip(
-          avatar: Icon(cat["icon"], size: 16, color: isSelected ? Colors.white : AppColors.primaryBlue),
+          avatar: Icon(cat["icon"], 
+            size: 16, 
+            color: isSelected ? Colors.white : AppColors.primaryBlue
+          ),
           label: Text(cat["name"]),
           selected: isSelected,
           onSelected: (selected) {
             setState(() => _selectedCategory = selected ? cat["name"] : null);
           },
           selectedColor: AppColors.primaryBlue,
-          labelStyle: TextStyle(
+          labelStyle: theme.textTheme.labelSmall?.copyWith(
             color: isSelected ? Colors.white : AppColors.primaryBlue,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
           ),
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: isSelected ? AppColors.primaryBlue : AppColors.secondaryBlue.withOpacity(0.5)),
+            borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
+            side: BorderSide(
+              color: isSelected ? AppColors.primaryBlue : AppColors.mediumGrey,
+            ),
           ),
         );
       }).toList(),
@@ -369,37 +377,36 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   Widget _buildActionButtons(bool isLoading) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.kPadding),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          )
+        ],
       ),
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton(
               onPressed: isLoading ? null : _onSaveDraft,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text("SIMPAN DRAFT", style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryBlue, fontSize: 12)),
+              child: const Text("DRAFT"),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppTheme.kPadding),
           Expanded(
             child: ElevatedButton(
               onPressed: isLoading ? null : _onFinalize,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                elevation: 0,
-              ),
               child: isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text("KIRIM LAPORAN", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 12)),
+                  ? const SizedBox(
+                      height: 20, 
+                      width: 20, 
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text("KIRIM"),
             ),
           ),
         ],
@@ -411,34 +418,46 @@ class _CreateReportPageState extends State<CreateReportPage> {
     return AbsorbPointer(
       absorbing: isEditing,
       child: Container(
-          decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(30)),
-          child: Row(children: [
+        decoration: BoxDecoration(
+          color: AppColors.mediumGrey.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
+        ),
+        child: Row(
+          children: [
             _tabButton("KEHILANGAN", isLost, () => setState(() => isLost = true)),
             if (isTeknisi)
               _tabButton("PENEMUAN", !isLost, () => setState(() => isLost = false))
-          ])),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _tabButton(String text, bool active, VoidCallback onTap) {
     return Expanded(
-        child: GestureDetector(
-            onTap: onTap,
-            child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                    color: active ? AppColors.primaryBlue : Colors.transparent,
-                    borderRadius: BorderRadius.circular(30)),
-                child: Center(
-                    child: Text(text,
-                        style: TextStyle(
-                            color: active ? AppColors.primaryYellow : Colors.grey,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 11,
-                            letterSpacing: 1))))));
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primaryBlue : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
+          ),
+          child: Center(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: active ? AppColors.primaryYellow : AppColors.textGrey,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildPhotoPicker() {
@@ -454,74 +473,120 @@ class _CreateReportPageState extends State<CreateReportPage> {
       }
     }
 
-    final hasError = (_imageFile == null && (widget.existingReport?.imageUrl.isEmpty ?? true) && (widget.existingReport?.localImagePath?.isEmpty ?? true)) && _isFinalizing;
+    final hasError = (_imageFile == null && 
+        (widget.existingReport?.imageUrl.isEmpty ?? true) && 
+        (widget.existingReport?.localImagePath?.isEmpty ?? true)) && _isFinalizing;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _buildLabel("Upload Foto Bukti", isRequired: true),
-      GestureDetector(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel("Upload Foto Bukti", isRequired: true),
+        GestureDetector(
           onTap: _showPickerOptions,
           child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: double.infinity,
-              height: 180,
-              decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: hasError ? Colors.red : AppColors.secondaryBlue, width: 2),
-                  borderRadius: BorderRadius.circular(15)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(13),
-                child: imageProvider != null
-                    ? Stack(
-                        children: [
-                          Positioned.fill(child: Image(image: imageProvider, fit: BoxFit.cover)),
-                          Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: Container(color: Colors.black.withOpacity(0.1)))),
-                          Center(child: Image(image: imageProvider, fit: BoxFit.contain)),
-                          Positioned(
-                            right: 8, top: 8,
-                            child: CircleAvatar(backgroundColor: Colors.white, child: IconButton(icon: const Icon(Icons.edit, color: AppColors.primaryBlue), onPressed: _showPickerOptions)),
-                          )
-                        ],
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                            Icon(Icons.add_a_photo_outlined, size: 48, color: hasError ? Colors.red : AppColors.secondaryBlue),
-                            const SizedBox(height: 8),
-                            Text("Klik untuk Ambil Foto", style: TextStyle(color: hasError ? Colors.red : AppColors.secondaryBlue, fontWeight: FontWeight.bold))
-                          ]),
-              ))),
-      if (hasError) _buildErrorText("Foto barang wajib diunggah"),
-    ]);
+            duration: const Duration(milliseconds: 300),
+            width: double.infinity,
+            height: 200,
+            decoration: BoxDecoration(
+              color: AppColors.softGrey,
+              border: Border.all(
+                color: hasError ? AppColors.error : AppColors.mediumGrey, 
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(AppTheme.kRadius),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTheme.kRadius - 2),
+              child: imageProvider != null
+                  ? Stack(
+                      children: [
+                        Positioned.fill(child: Image(image: imageProvider, fit: BoxFit.cover)),
+                        Positioned.fill(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(color: Colors.black.withOpacity(0.1)),
+                          ),
+                        ),
+                        Center(child: Image(image: imageProvider, fit: BoxFit.contain)),
+                        Positioned(
+                          right: AppTheme.kPaddingSmall,
+                          top: AppTheme.kPaddingSmall,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 18,
+                            child: IconButton(
+                              icon: const Icon(Icons.edit_rounded, color: AppColors.primaryBlue, size: 18),
+                              onPressed: _showPickerOptions,
+                            ),
+                          ),
+                        )
+                      ],
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_outlined, 
+                          size: 40, 
+                          color: hasError ? AppColors.error : AppColors.textGrey
+                        ),
+                        const SizedBox(height: AppTheme.kPaddingSmall),
+                        Text(
+                          "Ambil Foto Barang",
+                          style: TextStyle(
+                            color: hasError ? AppColors.error : AppColors.textGrey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        )
+                      ],
+                    ),
+            ),
+          ),
+        ),
+        if (hasError) _buildErrorText("Foto barang wajib diunggah"),
+      ],
+    );
   }
 
   Widget _buildRewardSection() {
     return Container(
-        margin: const EdgeInsets.only(top: 20),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-            color: AppColors.primaryYellow.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryYellow)),
-        child: Column(children: [
-          const Row(children: [
-            Icon(Icons.card_giftcard, size: 20, color: AppColors.primaryBlue),
-            SizedBox(width: 8),
-            Text("Tawarkan Imbalan (Opsional)",
-                style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12))
-          ]),
-          const SizedBox(height: 10),
+      margin: const EdgeInsets.only(top: AppTheme.kPadding),
+      padding: const EdgeInsets.all(AppTheme.kPadding),
+      decoration: BoxDecoration(
+        color: AppColors.primaryYellow.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppTheme.kRadius),
+        border: Border.all(color: AppColors.primaryYellow.withOpacity(0.5)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.card_giftcard_rounded, size: 20, color: AppColors.primaryBlue),
+              const SizedBox(width: AppTheme.kPaddingSmall),
+              Text(
+                "Tawarkan Imbalan (Opsional)",
+                style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: AppTheme.kPaddingSmall),
           TextField(
-              controller: _rewardController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                  hintText: "Misal: 50000",
-                  hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 13),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16)))
-        ]));
+            controller: _rewardController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              hintText: "Misal: 50000",
+              fillColor: Colors.white,
+            ),
+          )
+        ],
+      ),
+    );
   }
 }

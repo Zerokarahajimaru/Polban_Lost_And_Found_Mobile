@@ -31,6 +31,13 @@ class MongodbService {
       _db = await Db.create(sanitizedUri);
       await _db!.open();
       print('--- MongoDB Connection Successful ---');
+      
+      // Ensure indexes for performance
+      await _db!.collection('reports').createIndex(key: 'status_postingan');
+      await _db!.collection('reports').createIndex(key: 'created_at');
+      await _db!.collection('notifications').createIndex(key: 'user_id');
+      await _db!.collection('moderation_reports').createIndex(key: 'status');
+      
       return _db!;
     } catch (e) {
       print('--- MongoDB Connection Failed: $e ---');

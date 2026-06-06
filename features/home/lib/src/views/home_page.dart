@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:timeago/timeago.dart' as timeago_lib;
 import '../controllers/home_controller.dart';
-import 'home_page_provider.dart'; // Ensure it's imported if needed, but usually it's just the HomePage class here
+import 'home_page_provider.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,7 +19,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  double _headerOpacity = 1.0;
   String _headerTitle = 'Beranda Publik';
 
   @override
@@ -30,7 +29,7 @@ class _HomePageState extends State<HomePage> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReportController>().getReports();
-      context.read<HomeController>().loadHiddenPosts(); // [1] Load local filters
+      context.read<HomeController>().loadHiddenPosts(); 
     });
     _scrollController.addListener(_onScroll);
   }
@@ -43,20 +42,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onScroll() {
-    // [4] Dynamic App Bar Logic
     double offset = _scrollController.offset;
     if (offset > 50) {
       if (_headerTitle != 'Cari Barangmu...') {
         setState(() {
           _headerTitle = 'Cari Barangmu...';
-          _headerOpacity = 0.8;
         });
       }
     } else {
       if (_headerTitle != 'Beranda Publik') {
         setState(() {
           _headerTitle = 'Beranda Publik';
-          _headerOpacity = 1.0;
         });
       }
     }
@@ -78,6 +74,8 @@ class _HomePageState extends State<HomePage> {
               // 1. SCROLLABLE CONTENT (Layer Paling Bawah)
               Positioned.fill(
                 child: RefreshIndicator(
+                  edgeOffset: 170,
+                  displacement: 40,
                   onRefresh: () async {
                     await context.read<ReportController>().getReports();
                   },
@@ -143,39 +141,31 @@ class _HomePageState extends State<HomePage> {
               ),
 
               // 2. HEADER & FLOATING TAB (Layer Atas)
+              // FIX: Re-architected for perfect hit-testing using Column + Transform
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.bottomCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _headerOpacity,
-                      child: CustomHeader(
-                        title: _headerTitle,
-                        showBackButton: false,
-                        onNotificationTap: () => context.push('/notifications'),
-                        extraHeight: 60,
-                        bottomChild: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: _buildSearchBar(context, homeController),
-                        ),
+                    CustomHeader(
+                      title: _headerTitle,
+                      showBackButton: false,
+                      onNotificationTap: () => context.push('/notifications'),
+                      extraHeight: 60,
+                      bottomChild: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: _buildSearchBar(context, homeController),
                       ),
                     ),
-                    // [2] Glassmorphism Floating Tab Selector
-                    Positioned(
-                      bottom: -22, 
-                      left: 60,
-                      right: 60,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: _buildTabSelector(homeController),
-                        ),
+                    // FIX: Using Transform.translate to visually overlap the tabs while 
+                    // keeping them in the natural layout flow for perfect hit-testing.
+                    Transform.translate(
+                      offset: const Offset(0, -22),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 60),
+                        child: _buildTabSelector(homeController),
                       ),
                     ),
                   ],
@@ -188,35 +178,32 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // [10] Lottie Empty State Illustration
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40.0),
+        padding: const EdgeInsets.all(AppTheme.kPaddingLarge * 1.5),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Lottie.network(
-              'https://assets9.lottiefiles.com/packages/lf20_t9gkkhz4.json', // Search magnifying glass animation
-              height: 200,
+              'https://assets9.lottiefiles.com/packages/lf20_t9gkkhz4.json', 
+              height: 180,
               repeat: true,
             ),
-            const SizedBox(height: 24),
-            const Text(
+            const SizedBox(height: AppTheme.kPadding),
+            Text(
               "Tidak Ada Laporan",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF002299),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: AppColors.primaryBlue,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: AppTheme.kPaddingSmall),
+            Text(
               "Coba cari dengan kata kunci lain atau tarik ke bawah untuk memuat ulang.",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textGrey,
               ),
             ),
           ],
@@ -226,34 +213,38 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSearchBar(BuildContext context, HomeController controller) {
+    final theme = Theme.of(context);
     return Container(
       height: 48,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryBlue.withOpacity(0.05), // [5] Soft Elevation
+            color: AppColors.primaryBlue.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 8),
           )
-        ]
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.kPadding),
       child: Row(
         children: [
           Expanded(
             child: TextField(
-              onChanged: (value) => context.read<HomeController>().updateSearchQuery(value),
-              decoration: const InputDecoration(
-                hintText: 'Cari barang hilang',
-                hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 14),
+              onChanged: (value) => controller.updateSearchQuery(value),
+              decoration: InputDecoration(
+                hintText: 'Cari barang hilang...',
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
             ),
           ),
-          const Icon(Icons.search, color: Colors.black, size: 24),
+          const Icon(Icons.search_rounded, color: AppColors.primaryBlue, size: 24),
         ],
       ),
     );
@@ -263,9 +254,16 @@ class _HomePageState extends State<HomePage> {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: const Color(0xFFE6F0FF).withOpacity(0.7), // Glassmorphism base
+        color: Colors.white, // Fully opaque for better contrast and no scroll artifacts
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -280,10 +278,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _tabButton(String text, bool active, VoidCallback onTap) {
+    final theme = Theme.of(context);
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        behavior: HitTestBehavior.opaque, 
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             color: active ? AppColors.primaryBlue : Colors.transparent,
             borderRadius: BorderRadius.circular(30),
@@ -291,10 +292,10 @@ class _HomePageState extends State<HomePage> {
           child: Center(
             child: Text(
               text,
-              style: TextStyle(
-                color: active ? AppColors.primaryYellow : const Color(0xFF90AEE0),
-                fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                fontSize: 13,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: active ? AppColors.primaryYellow : AppColors.primaryBlue.withOpacity(0.6),
+                fontWeight: active ? FontWeight.bold : FontWeight.w600,
+                fontSize: 12,
               ),
             ),
           ),
@@ -305,17 +306,23 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildDataLokalBanner(BuildContext context, int unsyncedCount) {
     if (unsyncedCount == 0) return const SizedBox.shrink();
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: () => context.go('/my-reports'),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.fromLTRB(
+          AppTheme.kPadding, 
+          AppTheme.kPadding, 
+          AppTheme.kPadding, 
+          AppTheme.kPaddingSmall
+        ),
+        padding: const EdgeInsets.all(AppTheme.kPadding),
         decoration: BoxDecoration(
           color: AppColors.primaryYellow,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppTheme.kRadius),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withOpacity(0.05), // [5] Soft Elevation
+              color: AppColors.primaryBlue.withOpacity(0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -324,35 +331,38 @@ class _HomePageState extends State<HomePage> {
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: AppColors.primaryBlue,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppTheme.kRadius - 4),
               ),
               child: const Icon(Icons.sync_problem_rounded,
                   color: AppColors.primaryYellow, size: 24),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'DRAFT & PENDING',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: AppColors.primaryBlue,
-                    letterSpacing: 0.5,
+            const SizedBox(width: AppTheme.kPadding),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DRAFT & PENDING',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppColors.primaryBlue,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$unsyncedCount item belum terkirim',
-                  style: const TextStyle(fontSize: 11, color: AppColors.primaryBlue),
-                ),
-              ],
+                  Text(
+                    '$unsyncedCount item belum terkirim',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.primaryBlue,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.primaryBlue),
           ],
         ),
       ),
@@ -360,12 +370,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildLaporanCard(BuildContext context, dynamic item) {
+    final theme = Theme.of(context);
     final status = item.status?.toString().toLowerCase() ?? 'lost';
     final isLost = status == 'lost';
     final statusText = isLost ? 'Sedang Dicari' : 'Baru Ditemukan';
     final imageUrl = item.imageUrl ?? '';
     
-    // Relative Time calculation
     final DateTime createdAt = item.createdAt is DateTime ? item.createdAt : DateTime.now();
     final String relativeTime = timeago_lib.format(createdAt, locale: 'id');
 
@@ -379,85 +389,60 @@ class _HomePageState extends State<HomePage> {
         );
       },
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryBlue.withOpacity(0.04), // [5] Soft Elevation
-              blurRadius: 15,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
+        decoration: AppTheme.cardDecoration,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.kRadius)),
                   child: Container(
                     height: 180,
                     width: double.infinity,
                     color: AppColors.softGrey,
-                    child: Stack(
-                      children: [
-                        if (imageUrl.isNotEmpty)
-                          Positioned.fill(
-                            child: Image.network(
+                    child: Center(
+                      child: imageUrl.isNotEmpty
+                          ? Image.network(
                               imageUrl,
                               fit: BoxFit.cover,
-                            ),
-                          ),
-                        Positioned.fill(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(color: Colors.black.withOpacity(0.05)),
-                          ),
-                        ),
-                        Center(
-                          child: Image.network(
-                            imageUrl,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(
-                                Icons.image_not_supported_outlined,
-                                color: AppColors.textGrey, size: 48),
-                          ),
-                        ),
-                      ],
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: AppColors.textGrey, size: 48),
+                            )
+                          : const Icon(Icons.image_not_supported_outlined,
+                              color: AppColors.textGrey, size: 48),
                     ),
                   ),
                 ),
-                // Status Badge Overlay (top-left)
                 Positioned(
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB3D7FF),
+                      color: AppColors.secondaryBlue,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       statusText,
-                      style: const TextStyle(
-                        color: Color(0xFF002299),
-                        fontSize: 10,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.primaryBlue,
                         fontWeight: FontWeight.bold,
+                        fontSize: 9,
                       ),
                     ),
                   ),
                 ),
-                // Relative Time Badge (top-right)
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -473,7 +458,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppTheme.kPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -483,10 +468,8 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: Text(
                           item.title ?? 'No Title',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Color(0xFF002299),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.primaryBlue,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -494,9 +477,9 @@ class _HomePageState extends State<HomePage> {
                       ),
                       if (item.reward != null && item.reward!.toString().isNotEmpty && item.reward != '-')
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEE100),
+                            color: AppColors.primaryYellow,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: const Color(0xFF002299), width: 1),
                           ),

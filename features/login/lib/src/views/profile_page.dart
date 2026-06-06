@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
+import 'package:report/report.dart';
+import 'package:claim/claim.dart';
+import 'package:notification/notification.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -158,6 +161,10 @@ class _ProfilePageState extends State<ProfilePage> {
     );
     
     if (confirm == true && context.mounted) {
+      // Clear all state to prevent data bleeding between sessions
+      context.read<ReportController>().clearData();
+      context.read<ClaimController>().clearData();
+      context.read<NotificationController>().clearData();
       context.read<SessionController>().logout();
     }
   }

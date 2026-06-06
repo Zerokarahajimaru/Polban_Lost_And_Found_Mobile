@@ -9,6 +9,8 @@ import 'package:post/post.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:moderation/moderation.dart';
 import '../controllers/report_controller.dart';
+import '../widgets/detail_hero_image.dart';
+import '../widgets/detail_info_widgets.dart';
 
 // ========================
 // HALAMAN DETAIL LAPORAN
@@ -47,11 +49,13 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       return;
     }
 
-    final modRepo = ModerationRepository();
     try {
-      final reports = await modRepo.fetchReports();
       final String postId = widget.item is ReportModel ? widget.item.id : (widget.item is ClaimModel ? widget.item.reportId : widget.item.id);
-      final reported = reports.any((r) => (r.id.contains(postId) || r.postTitle == nama) && r.reporters.any((rep) => rep.nim == user.id));
+      
+      // Use controller instead of direct repository instantiation
+      final controller = ModerationController();
+      final reported = await controller.checkIfUserReported(postId, user.id);
+      
       if (mounted) {
         setState(() {
           _hasAlreadyReported = reported;
@@ -79,11 +83,11 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   bool get isSynced => isReportModel && !widget.item.id.startsWith('draft_') && !widget.item.id.startsWith('pending_');
 
   Color get statusColor {
-    if (isResolved || isVerified) return Colors.green;
-    if (isRejected) return Colors.red;
+    if (isResolved || isVerified) return AppColors.success;
+    if (isRejected) return AppColors.error;
     if (isReportModel) return isFound ? AppColors.primaryYellow : AppColors.primaryBlue;
-    if (isClaimModel) return Colors.orange;
-    return Colors.grey;
+    if (isClaimModel) return AppColors.warning;
+    return AppColors.textGrey;
   }
 
   String get imageUrl => isReportModel ? widget.item.imageUrl : (isClaimModel ? (widget.item.reportImageUrl ?? '') : widget.item.imageUrl);
@@ -116,6 +120,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final session = context.watch<SessionController>();
     final claimController = context.watch<ClaimController>();
     final currentUser = session.currentUser;
@@ -125,30 +130,33 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     final hasAlreadyClaimed = !widget.isFromUserClaim && claimController.claims.any((c) => c.reportId == id && c.claimantId == currentUser?.id);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeroImage(context),
-                const SizedBox(height: 20),
+                DetailHeroImage(
+                  imageProvider: imageProvider,
+                  onBack: () => Navigator.pop(context),
+                ),
+                const SizedBox(height: AppTheme.kPaddingLarge),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.kPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (widget.isFromUserClaim) ...[
                         ClaimProgressStepper(status: status),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppTheme.kPaddingLarge),
                       ] else if (widget.canManage) ...[
                         ReportProgressStepper(status: status, isLost: isLost),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppTheme.kPaddingLarge),
                       ],
 
-                      if (showRewardBanner) _buildImbalanBanner(),
-                      if (showRewardBanner) const SizedBox(height: 20),
+                      if (showRewardBanner) DetailRewardBanner(imbalan: imbalan!),
+                      if (showRewardBanner) const SizedBox(height: AppTheme.kPadding),
 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -156,74 +164,102 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                           Expanded(
                             child: Text(
                               nama,
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                              style: theme.textTheme.headlineLarge,
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.15), 
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: statusColor.withOpacity(0.3)),
+                            ),
                             child: Text(
                               isVerified ? "VERIFIED" : (isRejected ? "REJECTED" : (isResolved ? (isLost ? "KETEMU" : "DIAMBIL") : status.toUpperCase())),
-                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      const Text("Deskripsi", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                      const SizedBox(height: AppTheme.kPadding),
+                      Text("Deskripsi", style: theme.textTheme.titleMedium?.copyWith(color: AppColors.primaryBlue)),
                       const SizedBox(height: 8),
-                      Text(deskripsi, style: const TextStyle(color: AppColors.textGrey, height: 1.5)),
-                      const SizedBox(height: 24),
-                      _buildInfoGrid(),
-                      const SizedBox(height: 32),
+                      Text(
+                        deskripsi, 
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          height: 1.6,
+                          color: Colors.black87,
+                        )
+                      ),
+                      const SizedBox(height: AppTheme.kPaddingLarge),
+                      DetailInfoGrid(kategori: kategori, waktuLapor: waktuLapor),
+                      const SizedBox(height: AppTheme.kPaddingLarge * 1.5),
 
                       if (widget.isFromUserClaim) ...[
                         if (isVerified) ...[
-                          const Center(
+                          Center(
                             child: Text(
                               "Klaim ini telah diverifikasi. Silakan ambil barang di tempat yang ditentukan.",
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                         ] else if (isRejected) ...[
-                          const Center(
+                          Center(
                             child: Text(
                               "Klaim ditolak. Barang kemungkinan besar telah diserahkan kepada pemilik yang sah.",
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                         ] else ...[
                           _buildCancelClaimButton(context),
                         ],
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppTheme.kPadding),
                       ] else ...[
                         if (!isResolved) ...[
                           if (isFound && !isOwner) ...[
                             _buildKlaimButton(context, hasAlreadyClaimed),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppTheme.kPadding),
                           ],
 
                           if (widget.canManage && isSynced) ...[
                             if (isFound && isTeknisi) ...[
                               _buildResolvedButton(context, "TANDAI SUDAH DIAMBIL"),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppTheme.kPadding),
                             ] else if (isLost && isOwner) ...[
                               _buildResolvedButton(context, "BARANG SUDAH KETEMU"),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppTheme.kPadding),
                             ],
                           ],
 
                           if (!isOwner) ...[
                             _buildHubungiButton(context),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppTheme.kPadding),
                             _buildReportButton(context),
                           ] else ...[
-                             const Center(child: Text("Ini adalah postingan Anda.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))),
+                             Center(
+                               child: Text(
+                                 "Ini adalah postingan Anda.", 
+                                 style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)
+                               )
+                             ),
                           ],
                         ] else ...[
-                          const Center(child: Text("Postingan ini telah diselesaikan.", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                          Center(
+                            child: Text(
+                              "Postingan ini telah diselesaikan.", 
+                              style: theme.textTheme.titleMedium?.copyWith(color: AppColors.success)
+                            )
+                          ),
                         ],
                       ],
 
@@ -239,196 +275,116 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     );
   }
 
-  Widget _buildHeroImage(BuildContext context) {
-    final provider = imageProvider;
-    return Stack(
-      children: [
-        Container(
-          height: 300,
-          width: double.infinity,
-          color: AppColors.softGrey,
-          child: provider != null
-              ? Stack(
-                  children: [
-                    Positioned.fill(child: Image(image: provider, fit: BoxFit.cover)),
-                    Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), child: Container(color: Colors.black.withOpacity(0.2)))),
-                    Center(child: Image(image: provider, fit: BoxFit.contain)),
-                  ],
-                )
-              : const Center(child: Icon(Icons.image_not_supported_outlined, color: AppColors.textGrey, size: 48)),
-        ),
-        Container(
-          height: 100,
-          decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.5), Colors.transparent])),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: CircleAvatar(backgroundColor: Colors.white, child: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlue), onPressed: () => Navigator.pop(context))),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildImbalanBanner() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.primaryYellow, borderRadius: BorderRadius.circular(15)),
-      child: Row(
-        children: [
-          const Icon(Icons.card_giftcard, color: AppColors.primaryBlue),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Imbalan bagi Penemu", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-              Text(imbalan ?? "-", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primaryBlue)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoGrid() {
-    return Row(
-      children: [
-        _infoCard("Kategori", kategori, Icons.category_outlined),
-        const SizedBox(width: 10),
-        _infoCard("Waktu", waktuLapor, Icons.access_time_outlined),
-      ],
-    );
-  }
-
-  Widget _infoCard(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(border: Border.all(color: AppColors.secondaryBlue.withOpacity(0.5)), borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 20, color: AppColors.secondaryBlue),
-            const SizedBox(height: 8),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textGrey)),
-            Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryBlue), overflow: TextOverflow.ellipsis),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildKlaimButton(BuildContext context, bool hasAlreadyClaimed) {
     final session = context.watch<SessionController>();
     final user = session.currentUser;
 
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(backgroundColor: hasAlreadyClaimed ? Colors.grey : AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-        icon: Icon(Icons.check_circle_outline, color: hasAlreadyClaimed ? Colors.white70 : AppColors.primaryYellow),
-        label: Text(hasAlreadyClaimed ? "KLAIM SEDANG DIPROSES" : "AJUKAN KLAIM", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        onPressed: hasAlreadyClaimed ? null : () async {
-          if (user == null) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Harap login untuk melakukan klaim.")));
-            return;
-          }
-
-          final claimRepo = ClaimRepository();
-          final claim = ClaimModel(id: '', reportId: id, reportTitle: nama, claimantName: user.name, claimantId: user.id, claimantEmail: user.email, reportImageUrl: imageUrl, status: 'pending', createdAt: DateTime.now());
-
-          try {
-            await claimRepo.submitClaim(claim);
-            if (context.mounted) {
-              context.read<ClaimController>().loadClaims(); 
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Klaim berhasil diajukan! Pantau di menu Klaim Saya."), backgroundColor: Colors.green));
-            }
-          } catch (e) {
-            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal mengajukan klaim: $e"), backgroundColor: Colors.red));
-          }
-        },
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: hasAlreadyClaimed ? AppColors.mediumGrey : AppColors.primaryBlue,
+        foregroundColor: hasAlreadyClaimed ? AppColors.textGrey : Colors.white,
       ),
+      icon: Icon(Icons.check_circle_outline, color: hasAlreadyClaimed ? AppColors.textGrey : AppColors.primaryYellow),
+      label: Text(hasAlreadyClaimed ? "KLAIM SEDANG DIPROSES" : "AJUKAN KLAIM"),
+      onPressed: hasAlreadyClaimed ? null : () async {
+        if (user == null) {
+          NotificationBanner.show(context, "Harap login untuk melakukan klaim.", isError: true);
+          return;
+        }
+
+        final claimRepo = ClaimRepository();
+        final claim = ClaimModel(id: '', reportId: id, reportTitle: nama, claimantName: user.name, claimantId: user.id, claimantEmail: user.email, reportImageUrl: imageUrl, status: 'pending', createdAt: DateTime.now());
+
+        try {
+          await claimRepo.submitClaim(claim);
+          if (context.mounted) {
+            context.read<ClaimController>().loadClaims(); 
+            NotificationBanner.show(context, "Klaim berhasil diajukan! Pantau di menu Klaim Saya.");
+          }
+        } catch (e) {
+          if (context.mounted) NotificationBanner.show(context, "Gagal mengajukan klaim: $e", isError: true);
+        }
+      },
     );
   }
 
   Widget _buildCancelClaimButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-        icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-        label: const Text("BATALKAN KLAIM", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
-        onPressed: () async {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text("Batalkan Klaim?"),
-              content: const Text("Apakah Anda yakin ingin membatalkan pengajuan klaim ini?"),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Tidak")),
-                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Ya, Batalkan", style: TextStyle(color: Colors.red))),
-              ],
-            ),
-          );
-
-          if (confirm == true && context.mounted) {
-            final claimRepo = ClaimRepository();
-            try {
-              await claimRepo.deleteClaim(id); 
-              if (context.mounted) {
-                context.read<ClaimController>().loadClaims();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Klaim berhasil dibatalkan.")));
-              }
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-            }
-          }
-        },
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.error,
+        side: const BorderSide(color: AppColors.error, width: 1.5),
       ),
+      icon: const Icon(Icons.cancel_outlined),
+      label: const Text("BATALKAN KLAIM"),
+      onPressed: () async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Batalkan Klaim?"),
+            content: const Text("Apakah Anda yakin ingin membatalkan pengajuan klaim ini?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("TIDAK")),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true), 
+                child: const Text("YA, BATALKAN", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold))
+              ),
+            ],
+          ),
+        );
+
+        if (confirm == true && context.mounted) {
+          final claimRepo = ClaimRepository();
+          try {
+            await claimRepo.deleteClaim(id); 
+            if (context.mounted) {
+              context.read<ClaimController>().loadClaims();
+              Navigator.pop(context);
+              NotificationBanner.show(context, "Klaim berhasil dibatalkan.");
+            }
+          } catch (e) {
+            NotificationBanner.show(context, "Gagal membatalkan klaim: $e", isError: true);
+          }
+        }
+      },
     );
   }
 
   Widget _buildHubungiButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-        icon: const Icon(Icons.chat_outlined, color: AppColors.primaryBlue),
-        label: const Text("HUBUNGI PELAPOR", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 16)),
-        onPressed: () async {
-          if (kontak == null || kontak!.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nomor kontak tidak tersedia.")));
-            return;
-          }
-
-          String phone = kontak!.replaceAll(RegExp(r'[^0-9]'), '');
-          if (phone.startsWith('0')) {
-            phone = '62${phone.substring(1)}';
-          }
-
-          final Uri whatsappUri = Uri.parse("https://wa.me/$phone");
-          
-          try {
-            if (await canLaunchUrl(whatsappUri)) {
-              await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-            } else {
-              final Uri telUri = Uri.parse("tel:$phone");
-              if (await canLaunchUrl(telUri)) {
-                await launchUrl(telUri);
-              } else {
-                throw 'Could not launch $whatsappUri';
-              }
-            }
-          } catch (e) {
-             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal membuka aplikasi chat: $e")));
-          }
-        },
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primaryBlue,
+        side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
       ),
+      icon: const Icon(Icons.chat_outlined),
+      label: const Text("HUBUNGI PELAPOR"),
+      onPressed: () async {
+        if (kontak == null || kontak!.isEmpty) {
+          NotificationBanner.show(context, "Nomor kontak tidak tersedia.", isError: true);
+          return;
+        }
+
+        String phone = kontak!.replaceAll(RegExp(r'[^0-9]'), '');
+        if (phone.startsWith('0')) {
+          phone = '62${phone.substring(1)}';
+        }
+
+        final Uri whatsappUri = Uri.parse("https://wa.me/$phone");
+        
+        try {
+          if (await canLaunchUrl(whatsappUri)) {
+            await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+          } else {
+            final Uri telUri = Uri.parse("tel:$phone");
+            if (await canLaunchUrl(telUri)) {
+              await launchUrl(telUri);
+            } else {
+              throw 'Could not launch $whatsappUri';
+            }
+          }
+        } catch (e) {
+           NotificationBanner.show(context, "Gagal membuka aplikasi chat: $e", isError: true);
+        }
+      },
     );
   }
 
@@ -437,45 +393,35 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: _hasAlreadyReported ? Colors.grey : Colors.red, width: 2), 
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
-        ),
-        icon: Icon(Icons.warning_outlined, color: _hasAlreadyReported ? Colors.grey : Colors.red),
-        label: Text(
-          _hasAlreadyReported ? "ANDA TELAH MELAPORKAN INI" : "LAPORKAN POSTINGAN", 
-          style: TextStyle(color: _hasAlreadyReported ? Colors.grey : Colors.red, fontWeight: FontWeight.bold, fontSize: 16)
-        ),
-        onPressed: _hasAlreadyReported ? null : () async {
-          final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => ReportPostPageProvider(item: widget.item)));
-          if (result == true) {
-            _checkReportStatus(); // Refresh status
-          }
-        },
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _hasAlreadyReported ? AppColors.textGrey : AppColors.error,
+        side: BorderSide(color: _hasAlreadyReported ? AppColors.mediumGrey : AppColors.error, width: 1.5),
       ),
+      icon: Icon(Icons.warning_outlined),
+      label: Text(_hasAlreadyReported ? "TELAH DILAPORKAN" : "LAPORKAN POSTINGAN"),
+      onPressed: _hasAlreadyReported ? null : () async {
+        final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => ReportPostPageProvider(item: widget.item)));
+        if (result == true) {
+          _checkReportStatus(); // Refresh status
+        }
+      },
     );
   }
 
   Widget _buildResolvedButton(BuildContext context, String label) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-        icon: const Icon(Icons.done_all, color: Colors.white),
-        label: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        onPressed: () => _showResolveDialog(context),
-      ),
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+      icon: const Icon(Icons.done_all_rounded, color: Colors.white),
+      label: Text(label),
+      onPressed: () => _showResolveDialog(context),
     );
   }
 
   void _showResolveDialog(BuildContext context) {
     final nameController = TextEditingController();
     final idController = TextEditingController();
+    final theme = Theme.of(context);
 
     showDialog(
       context: context,
@@ -484,16 +430,24 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Masukkan data pengambil barang."),
-            const SizedBox(height: 16),
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Nama Pengambil")),
-            TextField(controller: idController, decoration: const InputDecoration(labelText: "NIM Pengambil")),
+            Text(
+              "Masukkan data pengambil barang untuk arsip sistem.",
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppTheme.kPadding),
+            CustomTextField(label: "Nama Pengambil", hint: "Nama Lengkap", controller: nameController),
+            CustomTextField(label: "NIM Pengambil", hint: "NIM / ID", controller: idController),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("BATAL")),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(100, 40)),
             onPressed: () async {
+              if (nameController.text.isEmpty || idController.text.isEmpty) {
+                NotificationBanner.show(ctx, "Data pengambil wajib diisi.", isError: true);
+                return;
+              }
               final reportRepo = ReportRepository();
               try {
                 await reportRepo.updateReportStatus(
@@ -506,13 +460,13 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   Navigator.pop(ctx);
                   Navigator.pop(context);
                   context.read<ReportController>().getReports();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Laporan berhasil diselesaikan."), backgroundColor: Colors.green));
+                  StatusDialog.show(context, title: "Berhasil", message: "Laporan telah diselesaikan dan barang telah diambil.");
                 }
               } catch (e) {
-                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text("Error: $e")));
+                NotificationBanner.show(ctx, "Error: $e", isError: true);
               }
             },
-            child: const Text("Selesaikan"),
+            child: const Text("SIMPAN"),
           ),
         ],
       ),

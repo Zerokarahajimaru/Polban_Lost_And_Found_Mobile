@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../theme/color_service.dart';
+import '../theme/theme_service.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
   final String hint;
   final bool isRequired;
+  final bool obscureText;
   final int maxLines;
   final TextEditingController? controller;
   final TextInputType keyboardType;
+  final Widget? suffixIcon;
   final Function(String)? onChanged;
 
   const CustomTextField({
@@ -15,76 +18,51 @@ class CustomTextField extends StatelessWidget {
     required this.label,
     required this.hint,
     this.isRequired = false,
+    this.obscureText = false,
     this.maxLines = 1,
     this.controller,
     this.keyboardType = TextInputType.text,
+    this.suffixIcon,
     this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            text: label,
-            style: const TextStyle(
-              color: AppColors.primaryBlue,
-              fontFamily: 'Montserrat',
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
+        Row(
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            children: [
-              if (isRequired)
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(color: Colors.red),
-                ),
-            ],
-          ),
+            if (isRequired)
+              const Text(
+                ' *',
+                style: TextStyle(color: AppColors.error),
+              ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.kPaddingSmall),
         TextField(
           controller: controller,
           maxLines: maxLines,
+          obscureText: obscureText,
           keyboardType: keyboardType,
           onChanged: onChanged,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold, 
-            fontSize: 14,
-            color: Colors.black,
-          ),
+          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              color: AppColors.textGrey,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide(
-                color: AppColors.secondaryBlue.withOpacity(0.5),
-                width: 1.5,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: const BorderSide(
-                color: AppColors.primaryBlue,
-                width: 2,
-              ),
-            ),
+            suffixIcon: suffixIcon,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: AppTheme.kPadding),
       ],
     );
   }

@@ -35,27 +35,16 @@ class _LoginViewState extends State<_LoginView> {
   }
 
   Future<void> _performLogin() async {
-    final email = _emailController.text;
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-          content: Text('Email dan password tidak boleh kosong.'),
-          backgroundColor: Colors.red,
-        ));
+      NotificationBanner.show(context, 'Email dan password tidak boleh kosong.', isError: true);
       return;
     }
-    
-    // Basic email validation
+
     if (!email.contains('@') || !email.contains('.')) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-          content: Text('Format email tidak valid.'),
-          backgroundColor: Colors.red,
-        ));
+      NotificationBanner.show(context, 'Format email tidak valid.', isError: true);
       return;
     }
 
@@ -66,21 +55,16 @@ class _LoginViewState extends State<_LoginView> {
 
     if (mounted && success) {
       sessionController.login(loginController.loggedInUser!);
-      // The GoRouter redirect will handle navigation automatically.
     }
 
     if (mounted && loginController.state == NotifierState.error) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(loginController.message),
-          backgroundColor: Colors.red,
-        ));
+      NotificationBanner.show(context, loginController.message, isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final controller = context.watch<LoginController>();
     final isLoading = controller.state == NotifierState.loading;
 
@@ -89,70 +73,76 @@ class _LoginViewState extends State<_LoginView> {
       body: SingleChildScrollView(
         child: Container(
           height: MediaQuery.of(context).size.height,
-          padding: const EdgeInsets.symmetric(horizontal: 30),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.kPaddingLarge),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 "HIMAKOM L&F",
-                style: TextStyle(
+                style: theme.textTheme.headlineLarge?.copyWith(
                   color: AppColors.primaryYellow,
-                  fontSize: 32,
+                  fontSize: 36,
                   fontWeight: FontWeight.w900,
-                  fontFamily: 'Montserrat',
                 ),
               ),
-              const Text(
-                "Portal Himakom",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+              Text(
+                "Portal Lost & Found Himakom",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
                   fontStyle: FontStyle.italic,
-                  fontFamily: 'Montserrat',
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               Container(
-                padding: const EdgeInsets.all(25),
+                padding: const EdgeInsets.all(AppTheme.kPaddingLarge),
                 decoration: BoxDecoration(
-                  color: AppColors.secondaryBlue.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(30),
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
                   border: Border.all(color: Colors.white.withOpacity(0.2)),
                 ),
                 child: Column(
                   children: [
-                    _buildLoginField("Email Kampus", "contoh@polban.ac.id", _emailController),
-                    _buildLoginField("Password", "••••••••", _passwordController, isPassword: true),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryYellow,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    CustomTextField(
+                      label: "Email Kampus",
+                      hint: "contoh@polban.ac.id",
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    CustomTextField(
+                      label: "Password",
+                      hint: "••••••••",
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: AppColors.primaryBlue,
+                          size: 20,
                         ),
-                        onPressed: isLoading ? null : _performLogin,
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
-                              )
-                            : const Text(
-                                "MASUK PORTAL",
-                                style: TextStyle(
-                                  color: AppColors.primaryBlue,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    GestureDetector(
-                      onTap: () => _showResetPasswordDialog(context),
-                      child: const Text(
+                    const SizedBox(height: AppTheme.kPaddingSmall),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryYellow,
+                        foregroundColor: AppColors.primaryBlue,
+                      ),
+                      onPressed: isLoading ? null : _performLogin,
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text("MASUK PORTAL"),
+                    ),
+                    const SizedBox(height: AppTheme.kPadding),
+                    TextButton(
+                      onPressed: () => _showResetPasswordDialog(context),
+                      child: Text(
                         "Lupa password?",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                       ),
                     ),
                   ],
@@ -165,91 +155,62 @@ class _LoginViewState extends State<_LoginView> {
     );
   }
 
-  Widget _buildLoginField(String label, String hint, TextEditingController controller, {bool isPassword = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.primaryYellow, fontWeight: FontWeight.bold, fontSize: 12),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: isPassword ? _obscurePassword : false,
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-            suffixIcon: isPassword
-                ? IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.primaryBlue,
-                    ),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  )
-                : null,
-          ),
-        ),
-        const SizedBox(height: 15),
-      ],
-    );
-  }
-
   void _showResetPasswordDialog(BuildContext context) {
-    // This UI is kept as is, but the actions are not implemented.
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(25),
+          padding: const EdgeInsets.all(AppTheme.kPaddingLarge),
           decoration: BoxDecoration(
             color: AppColors.primaryBlue,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: AppColors.secondaryBlue),
+            borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
+            border: Border.all(color: AppColors.secondaryBlue.withOpacity(0.5)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const CircleAvatar(
                 backgroundColor: AppColors.secondaryBlue,
-                radius: 30,
-                child: Icon(Icons.email_outlined, color: AppColors.primaryYellow, size: 30),
+                radius: 28,
+                child: Icon(Icons.email_outlined, color: AppColors.primaryBlue, size: 28),
               ),
-              const SizedBox(height: 20),
-              const Text("RESET PASSWORD", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              const SizedBox(height: 10),
-              const Text(
+              const SizedBox(height: AppTheme.kPadding),
+              Text(
+                "RESET PASSWORD",
+                style: theme.textTheme.titleLarge?.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: AppTheme.kPaddingSmall),
+              Text(
                 "Masukkan email Anda untuk menerima tautan pemulihan kata sandi",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 11),
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
               ),
-              const SizedBox(height: 20),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: "contoh@polban.ac.id",
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                ),
-                style: const TextStyle(color: Colors.white),
+              const SizedBox(height: AppTheme.kPaddingLarge),
+              const CustomTextField(
+                label: "Email",
+                hint: "contoh@polban.ac.id",
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: AppTheme.kPaddingLarge),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("BATAL", style: TextStyle(color: Colors.white70))),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryYellow),
-                    onPressed: () {}, // Not implemented
-                    child: const Text("KIRIM LINK", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("BATAL", style: TextStyle(color: Colors.white70)),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.kPadding),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryYellow,
+                        foregroundColor: AppColors.primaryBlue,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("KIRIM"),
+                    ),
                   ),
                 ],
               )

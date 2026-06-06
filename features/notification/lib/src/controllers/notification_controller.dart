@@ -14,6 +14,12 @@ class NotificationController extends ChangeNotifier {
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
+  void clearData() {
+    _notifications = [];
+    _message = '';
+    notifyListeners();
+  }
+
   Future<void> loadNotifications(dynamic userId) async {
     _isLoading = true;
     notifyListeners();

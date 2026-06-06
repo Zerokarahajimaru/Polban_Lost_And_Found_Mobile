@@ -18,6 +18,13 @@ class ReportController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get lastOperationFailed => _lastOperationFailed;
 
+  void clearData() {
+    _reports = [];
+    _myReports = [];
+    _message = '';
+    notifyListeners();
+  }
+
   void clearMessage() {
     _message = '';
   }
