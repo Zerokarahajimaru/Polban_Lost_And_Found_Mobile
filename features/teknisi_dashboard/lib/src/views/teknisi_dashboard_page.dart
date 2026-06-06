@@ -134,6 +134,17 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                           ],
                         ),
                         
+                        const SizedBox(height: 24),
+
+                        // LOGOUT BUTTON
+                        _MenuWideTile(
+                          icon: Icons.logout_rounded,
+                          label: 'Keluar Portal',
+                          accentColor: AppColors.error,
+                          backgroundColor: AppColors.error.withOpacity(0.05),
+                          onTap: () => _showLogoutConfirmation(context),
+                        ),
+
                         const SizedBox(height: 40),
                       ]),
                     ),
@@ -156,6 +167,45 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         ],
       ),
     );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Keluar Portal', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+        content: const Text('Apakah Anda yakin ingin keluar dari portal teknisi?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textGrey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _handleLogout(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('KELUAR', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleLogout(BuildContext context) {
+    // 1. Clear Security State
+    context.read<ReportController>().clearData();
+    context.read<ClaimController>().clearData();
+    context.read<NotificationController>().clearData();
+    
+    // 2. Clear Session
+    context.read<SessionController>().logout();
+    
+    // 3. Redirect
+    context.go('/login');
+    
+    NotificationBanner.show(context, 'Anda telah keluar.');
   }
 
   void _showPdfPeriodPicker(BuildContext context) {
