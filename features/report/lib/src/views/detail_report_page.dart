@@ -6,6 +6,7 @@ import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:claim/claim.dart';
 import 'package:post/post.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../controllers/report_controller.dart';
 
 // ========================
@@ -62,6 +63,7 @@ class ReportDetailPage extends StatelessWidget {
   String get deskripsi => isReportModel ? item.description : (isClaimModel ? "Detail klaim yang sedang diajukan." : item.deskripsi);
   String get id => isReportModel ? item.id : (isClaimModel ? item.id : item.nama);
   String? get userId => isReportModel ? item.userId : (isClaimModel ? item.claimantId : null);
+  String? get kontak => isReportModel ? item.contact : null;
 
   // Reward section visibility
   bool get showRewardBanner => imbalan != null && imbalan!.isNotEmpty && imbalan != '-';
@@ -383,8 +385,35 @@ class ReportDetailPage extends StatelessWidget {
         style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.primaryBlue, width: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         icon: const Icon(Icons.chat_outlined, color: AppColors.primaryBlue),
         label: const Text("HUBUNGI PELAPOR", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 16)),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Menghubungi pelapor...")));
+        onPressed: () async {
+          if (kontak == null || kontak!.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nomor kontak tidak tersedia.")));
+            return;
+          }
+
+          // Clean the number
+          String phone = kontak!.replaceAll(RegExp(r'[^0-9]'), '');
+          if (phone.startsWith('0')) {
+            phone = '62${phone.substring(1)}';
+          }
+
+          final Uri whatsappUri = Uri.parse("https://wa.me/$phone");
+          
+          try {
+            if (await canLaunchUrl(whatsappUri)) {
+              await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+            } else {
+              // Fallback to dial pad
+              final Uri telUri = Uri.parse("tel:$phone");
+              if (await canLaunchUrl(telUri)) {
+                await launchUrl(telUri);
+              } else {
+                throw 'Could not launch $whatsappUri';
+              }
+            }
+          } catch (e) {
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal membuka aplikasi chat: $e")));
+          }
         },
       ),
     );

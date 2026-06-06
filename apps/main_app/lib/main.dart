@@ -26,6 +26,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SessionController()),
         ChangeNotifierProvider(create: (_) => ReportController()),
         ChangeNotifierProvider(create: (_) => ClaimController()),
+        ChangeNotifierProvider(create: (_) => NotificationController()),
       ],
       child: const MyApp(),
     ),

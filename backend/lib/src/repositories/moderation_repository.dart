@@ -52,7 +52,21 @@ class ModerationRepository {
   }
 
   Future<void> takedown(String id) async {
+    final db = await MongodbService.db;
+    
+    // 1. Get the moderation report to find the postId
+    final modReport = await getById(id);
+    if (modReport == null) return;
+
+    // 2. Update moderation report status
     await updateStatus(id, 'takenDown');
+
+    // 3. EFFECT: Mark the actual report as 'blocked' or 'deleted'
+    final reportsCol = db.collection('reports');
+    await reportsCol.updateOne(
+      where.id(ObjectId.fromHexString(modReport.postId)),
+      modify.set('status_postingan', 'blocked'),
+    );
   }
 
   Future<void> ignore(String id) async {

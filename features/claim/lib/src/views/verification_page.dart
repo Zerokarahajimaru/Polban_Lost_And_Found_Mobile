@@ -68,12 +68,23 @@ class VerificationPage extends StatelessWidget {
                             
                             if (success && context.mounted) {
                               final reportRepo = ReportRepository();
+                              final notifRepo = NotificationRepository();
+                              
                               try {
+                                // 1. Update report status to resolved
                                 await reportRepo.updateReportStatus(
                                   id: claim.reportId,
                                   status: 'resolved',
                                   claimantName: claim.claimantName,
                                   claimantId: claim.claimantId,
+                                );
+
+                                // 2. Send notification to the claimant
+                                await notifRepo.sendNotification(
+                                  userId: claim.claimantId,
+                                  judul: 'Klaim Disetujui!',
+                                  pesan: 'Klaim Anda untuk "${claim.reportTitle}" telah diverifikasi teknisi. Barang sudah diserahterimakan.',
+                                  tipeNotif: 'claim',
                                 );
                                 
                                 if (context.mounted) {
@@ -89,7 +100,7 @@ class VerificationPage extends StatelessWidget {
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Berhasil verifikasi klaim, tapi gagal tutup laporan: $e"))
+                                    SnackBar(content: Text("Error: $e"))
                                   );
                                 }
                               }

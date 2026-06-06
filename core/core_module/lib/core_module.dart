@@ -26,6 +26,7 @@ export 'src/services/image_compress_service.dart';
 // Repositories
 export 'src/repositories/report_repository.dart';
 export 'src/repositories/claim_repository.dart';
+export 'src/repositories/notification_repository.dart';
 
 // Controllers
 export 'src/controllers/session_controller.dart';
@@ -34,6 +35,7 @@ export 'src/controllers/session_controller.dart';
 export 'src/models/user_model.dart';
 export 'src/models/report_model.dart';
 export 'src/models/claim_model.dart';
+export 'src/models/notification_model.dart';
 
 // Utils
 export 'src/utils/time_helper.dart';
