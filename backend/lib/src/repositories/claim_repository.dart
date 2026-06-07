@@ -30,6 +30,16 @@ class ClaimRepository {
       '_id': id,
       ...claim.toMap(),
     });
+
+    // Notify technicians about new claim
+    await _notifRepo.createNotification(NotificationModel(
+      userId: 'staff_general',
+      judul: 'Permintaan Klaim Baru',
+      pesan: '${claim.claimantName} mengajukan klaim untuk "${claim.reportTitle}".',
+      tipeNotif: 'claim',
+      createdAt: DateTime.now(),
+    ));
+
     return id.toHexString();
   }
 

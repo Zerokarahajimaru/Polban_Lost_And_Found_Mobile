@@ -34,7 +34,7 @@ class NotificationModel {
       id: map['id']?.toString() ?? '',
       title: (map['judul'] ?? map['title'])?.toString() ?? '',
       message: (map['pesan'] ?? map['message'])?.toString() ?? '',
-      type: (map['tipe_notif'] ?? map['type'])?.toString() ?? 'system',
+      type: (map['tipe_notif'] ?? map['tipeNotif'] ?? map['type'])?.toString() ?? 'system',
       createdAt: DateTime.tryParse(map['created_at']?.toString() ?? map['createdAt']?.toString() ?? '') ?? DateTime.now(),
       isRead: map['is_read'] ?? map['isRead'] ?? false,
       metadata: map['metadata'] as Map<String, dynamic>?,

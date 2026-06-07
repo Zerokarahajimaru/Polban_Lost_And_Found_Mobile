@@ -61,7 +61,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                           ),
                         ),
                         const Text(
-                          'Selamat bertugas! Kelola laporan dan inventaris hari ini.',
+                          'Selamat bertugas! Kelola laporan dan klaim hari ini.',
                           style: TextStyle(fontSize: 14, color: AppColors.textGrey),
                         ),
                         const SizedBox(height: 24),
@@ -114,22 +114,10 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                               onTap: () => context.push('/my-reports'),
                             ),
                             _MenuTile(
-                              icon: Icons.inventory_2_rounded,
-                              label: 'Inventaris',
-                              color: AppColors.warning,
-                              onTap: () => _showPlaceholderSnackBar(context, 'Inventaris Barang'),
-                            ),
-                            _MenuTile(
                               icon: Icons.gavel_rounded,
                               label: 'Moderasi',
                               color: AppColors.error,
                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ModerasiPostinganProvider())),
-                            ),
-                            _MenuTile(
-                              icon: Icons.bar_chart_rounded,
-                              label: 'Statistik',
-                              color: AppColors.info,
-                              onTap: () => _showPlaceholderSnackBar(context, 'Statistik Laporan'),
                             ),
                           ],
                         ),
@@ -155,13 +143,14 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
           ),
 
           // 2. FOREGROUND LAYER: Fixed Header Only (Stats Card removed)
-          const Positioned(
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: CustomHeader(
               title: 'Beranda Staff',
               showBackButton: false,
+              onNotificationTap: () => context.push('/notifications'),
             ),
           ),
         ],
