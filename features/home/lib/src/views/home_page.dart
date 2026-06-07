@@ -168,8 +168,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                     Positioned(
                       bottom: -22,
-                      left: 60,
-                      right: 60,
+                      left: 32,
+                      right: 32,
                       child: _buildTabSelector(homeController),
                     ),
                   ],
@@ -385,12 +385,15 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(30),
           ),
           child: Center(
-            child: Text(
-              text,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: active ? AppColors.primaryYellow : AppColors.primaryBlue.withOpacity(0.6),
-                fontWeight: active ? FontWeight.bold : FontWeight.w600,
-                fontSize: 12,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: active ? AppColors.primaryYellow : AppColors.primaryBlue.withOpacity(0.6),
+                  fontWeight: active ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),

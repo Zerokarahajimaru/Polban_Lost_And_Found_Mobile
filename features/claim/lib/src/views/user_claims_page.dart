@@ -36,18 +36,16 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
           // 2. Header and Floating Stats Card Section
           Stack(
             clipBehavior: Clip.none,
-            alignment: Alignment.bottomCenter,
             children: [
               const CustomHeader(
                 title: "Klaim Saya",
                 showBackButton: false,
                 extraHeight: 60,
               ),
-              // The Stats Card perfectly sitting on the bottom border
               Positioned(
-                bottom: -40,
-                left: 0,
-                right: 0,
+                bottom: -35,
+                left: 20,
+                right: 20,
                 child: _buildStatsCard(myClaims.length),
               ),
             ],

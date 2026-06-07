@@ -25,7 +25,12 @@ class CustomHeader extends StatefulWidget implements PreferredSizeWidget {
   State<CustomHeader> createState() => _CustomHeaderState();
 
   @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight + extraHeight + 40);
+  Size get preferredSize {
+    // kToolbarHeight is usually 56. 
+    // We add safe area padding (handled automatically by PreferredSize inside an AppBar, but here we estimate)
+    // + extraHeight for search bar + bottom shadow peek
+    return Size.fromHeight(kToolbarHeight + extraHeight + 20); 
+  }
 }
 
 class _CustomHeaderState extends State<CustomHeader> {
@@ -59,7 +64,7 @@ class _CustomHeaderState extends State<CustomHeader> {
             left: 0,
             right: 0,
             child: Container(
-              height: 60 + widget.extraHeight,
+              height: 40, // Fixed small height just to peek out at the bottom
               decoration: const BoxDecoration(
                 color: AppColors.primaryYellow,
                 borderRadius: BorderRadius.only(
@@ -71,7 +76,7 @@ class _CustomHeaderState extends State<CustomHeader> {
           ),
           // Main Blue Header with curve
           Container(
-            height: widget.preferredSize.height - 4,
+            margin: const EdgeInsets.only(bottom: 4), // Leave space for yellow shadow
             decoration: const BoxDecoration(
               color: AppColors.primaryBlue,
               borderRadius: BorderRadius.only(
@@ -82,6 +87,7 @@ class _CustomHeaderState extends State<CustomHeader> {
             child: SafeArea(
               bottom: false,
               child: Column(
+                mainAxisSize: MainAxisSize.min, // Wrap content tightly
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -121,6 +127,9 @@ class _CustomHeaderState extends State<CustomHeader> {
                     ),
                   ),
                   if (widget.bottomChild != null) widget.bottomChild!,
+                  // ADDED: Provide actual vertical space based on extraHeight
+                  if (widget.extraHeight > 0 && widget.bottomChild == null) 
+                    SizedBox(height: widget.extraHeight),
                 ],
               ),
             ),

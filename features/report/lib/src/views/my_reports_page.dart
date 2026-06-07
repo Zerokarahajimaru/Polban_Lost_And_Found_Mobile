@@ -123,20 +123,17 @@ class _MyReportsPageState extends State<MyReportsPage>
           // 2. Header and Floating Stats Card Section
           Stack(
             clipBehavior: Clip.none,
-            alignment: Alignment.bottomCenter,
             children: [
-              // CustomHeader with reduced extraHeight and no bottomChild
               CustomHeader(
                 title: "Riwayat Laporanku",
                 showBackButton: isTeknisi, 
                 extraHeight: 60,
                 onNotificationTap: () {},
               ),
-              // The Stats Card perfectly sitting on the bottom border
               Positioned(
-                bottom: -40,
-                left: 0,
-                right: 0,
+                bottom: -35, // Slightly higher to be safe
+                left: 20,
+                right: 20,
                 child: _buildStatsCard(reports.length, isTeknisi),
               ),
             ],
