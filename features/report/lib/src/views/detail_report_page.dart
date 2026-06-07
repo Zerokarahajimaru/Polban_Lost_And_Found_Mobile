@@ -151,7 +151,11 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                         ClaimProgressStepper(status: status),
                         const SizedBox(height: AppTheme.kPaddingLarge),
                       ] else if (widget.canManage) ...[
-                        ReportProgressStepper(status: status, isLost: isLost),
+                        ReportProgressStepper(
+                          status: status, 
+                          isLost: isLost,
+                          isEdit: id.startsWith('pending_update_') || id.startsWith('draft_') && widget.item.createdAt != null && !id.startsWith('pending_create_'),
+                        ),
                         const SizedBox(height: AppTheme.kPaddingLarge),
                       ],
 

@@ -274,6 +274,12 @@ class _CreateReportPageState extends State<CreateReportPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            ReportProgressStepper(
+              status: 'draft', 
+              isLost: isLost,
+              isEdit: isEditing,
+            ),
+            const SizedBox(height: AppTheme.kPaddingLarge),
             _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
             const SizedBox(height: AppTheme.kPaddingLarge),
             _buildPhotoPicker(),

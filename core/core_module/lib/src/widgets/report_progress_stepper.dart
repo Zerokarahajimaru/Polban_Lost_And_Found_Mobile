@@ -4,11 +4,13 @@ import '../theme/color_service.dart';
 class ReportProgressStepper extends StatelessWidget {
   final String status;
   final bool isLost;
+  final bool isEdit;
 
   const ReportProgressStepper({
     super.key, 
     required this.status,
     required this.isLost,
+    this.isEdit = false,
   });
 
   @override
@@ -44,7 +46,7 @@ class ReportProgressStepper extends StatelessWidget {
           const SizedBox(height: 20),
           Row(
             children: [
-              _buildStep(0, activeIndex, "Pembuatan", Icons.edit_note_rounded),
+              _buildStep(0, activeIndex, isEdit ? "Mengedit" : "Pembuatan", isEdit ? Icons.edit_calendar_rounded : Icons.edit_note_rounded),
               _buildConnector(0, activeIndex),
               _buildStep(1, activeIndex, isLost ? "Mencari" : "Mengamankan", isLost ? Icons.search_rounded : Icons.inventory_rounded),
               _buildConnector(1, activeIndex),
@@ -59,7 +61,14 @@ class ReportProgressStepper extends StatelessWidget {
   Widget _buildStep(int index, int activeIndex, String label, IconData icon) {
     bool isCompleted = activeIndex >= index;
     bool isCurrent = activeIndex == index;
-    Color color = isCompleted ? Colors.green : (isCurrent ? AppColors.primaryBlue : Colors.grey.shade300);
+    
+    // Custom color logic: Step 0 is green when active/completed
+    Color color;
+    if (index == 0) {
+      color = (isCompleted || isCurrent) ? Colors.green : Colors.grey.shade300;
+    } else {
+      color = isCompleted ? Colors.green : (isCurrent ? AppColors.primaryBlue : Colors.grey.shade300);
+    }
 
     return Expanded(
       child: Column(
