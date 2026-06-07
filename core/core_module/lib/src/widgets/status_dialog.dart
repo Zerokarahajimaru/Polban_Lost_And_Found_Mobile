@@ -6,6 +6,7 @@ class StatusDialog extends StatelessWidget {
   final String title;
   final String message;
   final bool isSuccess;
+  final String confirmLabel;
   final VoidCallback? onConfirm;
 
   const StatusDialog({
@@ -13,6 +14,7 @@ class StatusDialog extends StatelessWidget {
     required this.title,
     required this.message,
     this.isSuccess = true,
+    this.confirmLabel = "MENGERTI",
     this.onConfirm,
   });
 
@@ -21,6 +23,7 @@ class StatusDialog extends StatelessWidget {
     required String title,
     required String message,
     bool isSuccess = true,
+    String confirmLabel = "MENGERTI",
     VoidCallback? onConfirm,
   }) {
     showDialog(
@@ -30,6 +33,7 @@ class StatusDialog extends StatelessWidget {
         title: title,
         message: message,
         isSuccess: isSuccess,
+        confirmLabel: confirmLabel,
         onConfirm: onConfirm,
       ),
     );
@@ -88,7 +92,7 @@ class StatusDialog extends StatelessWidget {
                 Navigator.pop(context);
                 if (onConfirm != null) onConfirm!();
               },
-              child: const Text("MENGERTI"),
+              child: Text(confirmLabel),
             ),
           ],
         ),

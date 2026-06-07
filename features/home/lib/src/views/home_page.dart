@@ -86,30 +86,40 @@ class _HomePageState extends State<HomePage> {
                       SliverToBoxAdapter(
                         child: _buildDataLokalBanner(context, unsyncedCount),
                       ),
+
+                      SliverToBoxAdapter(
+                        child: _buildCategoryFilters(homeController),
+                      ),
+
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                           child: Row(
-                            children: const [
-                              Icon(Icons.verified_user_outlined,
-                                  color: AppColors.primaryBlue, size: 22),
-                              SizedBox(width: 8),
-                              Text(
-                                'Laporan Terbaru',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                ),
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.verified_user_outlined,
+                                      color: AppColors.primaryBlue, size: 22),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Laporan Terbaru',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              _buildSortButton(homeController),
                             ],
                           ),
                         ),
                       ),
                       if (reportController.isLoading && allReports.isEmpty)
-                        const SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(child: CircularProgressIndicator()),
+                        SliverToBoxAdapter(
+                          child: ShimmerLoading.list(itemCount: 3),
                         )
                       else if (filteredReports.isEmpty)
                         SliverFillRemaining(
@@ -206,6 +216,90 @@ class _HomePageState extends State<HomePage> {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AppColors.textGrey,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilters(HomeController controller) {
+    final categories = ['Semua', 'Dokumen', 'Elektronik', 'Kunci', 'Dompet', 'Pakaian', 'Lainnya'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: categories.map((cat) {
+          final isSelected = controller.selectedCategory == cat;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(cat),
+              selected: isSelected,
+              onSelected: (selected) => controller.setCategory(selected ? cat : 'Semua'),
+              selectedColor: AppColors.primaryBlue,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : AppColors.primaryBlue,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: isSelected ? AppColors.primaryBlue : AppColors.mediumGrey),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSortButton(HomeController controller) {
+    return IconButton(
+      icon: const Icon(Icons.sort_rounded, color: AppColors.primaryBlue),
+      onPressed: () => _showSortOptions(context, controller),
+    );
+  }
+
+  void _showSortOptions(BuildContext context, HomeController controller) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text("Urutkan Berdasarkan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.access_time_rounded),
+              title: const Text("Terbaru"),
+              trailing: controller.activeSort == HomeSort.terbaru ? const Icon(Icons.check, color: AppColors.success) : null,
+              onTap: () {
+                controller.setActiveSort(HomeSort.terbaru);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.card_giftcard_rounded),
+              title: const Text("Imbalan Terbesar"),
+              trailing: controller.activeSort == HomeSort.imbalanTerbesar ? const Icon(Icons.check, color: AppColors.success) : null,
+              onTap: () {
+                controller.setActiveSort(HomeSort.imbalanTerbesar);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.sort_by_alpha_rounded),
+              title: const Text("Abjad (A-Z)"),
+              trailing: controller.activeSort == HomeSort.abjadAZ ? const Icon(Icons.check, color: AppColors.success) : null,
+              onTap: () {
+                controller.setActiveSort(HomeSort.abjadAZ);
+                Navigator.pop(context);
+              },
             ),
           ],
         ),

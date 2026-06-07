@@ -16,19 +16,39 @@ class DetailHeroImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          height: 300,
-          width: double.infinity,
-          color: AppColors.softGrey,
-          child: imageProvider != null
-              ? Stack(
-                  children: [
-                    Positioned.fill(child: Image(image: imageProvider!, fit: BoxFit.cover)),
-                    Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), child: Container(color: Colors.black.withOpacity(0.2)))),
-                    Center(child: Image(image: imageProvider!, fit: BoxFit.contain)),
-                  ],
-                )
-              : const Center(child: Icon(Icons.image_not_supported_outlined, color: AppColors.textGrey, size: 48)),
+        GestureDetector(
+          onTap: imageProvider != null
+              ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullScreenImage(
+                        imageProvider: imageProvider!,
+                        tag: 'detail_hero',
+                      ),
+                    ),
+                  )
+              : null,
+          child: Hero(
+            tag: 'detail_hero',
+            child: Container(
+              height: 300,
+              width: double.infinity,
+              color: AppColors.softGrey,
+              child: imageProvider != null
+                  ? Stack(
+                      children: [
+                        Positioned.fill(child: Image(image: imageProvider!, fit: BoxFit.cover)),
+                        Positioned.fill(
+                            child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                child: Container(color: Colors.black.withOpacity(0.2)))),
+                        Center(child: Image(image: imageProvider!, fit: BoxFit.contain)),
+                      ],
+                    )
+                  : const Center(
+                      child: Icon(Icons.image_not_supported_outlined, color: AppColors.textGrey, size: 48)),
+            ),
+          ),
         ),
         Container(
           height: 100,

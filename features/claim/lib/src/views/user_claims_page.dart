@@ -58,7 +58,12 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
             child: Consumer<ClaimController>(
               builder: (context, controller, child) {
                 if (controller.isLoading && myClaims.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Column(
+                    children: [
+                      const SizedBox(height: 60),
+                      Expanded(child: ShimmerLoading.list(itemCount: 4)),
+                    ],
+                  );
                 }
 
                 if (myClaims.isEmpty) {
@@ -70,9 +75,10 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
                     const SizedBox(height: 60), // Extra spacing for floating stats card
                     Expanded(
                       child: RefreshIndicator(
+                        displacement: 20,
                         onRefresh: controller.loadClaims,
                         child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                          padding: const EdgeInsets.fromLTRB(AppTheme.kPadding, 0, AppTheme.kPadding, 20),
                           itemCount: myClaims.length,
                           itemBuilder: (context, index) {
                             return _buildUserClaimCard(myClaims[index]);

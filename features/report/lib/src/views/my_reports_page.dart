@@ -47,13 +47,17 @@ class _MyReportsPageState extends State<MyReportsPage>
 
   void _handleControllerUpdates() {
     if (!mounted) return;
+    // Only show banner and clear if this is the active route to avoid stealing messages from CreateReportPage
     if (_controller.message.isNotEmpty) {
-      NotificationBanner.show(
-        context,
-        _controller.message,
-        isError: _controller.lastOperationFailed,
-      );
-      _controller.clearMessage(); 
+      final modalRoute = ModalRoute.of(context);
+      if (modalRoute != null && modalRoute.isCurrent) {
+        NotificationBanner.show(
+          context,
+          _controller.message,
+          isError: _controller.lastOperationFailed,
+        );
+        _controller.clearMessage(); 
+      }
     }
   }
 
@@ -97,6 +101,8 @@ class _MyReportsPageState extends State<MyReportsPage>
 
     if (confirm == true && mounted) {
       await _controller.deleteReport(report.id, report.status, userId: _userId);
+      // Ensure UI is refreshed from Hive after deletion
+      await _controller.refreshFromCache(userId: _userId);
     }
   }
 
@@ -169,7 +175,10 @@ class _MyReportsPageState extends State<MyReportsPage>
         _buildTabs(),
         Expanded(
           child: isLoading && reports.isEmpty
-            ? const Center(child: CircularProgressIndicator())
+            ? Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: ShimmerLoading.list(itemCount: 4),
+              )
             : TabBarView(
                 controller: _tabController,
                 children: [

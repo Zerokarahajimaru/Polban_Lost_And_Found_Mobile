@@ -4,23 +4,34 @@ import 'package:core_module/core_module.dart';
 /// Representasi Tab yang ada di desain Figma
 enum HomeTab { kehilangan, penemuan }
 
+/// Opsi Pengurutan
+enum HomeSort { terbaru, imbalanTerbesar, abjadAZ }
+
 class HomeController extends ChangeNotifier {
   // --- State Properties ---
   HomeTab _activeTab = HomeTab.kehilangan;
   String _searchQuery = '';
   String _selectedCategory = 'Semua'; 
+  HomeSort _activeSort = HomeSort.terbaru;
   List<String> _hiddenPosts = []; // Local filter for reported posts
 
   // --- Getters ---
   HomeTab get activeTab => _activeTab;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
+  HomeSort get activeSort => _activeSort;
 
   // --- Logic Functions ---
 
   void setActiveTab(HomeTab tab) {
     if (_activeTab == tab) return;
     _activeTab = tab;
+    notifyListeners();
+  }
+
+  void setActiveSort(HomeSort sort) {
+    if (_activeSort == sort) return;
+    _activeSort = sort;
     notifyListeners();
   }
 
@@ -38,6 +49,7 @@ class HomeController extends ChangeNotifier {
   void resetFilters() {
     _searchQuery = '';
     _selectedCategory = 'Semua';
+    _activeSort = HomeSort.terbaru;
     notifyListeners();
   }
 
@@ -49,12 +61,12 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- The Core Logic: Multi-Level Filtering ---
+  // --- The Core Logic: Multi-Level Filtering & Sorting ---
 
   List<ReportModel> filterReports(List<ReportModel> allReports, {HomeTab? tab}) {
     final targetTab = tab ?? _activeTab;
     
-    return allReports.where((report) {
+    final filtered = allReports.where((report) {
       
       // 0. Filter out RESOLVED, BLOCKED, and UNDER_REVIEW items from public feed
       final reportStatus = report.status.toLowerCase();
@@ -79,6 +91,25 @@ class HomeController extends ChangeNotifier {
 
       return matchesTab && matchesCategory && matchesSearch;
     }).toList();
+
+    // 4. Sorting
+    switch (_activeSort) {
+      case HomeSort.terbaru:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case HomeSort.imbalanTerbesar:
+        filtered.sort((a, b) {
+          final rewardA = double.tryParse(a.reward ?? '0') ?? 0;
+          final rewardB = double.tryParse(b.reward ?? '0') ?? 0;
+          return rewardB.compareTo(rewardA);
+        });
+        break;
+      case HomeSort.abjadAZ:
+        filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+    }
+
+    return filtered;
   }
 
   int getUnsyncedCount(List<ReportModel> allReports) {

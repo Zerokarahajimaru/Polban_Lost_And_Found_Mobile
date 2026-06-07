@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/color_service.dart';
 import '../theme/theme_service.dart';
 
@@ -10,6 +11,7 @@ class CustomTextField extends StatelessWidget {
   final int maxLines;
   final TextEditingController? controller;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final Widget? suffixIcon;
   final Function(String)? onChanged;
 
@@ -22,6 +24,7 @@ class CustomTextField extends StatelessWidget {
     this.maxLines = 1,
     this.controller,
     this.keyboardType = TextInputType.text,
+    this.inputFormatters,
     this.suffixIcon,
     this.onChanged,
   });
@@ -55,6 +58,7 @@ class CustomTextField extends StatelessWidget {
           maxLines: maxLines,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           onChanged: onChanged,
           style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
           decoration: InputDecoration(

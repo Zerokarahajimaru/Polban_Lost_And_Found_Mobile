@@ -10,6 +10,7 @@ export 'src/widgets/shimmer_loading.dart';
 export 'src/widgets/status_dialog.dart';
 export 'src/widgets/claim_progress_stepper.dart';
 export 'src/widgets/report_progress_stepper.dart';
+export 'src/widgets/full_screen_image.dart';
 
 // Theme
 export 'src/theme/color_service.dart';

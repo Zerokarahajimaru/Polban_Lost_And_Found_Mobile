@@ -178,8 +178,14 @@ class ReportController extends ChangeNotifier {
     }
   }
   
-  Future<void> refreshFromCache() async {
+  Future<void> refreshFromCache({String? userId}) async {
     _reports = await _reportRepository.loadFromCacheOnly();
+    if (userId != null) {
+      _myReports = await _reportRepository.loadFromCacheOnly(userId: userId);
+    } else {
+      // If no userId, filter manually from the full list if we have it
+      // or keep current _myReports as is. Better to just reload all.
+    }
     notifyListeners();
   }
 

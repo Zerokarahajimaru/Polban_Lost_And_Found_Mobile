@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:claim/claim.dart';
@@ -320,13 +321,18 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       
       if (context.mounted) {
         if (!controller.lastOperationFailed) {
+          final session = context.read<SessionController>();
           StatusDialog.show(
             context,
             title: "Berhasil!",
-            message: "Laporan Anda telah berhasil diterbitkan.",
+            confirmLabel: "OK",
+            message: "Laporan anda telah berhasil dibuat dan simpan di database",
             onConfirm: () {
-              Navigator.pop(context); // Pop dialog
-              Navigator.pop(context); // Pop DetailReportPage
+              if (session.isTeknisi) {
+                context.go('/teknisi-home');
+              } else {
+                context.go('/my-reports');
+              }
             },
           );
         } else {

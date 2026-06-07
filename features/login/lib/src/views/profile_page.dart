@@ -52,29 +52,53 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 30),
-            padding: const EdgeInsets.all(5),
+            margin: const EdgeInsets.symmetric(horizontal: AppTheme.kPaddingLarge),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(color: Colors.blue.shade100, width: 1.5),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.kRadiusLarge),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
+              border: Border.all(color: Colors.blue.shade50),
             ),
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.notifications_none, color: AppColors.primaryBlue),
-                  title: const Text("NOTIFIKASI APP", style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w900, fontSize: 14)),
+                  leading: const Icon(Icons.notifications_none_rounded, color: AppColors.primaryBlue),
+                  title: const Text("Notifikasi App", style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 14)),
                   trailing: Switch(
                     value: isNotifOn,
                     onChanged: (val) => setState(() => isNotifOn = val),
-                    activeThumbColor: Colors.greenAccent,
+                    activeColor: AppColors.success,
                   ),
                 ),
-                const Divider(indent: 20, endIndent: 20),
+                const Divider(height: 1, indent: 20, endIndent: 20),
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text("KELUAR PORTAL", style: TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 14)),
+                  leading: const Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue),
+                  title: const Text("Tentang Aplikasi", style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 14)),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textGrey),
+                  onTap: () {
+                    showAboutDialog(
+                      context: context,
+                      applicationName: "Polban Lost & Found",
+                      applicationVersion: "1.0.0",
+                      applicationIcon: const Icon(Icons.find_in_page_rounded, color: AppColors.primaryBlue, size: 40),
+                      children: [
+                        const Text("Aplikasi pencarian barang hilang dan temuan untuk civitas akademika Polban."),
+                      ],
+                    );
+                  },
+                ),
+                const Divider(height: 1, indent: 20, endIndent: 20),
+                ListTile(
+                  leading: const Icon(Icons.logout_rounded, color: AppColors.error),
+                  title: const Text("Keluar Portal", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 14)),
                   onTap: () => _showLogoutConfirmation(context),
                 ),
               ],

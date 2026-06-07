@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:report/src/controllers/report_controller.dart';
 
 class CreateReportProvider extends StatelessWidget {
@@ -73,30 +74,10 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
   void _handleControllerUpdates() {
     if (!mounted) return;
-    if (_reportController.message.isNotEmpty && _isFinalizing) {
-      final msg = _reportController.message;
-      final failed = _reportController.lastOperationFailed;
-      _isFinalizing = false;
-      
-      if (!failed) {
-        StatusDialog.show(
-          context,
-          title: "Berhasil!",
-          message: msg,
-          onConfirm: () {
-            Navigator.pop(context); // Pop dialog
-            Navigator.pop(context); // Pop CreateReportPage
-          },
-        );
-      } else {
-         StatusDialog.show(
-          context,
-          isSuccess: false,
-          title: "Info Sistem",
-          message: msg,
-        );
-      }
-      _reportController.clearMessage();
+    // General messages not triggered by finalizing can stay here if needed
+    // But we clear it to avoid stale messages
+    if (_reportController.message.isNotEmpty && !_isFinalizing) {
+       _reportController.clearMessage();
     }
   }
 
@@ -165,7 +146,7 @@ class _CreateReportPageState extends State<CreateReportPage> {
 
       final oldImageExists = widget.existingReport?.imageUrl != null && widget.existingReport!.imageUrl.isNotEmpty;
       if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null || oldImageExists)) {
-        setState(() => _isFinalizing = false);
+        // [NOTE] We don't reset _isFinalizing here so error messages stay visible
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Harap lengkapi semua field yang wajib diisi dan unggah foto."),
@@ -191,14 +172,47 @@ class _CreateReportPageState extends State<CreateReportPage> {
         existingId: widget.existingReport?.id,
         userId: currentUser?.id,
       );
+
+      if (mounted) {
+        final failed = _reportController.lastOperationFailed;
+        final msg = _reportController.message;
+        if (!failed) {
+          _isFinalizing = false;
+          _reportController.clearMessage();
+          final session = context.read<SessionController>();
+
+          StatusDialog.show(
+            context,
+            title: "Berhasil!",
+            confirmLabel: "OK",
+            message: "Laporan anda telah berhasil dibuat dan simpan di database",
+            onConfirm: () {
+              if (session.isTeknisi) {
+                context.go('/teknisi-home');
+              } else {
+                context.go('/my-reports');
+              }
+            },
+          );
+        } else {
+          StatusDialog.show(
+            context,
+            isSuccess: false,
+            title: "Gagal",
+            message: msg,
+          );
+        }
+      }
     } catch (e) {
-      setState(() => _isFinalizing = false);
-      StatusDialog.show(
-        context,
-        isSuccess: false,
-        title: "Error",
-        message: "Terjadi kesalahan saat memproses laporan: $e",
-      );
+      if (mounted) {
+        setState(() => _isFinalizing = false);
+        StatusDialog.show(
+          context,
+          isSuccess: false,
+          title: "Error",
+          message: "Terjadi kesalahan saat memproses laporan: $e",
+        );
+      }
     }
   }
 
@@ -248,7 +262,8 @@ class _CreateReportPageState extends State<CreateReportPage> {
       basicValid = basicValid && hasImage;
     }
     if (isLost) {
-      return basicValid && _phoneController.text.isNotEmpty;
+      final phone = _phoneController.text;
+      return basicValid && phone.length >= 4 && phone.length <= 18;
     }
     return basicValid;
   }
@@ -274,13 +289,13 @@ class _CreateReportPageState extends State<CreateReportPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
+            const SizedBox(height: AppTheme.kPaddingLarge),
             ReportProgressStepper(
               status: 'draft', 
               isLost: isLost,
               isEdit: isEditing,
             ),
-            const SizedBox(height: AppTheme.kPaddingLarge),
-            _buildTabSelector(isEditing: isEditing, isTeknisi: session.isTeknisi),
             const SizedBox(height: AppTheme.kPaddingLarge),
             _buildPhotoPicker(),
             const SizedBox(height: AppTheme.kPaddingLarge),
@@ -297,13 +312,18 @@ class _CreateReportPageState extends State<CreateReportPage> {
             if (isLost) ...[
               CustomTextField(
                 label: "Nomor WhatsApp (Aktif)",
-                hint: "08xxxxxxxxx",
+                hint: "Contoh: +628123456789 atau 08123456789",
                 isRequired: true,
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\+?[0-9]*')),
+                  LengthLimitingTextInputFormatter(18),
+                ],
                 onChanged: (_) => setState(() {}),
               ),
-              if (_isFinalizing && _phoneController.text.isEmpty) _buildErrorText("Nomor WhatsApp wajib diisi"),
+              if (_isFinalizing && (_phoneController.text.length < 4 || _phoneController.text.length > 18)) 
+                _buildErrorText("Nomor WhatsApp harus 4-18 karakter"),
             ],
 
             _buildLabel("Kategori", isRequired: true),

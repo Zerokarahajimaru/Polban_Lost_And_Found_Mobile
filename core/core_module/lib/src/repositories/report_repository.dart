@@ -146,15 +146,35 @@ class ReportRepository {
   }
 
   Future<void> deleteReport(String id, String status) async {
-    if (status.contains('pending') || status == 'draft') {
+    // Debug info to help trace the deletion process
+    debugPrint('Attempting to delete report: ID=$id, Status=$status');
+
+    // RULE: Only local-only reports (ID starting with draft_ or pending_) skip the server call.
+    // If it has a real server ID (e.g. MongoDB ObjectId), it MUST be deleted from the backend,
+    // even if the status is 'draft'.
+    final isLocalOnly = id.startsWith('draft_') || id.startsWith('pending_');
+
+    if (isLocalOnly) {
+      // For local items, ensure we target all possible Hive keys
       await _hiveService.reportsBox.delete(id);
+      
+      // If it's a pending update, the original ID is what's in the box
+      if (id.startsWith('pending_update_')) {
+        final originalId = id.replaceFirst('pending_update_', '');
+        await _hiveService.reportsBox.delete(originalId);
+      }
+      
+      debugPrint('Local report deleted from Hive: $id');
     } else {
+      // This is a server report, even if status is 'draft'
       try {
         await _networkService.dio.delete('/reports/$id');
         await _hiveService.reportsBox.delete(id);
+        debugPrint('Online report deleted: $id');
       } on DioException catch (e) {
         if (_isNetworkError(e)) {
           await queueDeleteForSync(id);
+          debugPrint('Delete queued for sync: $id');
         } else {
           rethrow;
         }
