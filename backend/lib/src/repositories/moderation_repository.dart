@@ -1,8 +1,8 @@
 import 'package:mongo_dart/mongo_dart.dart';
-import '../models/moderation_report.dart';
-import '../services/mongodb_service.dart';
-import '../models/notification.dart';
-import '../repositories/notification_repository.dart';
+import 'package:backend/src/models/moderation_report.dart';
+import 'package:backend/src/services/mongodb_service.dart';
+import 'package:backend/src/models/notification.dart';
+import 'package:backend/src/repositories/notification_repository.dart';
 
 class ModerationRepository {
   final _notifRepo = NotificationRepository();
@@ -60,15 +60,15 @@ class ModerationRepository {
 
     // 1. Find the actual post
     final postDoc = await reportsCol.findOne(where.id(ObjectId.fromHexString(postId)));
-    if (postDoc == null) throw Exception("Postingan tidak ditemukan.");
+    if (postDoc == null) throw Exception('Postingan tidak ditemukan.');
 
     // 2. Check if user already reported this post
     final existingMod = await modCol.findOne(where.eq('postId', postId));
     if (existingMod != null) {
-      final reporters = (existingMod['reporters'] as List<dynamic>? ?? []);
+      final reporters = existingMod['reporters'] as List<dynamic>? ?? [];
       final alreadyReported = reporters.any((r) => r['nim'] == reporterNim);
       if (alreadyReported) {
-        throw Exception("Anda sudah melaporkan postingan ini sebelumnya.");
+        throw Exception('Anda sudah melaporkan postingan ini sebelumnya.');
       }
     }
 
@@ -80,17 +80,19 @@ class ModerationRepository {
 
     // Get updated count
     final updatedPost = await reportsCol.findOne(where.id(ObjectId.fromHexString(postId)));
-    final int newCount = (updatedPost?['report_count'] ?? 0) as int;
+    final newCount = (updatedPost?['report_count'] ?? 0) as int;
 
     // 4. Auto-Takedown (under_review) if count >= 3 (Lowered from 5)
     if (newCount >= 3) {
       final currentStatus = updatedPost?['status_postingan']?.toString() ?? 'lost';
-      if (currentStatus != 'resolved' && currentStatus != 'blocked') {
+      if (currentStatus != 'resolved' && currentStatus != 'blocked' && currentStatus != 'under_review') {
         await reportsCol.updateOne(
           where.id(ObjectId.fromHexString(postId)),
           modify.set('status_postingan', 'under_review'),
         );
         
+        final uploaderId = updatedPost?['userId']?.toString();
+
         // Notify staff
         await _notifRepo.createNotification(NotificationModel(
           userId: 'staff_general', 
@@ -98,7 +100,18 @@ class ModerationRepository {
           pesan: 'Postingan "$postTitle" otomatis diturunkan sementara karena mencapai $newCount laporan. Silakan tinjau.',
           tipeNotif: 'report',
           createdAt: DateTime.now(),
-        ));
+        ),);
+
+        // Notify uploader
+        if (uploaderId != null) {
+          await _notifRepo.createNotification(NotificationModel(
+            userId: uploaderId,
+            judul: 'Postingan Ditinjau',
+            pesan: 'Postingan Anda "$postTitle" sedang dalam tinjauan moderasi karena menerima beberapa laporan dari pengguna lain.',
+            tipeNotif: 'system',
+            createdAt: DateTime.now(),
+          ),);
+        }
       }
     }
 
@@ -123,7 +136,7 @@ class ModerationRepository {
       );
       final data = newMod.toMap();
       data.remove('_id');
-      await col.insertOne(data);
+      await modCol.insertOne(data);
     }
   }
 
@@ -153,7 +166,7 @@ class ModerationRepository {
         pesan: 'Postingan Anda "${modReport.postTitle}" telah dihapus oleh tim moderasi karena melanggar aturan komunitas.',
         tipeNotif: 'system',
         createdAt: DateTime.now(),
-      ));
+      ),);
     }
   }
 

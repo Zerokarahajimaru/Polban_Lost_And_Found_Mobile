@@ -113,7 +113,7 @@ class _HomePageState extends State<HomePage> {
         onPressed: () {
           // TODO: Implement FAB action, maybe navigate to a 'create' page
         },
-        child: Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
+        child: const Icon(Icons.add, color: AppColors.primaryBlue, size: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(

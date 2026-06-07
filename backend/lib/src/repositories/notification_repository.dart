@@ -1,13 +1,13 @@
 import 'package:mongo_dart/mongo_dart.dart';
-import '../models/notification.dart';
-import '../services/mongodb_service.dart';
+import 'package:backend/src/models/notification.dart';
+import 'package:backend/src/services/mongodb_service.dart';
 
 class NotificationRepository {
   Future<List<NotificationModel>> getNotificationsByUserId(String userId) async {
     final db = await MongodbService.db;
     final col = db.collection('notifications');
     final results = await col.find(where.eq('user_id', userId).sortBy('created_at', descending: true)).toList();
-    return results.map((doc) => NotificationModel.fromMap(doc)).toList();
+    return results.map(NotificationModel.fromMap).toList();
   }
 
   Future<String> createNotification(NotificationModel notification) async {

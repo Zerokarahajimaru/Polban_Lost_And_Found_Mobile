@@ -1,4 +1,4 @@
-library core_module;
+library;
 
 // Widgets
 export 'src/widgets/custom_header.dart';
@@ -30,6 +30,7 @@ export 'src/repositories/notification_repository.dart';
 
 // Controllers
 export 'src/controllers/session_controller.dart';
+export 'src/controllers/notification_controller.dart';
 
 // Models
 export 'src/models/user_model.dart';

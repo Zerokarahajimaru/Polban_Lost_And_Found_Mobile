@@ -55,7 +55,7 @@ class CustomDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           isExpanded: true,
           dropdownColor: Colors.white,
           borderRadius: BorderRadius.circular(15),

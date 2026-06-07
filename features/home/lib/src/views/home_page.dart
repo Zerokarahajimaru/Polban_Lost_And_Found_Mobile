@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
@@ -8,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:timeago/timeago.dart' as timeago_lib;
 import '../controllers/home_controller.dart';
-import 'home_page_provider.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -183,10 +180,17 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Lottie.network(
-              'https://assets9.lottiefiles.com/packages/lf20_t9gkkhz4.json', 
-              height: 180,
-              repeat: true,
+            Container(
+              padding: const EdgeInsets.all(AppTheme.kPaddingLarge),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size: 100,
+                color: AppColors.primaryBlue,
+              ),
             ),
             const SizedBox(height: AppTheme.kPadding),
             Text(

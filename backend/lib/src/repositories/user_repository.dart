@@ -1,6 +1,6 @@
 import 'package:mongo_dart/mongo_dart.dart';
-import '../models/user_model.dart';
-import '../services/mongodb_service.dart';
+import 'package:backend/src/models/user_model.dart';
+import 'package:backend/src/services/mongodb_service.dart';
 
 class UserRepository {
   Future<UserModel?> getUserByEmail(String email) async {

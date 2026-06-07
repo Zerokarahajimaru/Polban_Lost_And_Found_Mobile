@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/color_service.dart';
 import '../theme/theme_service.dart';
+import '../controllers/session_controller.dart';
+import '../controllers/notification_controller.dart';
 
-class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
+class CustomHeader extends StatefulWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
   final VoidCallback? onNotificationTap;
@@ -17,6 +20,28 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
     this.bottomChild,
     this.extraHeight = 0,
   });
+
+  @override
+  State<CustomHeader> createState() => _CustomHeaderState();
+
+  @override
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + extraHeight + 40);
+}
+
+class _CustomHeaderState extends State<CustomHeader> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialNotifications();
+    });
+  }
+
+  void _loadInitialNotifications() {
+    if (!mounted) return;
+    final session = context.read<SessionController>();
+    context.read<NotificationController>().loadNotificationsForUser(session);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +59,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
             left: 0,
             right: 0,
             child: Container(
-              height: 60 + extraHeight,
+              height: 60 + widget.extraHeight,
               decoration: const BoxDecoration(
                 color: AppColors.primaryYellow,
                 borderRadius: BorderRadius.only(
@@ -46,7 +71,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           // Main Blue Header with curve
           Container(
-            height: preferredSize.height - 4,
+            height: widget.preferredSize.height - 4,
             decoration: const BoxDecoration(
               color: AppColors.primaryBlue,
               borderRadius: BorderRadius.only(
@@ -69,7 +94,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
                         Expanded(
                           child: Row(
                             children: [
-                              if (showBackButton)
+                              if (widget.showBackButton)
                                 IconButton(
                                   icon: const Icon(
                                     Icons.chevron_left_rounded,
@@ -80,7 +105,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
                                 ),
                               Flexible(
                                 child: Text(
-                                  title,
+                                  widget.title,
                                   style: theme.textTheme.headlineSmall?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -95,7 +120,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
                       ],
                     ),
                   ),
-                  if (bottomChild != null) bottomChild!,
+                  if (widget.bottomChild != null) widget.bottomChild!,
                 ],
               ),
             ),
@@ -106,41 +131,50 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildNotificationIcon(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            color: AppColors.primaryYellow,
-            size: 28,
-          ),
-          onPressed: onNotificationTap ?? () {},
-        ),
-        Positioned(
-          right: 8,
-          top: 8,
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primaryBlue, width: 1.5),
-            ),
-            child: const Text(
-              '3',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
+    return Consumer<NotificationController>(
+      builder: (context, controller, child) {
+        final count = controller.unreadCount;
+        
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: AppColors.primaryYellow,
+                size: 28,
               ),
+              onPressed: widget.onNotificationTap ?? () {},
             ),
-          ),
-        ),
-      ],
+            if (count > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primaryBlue, width: 1.5),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    count > 9 ? '9+' : count.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
-
-  @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight + extraHeight + 40);
 }

@@ -88,7 +88,7 @@ class MyApp extends StatelessWidget {
               routes: [
                 GoRoute(
                   path: '/home',
-                  builder: (context, state) => HomePageProvider(),
+                  builder: (context, state) => const HomePageProvider(),
                 ),
               ],
             ),

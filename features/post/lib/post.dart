@@ -1,4 +1,4 @@
-library post;
+library;
 
 /// Public API untuk post feature (termasuk report post)
 export 'src/models/report_post_model.dart';

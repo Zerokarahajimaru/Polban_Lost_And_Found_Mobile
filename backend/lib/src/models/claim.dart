@@ -1,15 +1,6 @@
 import 'package:mongo_dart/mongo_dart.dart';
 
 class Claim {
-  final String? id;
-  final String reportId;
-  final String reportTitle;
-  final String claimantName;
-  final String claimantId;
-  final String claimantEmail;
-  final String? reportImageUrl;
-  final String status;
-  final DateTime createdAt;
 
   const Claim({
     this.id,
@@ -44,6 +35,15 @@ class Claim {
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? map['created_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
+  final String? id;
+  final String reportId;
+  final String reportTitle;
+  final String claimantName;
+  final String claimantId;
+  final String claimantEmail;
+  final String? reportImageUrl;
+  final String status;
+  final DateTime createdAt;
 
   Map<String, dynamic> toMap() {
     return {

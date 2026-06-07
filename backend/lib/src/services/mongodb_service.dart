@@ -26,7 +26,7 @@ class MongodbService {
         throw Exception('MONGO_ATLAS_URI is not set in the .env file');
       }
 
-      final sanitizedUri = Uri.parse(rawUri).replace(queryParameters: null).toString();
+      final sanitizedUri = Uri.parse(rawUri).replace().toString();
 
       _db = await Db.create(sanitizedUri);
       await _db!.open();

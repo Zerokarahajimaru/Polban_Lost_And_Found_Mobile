@@ -1,4 +1,4 @@
-library home;
+library;
 
 export 'src/controllers/home_controller.dart';
 export 'src/views/home_page.dart';

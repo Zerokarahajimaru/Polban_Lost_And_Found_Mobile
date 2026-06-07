@@ -1,9 +1,6 @@
 import 'package:mongo_dart/mongo_dart.dart';
 
 class ModerationReporter {
-  final String name;
-  final String nim;
-  final String reason;
 
   ModerationReporter({
     required this.name,
@@ -18,6 +15,9 @@ class ModerationReporter {
       reason: map['reason']?.toString() ?? '',
     );
   }
+  final String name;
+  final String nim;
+  final String reason;
 
   Map<String, dynamic> toMap() => {
     'name': name,
@@ -27,15 +27,6 @@ class ModerationReporter {
 }
 
 class ModerationReportModel {
-  final String? id;
-  final String postId;
-  final String postTitle;
-  final String reportReason;
-  final String uploaderName;
-  final String? postImageUrl;
-  final List<ModerationReporter> reporters;
-  final String status; // 'pending', 'takenDown', 'ignored'
-  final DateTime reportedAt;
 
   ModerationReportModel({
     this.id,
@@ -66,6 +57,15 @@ class ModerationReportModel {
       DateTime.now(),
     );
   }
+  final String? id;
+  final String postId;
+  final String postTitle;
+  final String reportReason;
+  final String uploaderName;
+  final String? postImageUrl;
+  final List<ModerationReporter> reporters;
+  final String status; // 'pending', 'takenDown', 'ignored'
+  final DateTime reportedAt;
 
   Map<String, dynamic> toMap() {
     return {

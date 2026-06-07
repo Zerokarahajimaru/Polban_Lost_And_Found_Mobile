@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import '../../lib/src/repositories/moderation_repository.dart';
-import '../../lib/src/models/moderation_report.dart';
+import 'package:backend/src/repositories/moderation_repository.dart';
+import 'package:backend/src/models/moderation_report.dart';
 
 final _repo = ModerationRepository();
 

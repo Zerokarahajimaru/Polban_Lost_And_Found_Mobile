@@ -147,8 +147,20 @@ class ReportController extends ChangeNotifier {
     String? existingId,
     String? userId,
   }) async {
+    _isLoading = true;
+    notifyListeners();
     try {
-      final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
+      final dataWithUser = {...reportData, if (userId != null) 'userId': userId, 'status': 'draft'};
+      
+      // If it's an existing synced report (not starting with draft_ or pending_), update it online too
+      if (existingId != null && !existingId.startsWith('draft_') && !existingId.startsWith('pending_')) {
+        await _reportRepository.updateReportOnline(
+          id: existingId, 
+          reportData: dataWithUser,
+          imageFile: localImagePath != null ? File(localImagePath) : null,
+        );
+      }
+
       await _reportRepository.saveAsDraft(
         reportData: dataWithUser,
         localImagePath: localImagePath,
@@ -160,6 +172,8 @@ class ReportController extends ChangeNotifier {
     } catch (e) {
       _message = 'Gagal menyimpan draft: $e';
       _lastOperationFailed = true;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }

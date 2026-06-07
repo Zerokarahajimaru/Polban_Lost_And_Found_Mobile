@@ -1,4 +1,4 @@
-library claim;
+library;
 
 export 'src/views/claim_queue_page.dart';
 export 'src/views/verification_page.dart';

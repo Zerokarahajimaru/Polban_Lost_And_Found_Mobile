@@ -68,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   trailing: Switch(
                     value: isNotifOn,
                     onChanged: (val) => setState(() => isNotifOn = val),
-                    activeColor: Colors.greenAccent,
+                    activeThumbColor: Colors.greenAccent,
                   ),
                 ),
                 const Divider(indent: 20, endIndent: 20),

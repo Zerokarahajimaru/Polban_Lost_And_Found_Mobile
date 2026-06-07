@@ -47,7 +47,7 @@ class ReportPostController extends ChangeNotifier {
   // Form state
   ReportReason? _selectedReason;
   String _description = '';
-  List<File> _attachments = [];
+  final List<File> _attachments = [];
 
   // Public getters
   ReportPostState get state => _state;

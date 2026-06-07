@@ -1,24 +1,6 @@
 import 'package:mongo_dart/mongo_dart.dart';
 
 class ReportModel {
-  final String? id;
-  final String userId;
-  final String namaBarang;
-  final String kategoriBarang;
-  final String statusPostingan; // 'lost', 'found', 'resolved'
-  final String deskripsiBarang;
-  final String lokasiKehilangan;
-  final String kontak;
-  final int reportCount;
-  final DateTime lastActivityAt;
-  final bool isSynced;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final List<String> images;
-  final BountyModel? bounty;
-  final String? claimantName;
-  final String? claimantId;
-  final DateTime? resolvedAt;
 
   ReportModel({
     this.id,
@@ -65,6 +47,24 @@ class ReportModel {
       resolvedAt: map['resolved_at'] != null ? DateTime.parse(map['resolved_at'] as String) : null,
     );
   }
+  final String? id;
+  final String userId;
+  final String namaBarang;
+  final String kategoriBarang;
+  final String statusPostingan; // 'lost', 'found', 'resolved'
+  final String deskripsiBarang;
+  final String lokasiKehilangan;
+  final String kontak;
+  final int reportCount;
+  final DateTime lastActivityAt;
+  final bool isSynced;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final List<String> images;
+  final BountyModel? bounty;
+  final String? claimantName;
+  final String? claimantId;
+  final DateTime? resolvedAt;
 
   Map<String, dynamic> toMap() {
     return {
@@ -91,18 +91,18 @@ class ReportModel {
 }
 
 class BountyModel {
-  final int amount;
-  final String description;
 
   BountyModel({required this.amount, required this.description});
-
-  Map<String, dynamic> toMap() => {
-        'bounty_amount': amount,
-        'bounty_description': description,
-      };
 
   factory BountyModel.fromMap(Map<String, dynamic> map) => BountyModel(
         amount: (map['bounty_amount'] ?? 0) as int,
         description: (map['bounty_description'] ?? '').toString(),
       );
+  final int amount;
+  final String description;
+
+  Map<String, dynamic> toMap() => {
+        'bounty_amount': amount,
+        'bounty_description': description,
+      };
 }

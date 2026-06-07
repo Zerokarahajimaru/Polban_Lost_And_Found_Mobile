@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:mongo_dart/mongo_dart.dart';
-import '../../lib/src/services/mongodb_service.dart';
+import 'package:backend/src/services/mongodb_service.dart';
 
 Future<Response> onRequest(RequestContext context, String id) async {
   // Normalize ID: Remove ObjectId("...") wrapper if present
-  String cleanId = id;
+  var cleanId = id;
   if (cleanId.startsWith('ObjectId("') && cleanId.endsWith('")')) {
     cleanId = cleanId.substring(10, cleanId.length - 2);
   }
@@ -27,7 +27,7 @@ Future<Response> onRequest(RequestContext context, String id) async {
       payload.remove('_id');
       payload.remove('id');
       
-      await reportsCollection.updateOne(where.id(objectId), {'\$set': payload});
+      await reportsCollection.updateOne(where.id(objectId), {r'$set': payload});
       return Response(body: 'Report updated');
     }
 

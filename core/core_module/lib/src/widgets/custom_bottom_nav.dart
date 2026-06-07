@@ -6,7 +6,7 @@ class CustomBottomNav extends StatelessWidget {
   final Function(int) onTap;
   final bool isTeknisi;
 
-  const CustomBottomNav({
+  const CustomBottomNav({super.key, 
     required this.currentIndex,
     required this.onTap,
     this.isTeknisi = false,

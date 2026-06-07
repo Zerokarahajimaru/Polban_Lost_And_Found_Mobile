@@ -5,10 +5,14 @@ import '../models/moderation_report.dart';
 class ModerationRepository {
   final _networkService = NetworkService();
 
-  Future<List<ModerationReport>> fetchReports() async {
+  Future<List<ModerationReport>> fetchReports({String? status}) async {
     try {
-      final response =
-          await _networkService.dio.get('/moderation', queryParameters: {'status': 'pending'});
+      final queryParams = <String, dynamic>{};
+      if (status != null) {
+        queryParams['status'] = status;
+      }
+      
+      final response = await _networkService.dio.get('/moderation', queryParameters: queryParams);
       final data = response.data as List<dynamic>;
       return data
           .map((item) => ModerationReport.fromMap(item as Map<String, dynamic>))

@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 // Corrected import path
-import '../lib/src/repositories/user_repository.dart';
-import '../lib/src/models/user_model.dart';
+import 'package:backend/src/repositories/user_repository.dart';
+import 'package:backend/src/models/user_model.dart';
 
 
 Future<Response> onRequest(RequestContext context) async {

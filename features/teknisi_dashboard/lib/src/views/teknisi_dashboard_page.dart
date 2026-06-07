@@ -241,7 +241,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       decoration: const InputDecoration(labelText: 'Bulan'),
-                      value: selectedMonth,
+                      initialValue: selectedMonth,
                       items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                       onChanged: (val) => setModalState(() => selectedMonth = val!),
                     ),
@@ -250,7 +250,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       decoration: const InputDecoration(labelText: 'Tahun'),
-                      value: selectedYear,
+                      initialValue: selectedYear,
                       items: ['2025', '2026', '2027'].map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                       onChanged: (val) => setModalState(() => selectedYear = val!),
                     ),

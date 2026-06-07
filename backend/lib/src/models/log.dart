@@ -1,9 +1,4 @@
 class LogModel {
-  final String? id;
-  final String userId;
-  final String targetId; // ID Report atau ID User lain
-  final String aksi;
-  final DateTime actionPerformedAt;
 
   LogModel({
     this.id,
@@ -12,6 +7,11 @@ class LogModel {
     required this.aksi,
     required this.actionPerformedAt,
   });
+  final String? id;
+  final String userId;
+  final String targetId; // ID Report atau ID User lain
+  final String aksi;
+  final DateTime actionPerformedAt;
 
   Map<String, dynamic> toMap() => {
     'user_id': userId,

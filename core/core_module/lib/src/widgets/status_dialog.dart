@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import '../theme/color_service.dart';
 import '../theme/theme_service.dart';
 
@@ -51,12 +50,17 @@ class StatusDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Lottie.network(
-              isSuccess
-                  ? 'https://assets10.lottiefiles.com/packages/lf20_afwjhign.json'
-                  : 'https://assets10.lottiefiles.com/packages/lf20_ghunp9cd.json',
-              height: 120,
-              repeat: false,
+            Container(
+              padding: const EdgeInsets.all(AppTheme.kPaddingLarge),
+              decoration: BoxDecoration(
+                color: (isSuccess ? AppColors.primaryBlue : AppColors.error).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isSuccess ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded,
+                size: 80,
+                color: isSuccess ? AppColors.primaryBlue : AppColors.error,
+              ),
             ),
             const SizedBox(height: AppTheme.kPadding),
             Text(

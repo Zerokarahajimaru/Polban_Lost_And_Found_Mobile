@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../models/moderation_report.dart';
 import '../repositories/moderation_repository.dart';
 
@@ -28,7 +29,7 @@ class ModerationController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _reports = await _repository.fetchReports();
+      _reports = await _repository.fetchReports(status: 'pending');
       _lastOperationFailed = false;
     } catch (e) {
       _message = 'Gagal memuat laporan moderasi.';
@@ -38,7 +39,6 @@ class ModerationController extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   Future<void> takedownReport(String reportId) async {
     _isLoading = true;
@@ -103,10 +103,16 @@ class ModerationController extends ChangeNotifier {
       );
       _message = 'Laporan berhasil dikirimkan.';
       _lastOperationFailed = false;
+    } on DioException catch (e) {
+      final responseBody = e.response?.data?.toString() ?? '';
+      if (responseBody.contains("sudah melaporkan")) {
+        _message = "Anda sudah melaporkan postingan ini sebelumnya.";
+      } else {
+        _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
+      }
+      _lastOperationFailed = true;
     } catch (e) {
-      _message = e.toString().contains("sudah melaporkan") 
-          ? "Anda sudah melaporkan postingan ini sebelumnya." 
-          : 'Gagal mengirimkan laporan. Coba lagi.';
+      _message = 'Terjadi error: $e';
       _lastOperationFailed = true;
     } finally {
       _isLoading = false;
@@ -116,10 +122,9 @@ class ModerationController extends ChangeNotifier {
 
   Future<bool> checkIfUserReported(String postId, String nim) async {
     try {
-      // In a real app, we might have a specific endpoint for this.
-      // For now, we search in the existing reports list.
-      final list = await _repository.fetchReports();
-      return list.any((r) => r.id.contains(postId) && r.reporters.any((rep) => rep.nim == nim));
+      // Fetch ALL reports to check if the user has EVER reported this post
+      final list = await _repository.fetchReports(); 
+      return list.any((r) => r.postId == postId && r.reporters.any((rep) => rep.nim == nim));
     } catch (e) {
       return false;
     }

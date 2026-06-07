@@ -20,6 +20,17 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadNotificationsForUser(SessionController session) async {
+    final userId = session.currentUser?.id;
+    if (userId == null) return;
+
+    final ids = [userId];
+    if (session.isTeknisi) {
+      ids.add('staff_general');
+    }
+    await loadNotifications(ids);
+  }
+
   Future<void> loadNotifications(dynamic userId) async {
     _isLoading = true;
     notifyListeners();

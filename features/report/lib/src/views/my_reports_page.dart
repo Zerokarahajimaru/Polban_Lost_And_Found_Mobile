@@ -354,9 +354,9 @@ class _MyReportsPageState extends State<MyReportsPage>
             children: [
               Container(
                 width: 100,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.softGrey,
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                  borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
                 ),
                 child: ClipRRect(
                   borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),

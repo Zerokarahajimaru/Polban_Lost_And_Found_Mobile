@@ -74,20 +74,26 @@ class _CreateReportPageState extends State<CreateReportPage> {
   void _handleControllerUpdates() {
     if (!mounted) return;
     if (_reportController.message.isNotEmpty && _isFinalizing) {
+      final msg = _reportController.message;
+      final failed = _reportController.lastOperationFailed;
       _isFinalizing = false;
-      if (!_reportController.lastOperationFailed) {
+      
+      if (!failed) {
         StatusDialog.show(
           context,
           title: "Berhasil!",
-          message: _reportController.message,
-          onConfirm: () => Navigator.pop(context),
+          message: msg,
+          onConfirm: () {
+            Navigator.pop(context); // Pop dialog
+            Navigator.pop(context); // Pop CreateReportPage
+          },
         );
       } else {
          StatusDialog.show(
           context,
           isSuccess: false,
           title: "Info Sistem",
-          message: _reportController.message,
+          message: msg,
         );
       }
       _reportController.clearMessage();
@@ -145,39 +151,55 @@ class _CreateReportPageState extends State<CreateReportPage> {
     final session = context.read<SessionController>();
     final currentUser = session.currentUser;
     
-    File? imageToFinalize;
-    if (_imageFile != null) {
-      // [14] Image Compressor before upload
-      imageToFinalize = await ImageCompressService.compressImage(_imageFile!);
-    } else if (widget.existingReport?.localImagePath != null &&
-        widget.existingReport!.localImagePath!.isNotEmpty) {
-      imageToFinalize = File(widget.existingReport!.localImagePath!);
-    }
-
-    final oldImageExists = widget.existingReport?.imageUrl != null && widget.existingReport!.imageUrl.isNotEmpty;
-    if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null || oldImageExists)) {
-      setState(() {}); // Show validation errors
-      return;
-    }
-
     setState(() => _isFinalizing = true);
 
-    await context.read<ReportController>().finalizeReport(
-      reportData: {
-        'title': _nameController.text,
-        'description': _descController.text,
-        'location': _locationController.text,
-        'contact': _phoneController.text,
-        'category': _selectedCategory,
-        'reward': _rewardController.text,
-        'status': isLost ? 'lost' : 'found',
-        'createdAt': widget.existingReport?.createdAt.toIso8601String(),
-        'imageUrl': widget.existingReport?.imageUrl,
-      },
-      imageFile: imageToFinalize,
-      existingId: widget.existingReport?.id,
-      userId: currentUser?.id,
-    );
+    try {
+      File? imageToFinalize;
+      if (_imageFile != null) {
+        // [14] Image Compressor before upload
+        imageToFinalize = await ImageCompressService.compressImage(_imageFile!);
+      } else if (widget.existingReport?.localImagePath != null &&
+          widget.existingReport!.localImagePath!.isNotEmpty) {
+        imageToFinalize = File(widget.existingReport!.localImagePath!);
+      }
+
+      final oldImageExists = widget.existingReport?.imageUrl != null && widget.existingReport!.imageUrl.isNotEmpty;
+      if (!_isFormValid(isFinalizing: true, hasImage: imageToFinalize != null || oldImageExists)) {
+        setState(() => _isFinalizing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Harap lengkapi semua field yang wajib diisi dan unggah foto."),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      await context.read<ReportController>().finalizeReport(
+        reportData: {
+          'title': _nameController.text,
+          'description': _descController.text,
+          'location': _locationController.text,
+          'contact': _phoneController.text,
+          'category': _selectedCategory,
+          'reward': _rewardController.text,
+          'status': isLost ? 'lost' : 'found',
+          'createdAt': widget.existingReport?.createdAt.toIso8601String(),
+          'imageUrl': widget.existingReport?.imageUrl,
+        },
+        imageFile: imageToFinalize,
+        existingId: widget.existingReport?.id,
+        userId: currentUser?.id,
+      );
+    } catch (e) {
+      setState(() => _isFinalizing = false);
+      StatusDialog.show(
+        context,
+        isSuccess: false,
+        title: "Error",
+        message: "Terjadi kesalahan saat memproses laporan: $e",
+      );
+    }
   }
 
   Future<void> _onSaveDraft() async {
@@ -560,10 +582,10 @@ class _CreateReportPageState extends State<CreateReportPage> {
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.card_giftcard_rounded, size: 20, color: AppColors.primaryBlue),
-              const SizedBox(width: AppTheme.kPaddingSmall),
+              Icon(Icons.card_giftcard_rounded, size: 20, color: AppColors.primaryBlue),
+              SizedBox(width: AppTheme.kPaddingSmall),
               Text(
                 "Tawarkan Imbalan (Opsional)",
                 style: TextStyle(

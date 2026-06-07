@@ -3,11 +3,6 @@ import 'package:mongo_dart/mongo_dart.dart';
 enum UserRole { teknisi, user }
 
 class UserModel {
-  final ObjectId id;
-  final String name;
-  final String email;
-  final String password; // Should be hashed
-  final UserRole role;
 
   UserModel({
     required this.id,
@@ -16,6 +11,21 @@ class UserModel {
     required this.password,
     required this.role,
   });
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      id: map['_id'] as ObjectId,
+      name: map['name'] as String,
+      email: map['email'] as String,
+      password: map['password'] as String,
+      role: UserRole.values.firstWhere((e) => e.name == map['role']),
+    );
+  }
+  final ObjectId id;
+  final String name;
+  final String email;
+  final String password; // Should be hashed
+  final UserRole role;
 
   Map<String, dynamic> toMap() {
     return {
@@ -35,15 +45,5 @@ class UserModel {
       'email': email,
       'role': role.name,
     };
-  }
-
-  factory UserModel.fromMap(Map<String, dynamic> map) {
-    return UserModel(
-      id: map['_id'] as ObjectId,
-      name: map['name'] as String,
-      email: map['email'] as String,
-      password: map['password'] as String,
-      role: UserRole.values.firstWhere((e) => e.name == map['role']),
-    );
   }
 }

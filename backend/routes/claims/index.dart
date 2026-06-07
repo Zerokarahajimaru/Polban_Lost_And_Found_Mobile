@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import '../../lib/src/repositories/claim_repository.dart';
-import '../../lib/src/models/claim.dart';
+import 'package:backend/src/repositories/claim_repository.dart';
+import 'package:backend/src/models/claim.dart';
 
 final _repo = ClaimRepository();
 

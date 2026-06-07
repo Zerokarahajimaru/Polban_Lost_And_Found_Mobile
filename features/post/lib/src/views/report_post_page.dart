@@ -195,7 +195,7 @@ class _ReportPostPageState extends State<ReportPostPage> {
           Switch(
             value: _isHidingPost,
             onChanged: (val) => setState(() => _isHidingPost = val),
-            activeColor: AppColors.primaryBlue,
+            activeThumbColor: AppColors.primaryBlue,
           ),
         ],
       ),
@@ -286,7 +286,7 @@ class _ReportPostPageState extends State<ReportPostPage> {
         message: "Terima kasih, laporan Anda sedang ditinjau oleh tim moderasi.",
         onConfirm: () {
           Navigator.pop(context); // Close dialog
-          Navigator.pop(context); // Back to detail/home
+          Navigator.pop(context, true); // Back to detail/home with result true
         },
       );
     }

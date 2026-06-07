@@ -246,6 +246,10 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                             const SizedBox(height: AppTheme.kPadding),
                             _buildReportButton(context),
                           ] else ...[
+                             if (!isSynced && !isResolved) ...[
+                               _buildSubmitDraftButton(context),
+                               const SizedBox(height: AppTheme.kPadding),
+                             ],
                              Center(
                                child: Text(
                                  "Ini adalah postingan Anda.", 
@@ -273,6 +277,61 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildSubmitDraftButton(BuildContext context) {
+    final controller = context.watch<ReportController>();
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+      icon: controller.isLoading 
+        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryYellow))
+        : const Icon(Icons.send_rounded, color: AppColors.primaryYellow),
+      label: const Text("KIRIM LAPORAN"),
+      onPressed: controller.isLoading ? null : () => _handlePublishDraft(context),
+    );
+  }
+
+  Future<void> _handlePublishDraft(BuildContext context) async {
+    final controller = context.read<ReportController>();
+    final session = context.read<SessionController>();
+    final user = session.currentUser;
+
+    if (imageProvider == null) {
+       NotificationBanner.show(context, "Gambar wajib untuk mengirim laporan.", isError: true);
+       return;
+    }
+
+    File? imageFile;
+    if (localImagePath != null && localImagePath!.isNotEmpty) {
+      imageFile = File(localImagePath!);
+    }
+
+    try {
+      await controller.finalizeReport(
+        reportData: (widget.item as ReportModel).toMap(),
+        imageFile: imageFile,
+        existingId: id,
+        userId: user?.id,
+      );
+      
+      if (context.mounted) {
+        if (!controller.lastOperationFailed) {
+          StatusDialog.show(
+            context,
+            title: "Berhasil!",
+            message: "Laporan Anda telah berhasil diterbitkan.",
+            onConfirm: () {
+              Navigator.pop(context); // Pop dialog
+              Navigator.pop(context); // Pop DetailReportPage
+            },
+          );
+        } else {
+          NotificationBanner.show(context, controller.message, isError: true);
+        }
+      }
+    } catch (e) {
+      if (context.mounted) NotificationBanner.show(context, "Gagal mengirim: $e", isError: true);
+    }
   }
 
   Widget _buildKlaimButton(BuildContext context, bool hasAlreadyClaimed) {
@@ -398,7 +457,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         foregroundColor: _hasAlreadyReported ? AppColors.textGrey : AppColors.error,
         side: BorderSide(color: _hasAlreadyReported ? AppColors.mediumGrey : AppColors.error, width: 1.5),
       ),
-      icon: Icon(Icons.warning_outlined),
+      icon: const Icon(Icons.warning_outlined),
       label: Text(_hasAlreadyReported ? "TELAH DILAPORKAN" : "LAPORKAN POSTINGAN"),
       onPressed: _hasAlreadyReported ? null : () async {
         final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => ReportPostPageProvider(item: widget.item)));

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
-import '../controllers/notification_controller.dart';
 
 // ========================
 // HALAMAN NOTIFIKASI (KOTAK MASUK)
@@ -26,11 +25,7 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
     final session = context.read<SessionController>();
     final userId = session.currentUser?.id;
     if (userId != null) {
-      final ids = [userId];
-      if (session.isTeknisi) {
-        ids.add('staff_general');
-      }
-      context.read<NotificationController>().loadNotifications(ids);
+      context.read<NotificationController>().loadNotificationsForUser(session);
     }
   }
 

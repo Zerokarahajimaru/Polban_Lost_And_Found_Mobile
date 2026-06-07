@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import '../../lib/src/repositories/claim_repository.dart';
+import 'package:backend/src/repositories/claim_repository.dart';
 
 final _repo = ClaimRepository();
 
 Future<Response> onRequest(RequestContext context, String id) async {
   // Normalize ID: Remove ObjectId("...") wrapper if present
-  String cleanId = id;
+  var cleanId = id;
   if (cleanId.startsWith('ObjectId("') && cleanId.endsWith('")')) {
     cleanId = cleanId.substring(10, cleanId.length - 2);
   }

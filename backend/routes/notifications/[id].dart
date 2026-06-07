@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
-import '../../lib/src/repositories/notification_repository.dart';
+import 'package:backend/src/repositories/notification_repository.dart';
 
 final _repo = NotificationRepository();
 

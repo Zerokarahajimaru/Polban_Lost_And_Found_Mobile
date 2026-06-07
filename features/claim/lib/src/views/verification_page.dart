@@ -67,43 +67,14 @@ class VerificationPage extends StatelessWidget {
                             final success = await controller.finalizeVerification(claim.id);
                             
                             if (success && context.mounted) {
-                              final reportRepo = ReportRepository();
-                              final notifRepo = NotificationRepository();
-                              
-                              try {
-                                // 1. Update report status to resolved
-                                await reportRepo.updateReportStatus(
-                                  id: claim.reportId,
-                                  status: 'resolved',
-                                  claimantName: claim.claimantName,
-                                  claimantId: claim.claimantId,
-                                );
-
-                                // 2. Send notification to the claimant
-                                await notifRepo.sendNotification(
-                                  userId: claim.claimantId,
-                                  judul: 'Klaim Disetujui!',
-                                  pesan: 'Klaim Anda untuk "${claim.reportTitle}" telah diverifikasi teknisi. Barang sudah diserahterimakan.',
-                                  tipeNotif: 'claim',
-                                );
-                                
-                                if (context.mounted) {
-                                  context.read<ReportController>().getReports();
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Klaim diverifikasi & Laporan ditutup."),
-                                      backgroundColor: Colors.green,
-                                    )
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Error: $e"))
-                                  );
-                                }
-                              }
+                              context.read<ReportController>().getReports();
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Klaim diverifikasi & Laporan ditutup."),
+                                  backgroundColor: Colors.green,
+                                )
+                              );
                             } else if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

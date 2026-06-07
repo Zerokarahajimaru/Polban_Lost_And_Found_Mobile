@@ -1,4 +1,4 @@
-library login;
+library;
 
 export 'src/views/login_page.dart';
 export 'src/views/profile_page.dart';

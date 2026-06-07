@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:mongo_dart/mongo_dart.dart';
-import '../../lib/src/services/mongodb_service.dart';
+import 'package:backend/src/services/mongodb_service.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {

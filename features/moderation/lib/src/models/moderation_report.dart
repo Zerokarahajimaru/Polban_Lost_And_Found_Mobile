@@ -27,6 +27,7 @@ enum ModerationStatus { pending, takenDown, ignored }
 
 class ModerationReport {
   final String id;
+  final String postId;
   final String postTitle;
   final String reportReason;
   final List<ModerationReporter> reporters;
@@ -37,6 +38,7 @@ class ModerationReport {
 
   ModerationReport({
     required this.id,
+    required this.postId,
     required this.postTitle,
     required this.reportReason,
     required this.reporters,
@@ -53,6 +55,7 @@ class ModerationReport {
     return [
       ModerationReport(
         id: 'mod_001',
+        postId: 'p_001',
         postTitle: 'My kisah',
         reportReason: 'Spam/Iklan',
         uploaderName: 'Ahmad Fauzi',
@@ -67,6 +70,7 @@ class ModerationReport {
       ),
       ModerationReport(
         id: 'mod_002',
+        postId: 'p_002',
         postTitle: 'Dompet Macan',
         reportReason: 'Penipuan/Barang Palsu',
         uploaderName: 'Liu Xiao',
@@ -91,6 +95,7 @@ class ModerationReport {
       ),
       ModerationReport(
         id: 'mod_003',
+        postId: 'p_003',
         postTitle: 'Jaket Kuning Polos',
         reportReason: 'Konten Tidak Sesuai',
         uploaderName: 'Riko Pratama',
@@ -114,6 +119,7 @@ class ModerationReport {
   factory ModerationReport.fromMap(Map<String, dynamic> map) {
     return ModerationReport(
       id: map['_id']?.toString() ?? map['id']?.toString() ?? '',
+      postId: map['postId']?.toString() ?? '',
       postTitle: map['postTitle']?.toString() ?? '',
       reportReason: map['reportReason']?.toString() ?? '',
       postImageUrl: map['postImageUrl']?.toString(),

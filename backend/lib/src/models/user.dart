@@ -1,12 +1,4 @@
 class UserModel {
-  final String? id;
-  final String namaLengkap;
-  final String email;
-  final String password; // Hash ini di backend!
-  final String role; // 'user' atau 'administration'
-  final String statusAkun; // 'active' atau 'banned'
-  final DateTime? banUntil;
-  final DateTime createdAt;
 
   UserModel({
     this.id,
@@ -18,17 +10,6 @@ class UserModel {
     this.banUntil,
     required this.createdAt,
   });
-
-  Map<String, dynamic> toMap() => {
-    '_id': id,
-    'nama_lengkap': namaLengkap,
-    'email': email,
-    'password': password,
-    'role': role,
-    'status_akun': statusAkun,
-    'ban_until': banUntil?.toIso8601String(),
-    'created_at': createdAt.toIso8601String(),
-  };
 
   factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
     id: map['_id']?.toString(),
@@ -49,4 +30,23 @@ class UserModel {
       map['created_at']?.toString() ?? DateTime.now().toIso8601String(),
     ),
   );
+  final String? id;
+  final String namaLengkap;
+  final String email;
+  final String password; // Hash ini di backend!
+  final String role; // 'user' atau 'administration'
+  final String statusAkun; // 'active' atau 'banned'
+  final DateTime? banUntil;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toMap() => {
+    '_id': id,
+    'nama_lengkap': namaLengkap,
+    'email': email,
+    'password': password,
+    'role': role,
+    'status_akun': statusAkun,
+    'ban_until': banUntil?.toIso8601String(),
+    'created_at': createdAt.toIso8601String(),
+  };
 }
