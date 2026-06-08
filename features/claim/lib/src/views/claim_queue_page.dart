@@ -31,7 +31,6 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
       ),
       body: Consumer<ClaimController>(
         builder: (context, controller, child) {
-          // ONLY SHOW PENDING CLAIMS IN THE QUEUE
           final pendingClaims = controller.claims.where((c) => c.status == 'pending').toList();
 
           if (controller.isLoading && pendingClaims.isEmpty) {
@@ -108,14 +107,14 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                image: claim.reportImageUrl != null
+                image: claim.reportImageUrl != null && claim.reportImageUrl!.isNotEmpty
                     ? DecorationImage(
                         image: NetworkImage(claim.reportImageUrl!),
                         fit: BoxFit.cover,
                       )
                     : null,
               ),
-              child: claim.reportImageUrl == null
+              child: claim.reportImageUrl == null || claim.reportImageUrl!.isEmpty
                   ? Icon(Icons.image_outlined, color: Colors.grey[400])
                   : null,
             ),
@@ -153,7 +152,7 @@ class _ClaimQueuePageState extends State<ClaimQueuePage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9C4), // Yellow
+                      color: const Color(0xFFFFF9C4), 
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(

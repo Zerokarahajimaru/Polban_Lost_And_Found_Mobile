@@ -20,6 +20,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ClaimController>().loadClaims();
+      context.read<ReportController>().getReports();
     });
   }
 
@@ -33,17 +34,16 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
       appBar: null,
       body: Stack(
         children: [
-          // 1. BACKGROUND LAYER: Scrollable Content
           Positioned.fill(
             child: RefreshIndicator(
               edgeOffset: 120,
               onRefresh: () async {
                 await context.read<ClaimController>().loadClaims();
+                await context.read<ReportController>().getReports();
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  // Reduced Header Spacer to fix the large gap
                   const SliverToBoxAdapter(child: SizedBox(height: 85)),
                   
                   SliverPadding(
@@ -66,7 +66,6 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                         ),
                         const SizedBox(height: 24),
 
-                        // REACTIVE CLAIM BANNER (Priority Focus)
                         Consumer<ClaimController>(
                           builder: (context, claimController, child) {
                             final pendingClaims = claimController.claims.where((c) => c.status == 'pending').length;
@@ -83,7 +82,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                           icon: Icons.picture_as_pdf_rounded,
                           label: 'Cetak Laporan Bulanan (PDF)',
                           accentColor: AppColors.primaryBlue,
-                          backgroundColor: const Color(0xFFE3F2FD), // Soft Blue
+                          backgroundColor: const Color(0xFFE3F2FD), 
                           onTap: () => _showPdfPeriodPicker(context),
                         ),
 
@@ -124,7 +123,6 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                         
                         const SizedBox(height: 24),
 
-                        // LOGOUT BUTTON
                         _MenuWideTile(
                           icon: Icons.logout_rounded,
                           label: 'Keluar Portal',
@@ -142,7 +140,6 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
             ),
           ),
 
-          // 2. FOREGROUND LAYER: Fixed Header Only (Stats Card removed)
           Positioned(
             top: 0,
             left: 0,
@@ -183,15 +180,12 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
   }
 
   void _handleLogout(BuildContext context) {
-    // 1. Clear Security State
     context.read<ReportController>().clearData();
     context.read<ClaimController>().clearData();
     context.read<NotificationController>().clearData();
     
-    // 2. Clear Session
     context.read<SessionController>().logout();
     
-    // 3. Redirect
     context.go('/login');
     
     NotificationBanner.show(context, 'Anda telah keluar.');

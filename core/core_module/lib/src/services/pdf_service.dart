@@ -14,12 +14,27 @@ class PdfService {
   }) async {
     final pdf = pw.Document();
 
-    // 1. Filter reports for the given month and year
+    final Map<String, int> monthMap = {
+      'january': 1, 'januari': 1,
+      'february': 2, 'februari': 2,
+      'march': 3, 'maret': 3,
+      'april': 4,
+      'may': 5, 'mei': 5,
+      'june': 6, 'juni': 6,
+      'july': 7, 'juli': 7,
+      'august': 8, 'agustus': 8,
+      'september': 9,
+      'october': 10, 'oktober': 10,
+      'november': 11,
+      'december': 12, 'desember': 12,
+    };
+    final targetMonth = monthMap[month.toLowerCase()];
+
     final filteredReports = reports.where((r) {
       final date = r.createdAt;
-      final m = DateFormat('MMMM').format(date);
+      final matchMonth = targetMonth == null || date.month == targetMonth;
       final y = date.year.toString();
-      return m.toLowerCase() == month.toLowerCase() && y == year;
+      return matchMonth && y == year;
     }).toList();
 
     final totalFound = filteredReports.where((r) => r.status.toLowerCase() == 'found').length;
@@ -32,7 +47,6 @@ class PdfService {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            // HEADER / KOP SURAT
             pw.Column(
               children: [
                 pw.Text("KEMENTERIAN PENDIDIKAN, KEBUDAYAAN,", style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
@@ -45,7 +59,6 @@ class PdfService {
               ],
             ),
 
-            // JUDUL
             pw.Center(
               child: pw.Text(
                 "BERITA ACARA INVENTARIS BARANG HILANG & TEMUAN",
@@ -57,14 +70,12 @@ class PdfService {
             ),
             pw.SizedBox(height: 30),
 
-            // RINGKASAN
             pw.Text("Ringkasan Laporan:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             pw.Bullet(text: "Total Barang Temuan (Di Lab): $totalFound"),
             pw.Bullet(text: "Total Barang Dikembalikan: $totalResolved"),
             pw.Bullet(text: "Total Laporan Kehilangan: $totalLost"),
             pw.SizedBox(height: 20),
 
-            // TABEL
             pw.TableHelper.fromTextArray(
               headers: ['No', 'Tanggal', 'Nama Barang', 'Kategori', 'Status', 'Pengambil'],
               data: List<List<dynamic>>.generate(filteredReports.length, (index) {
@@ -93,7 +104,6 @@ class PdfService {
 
             pw.SizedBox(height: 50),
 
-            // TANDA TANGAN
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
@@ -122,7 +132,6 @@ class PdfService {
       ),
     );
 
-    // 2. Open Preview
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 }

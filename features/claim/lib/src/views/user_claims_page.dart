@@ -29,11 +29,9 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.softGrey,
-      // 1. Remove appBar property for manual layering
       appBar: null,
       body: Column(
         children: [
-          // 2. Header and Floating Stats Card Section
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -51,7 +49,6 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
             ],
           ),
 
-          // 3. Content Section
           Expanded(
             child: Consumer<ClaimController>(
               builder: (context, controller, child) {
@@ -70,7 +67,7 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
 
                 return Column(
                   children: [
-                    const SizedBox(height: 60), // Extra spacing for floating stats card
+                    const SizedBox(height: 60), 
                     Expanded(
                       child: RefreshIndicator(
                         displacement: 20,
@@ -196,11 +193,11 @@ class _UserClaimsPageState extends State<UserClaimsPage> {
               decoration: BoxDecoration(
                 color: AppColors.softGrey,
                 borderRadius: BorderRadius.circular(15),
-                image: claim.reportImageUrl != null
+                image: claim.reportImageUrl != null && claim.reportImageUrl!.isNotEmpty
                     ? DecorationImage(image: NetworkImage(claim.reportImageUrl!), fit: BoxFit.cover)
                     : null,
               ),
-              child: claim.reportImageUrl == null ? const Icon(Icons.image_outlined, color: Colors.grey) : null,
+              child: claim.reportImageUrl == null || claim.reportImageUrl!.isEmpty ? const Icon(Icons.image_outlined, color: Colors.grey) : null,
             ),
             const SizedBox(width: 16),
             Expanded(

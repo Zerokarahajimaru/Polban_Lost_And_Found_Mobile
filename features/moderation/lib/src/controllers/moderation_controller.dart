@@ -4,7 +4,10 @@ import '../models/moderation_report.dart';
 import '../repositories/moderation_repository.dart';
 
 class ModerationController extends ChangeNotifier {
-  final _repository = ModerationRepository();
+  final ModerationRepository _repository;
+
+  ModerationController({ModerationRepository? repository})
+      : _repository = repository ?? ModerationRepository();
 
   List<ModerationReport> _reports = [];
   bool _isLoading = false;
@@ -122,7 +125,6 @@ class ModerationController extends ChangeNotifier {
 
   Future<bool> checkIfUserReported(String postId, String nim) async {
     try {
-      // Fetch ALL reports to check if the user has EVER reported this post
       final list = await _repository.fetchReports(); 
       return list.any((r) => r.postId == postId && r.reporters.any((rep) => rep.nim == nim));
     } catch (e) {

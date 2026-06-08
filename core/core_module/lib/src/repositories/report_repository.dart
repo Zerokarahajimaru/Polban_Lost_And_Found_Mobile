@@ -7,9 +7,17 @@ import '../services/network_service.dart';
 import '../services/cloudinary_service.dart';
 
 class ReportRepository {
-  final _networkService = NetworkService();
-  final _hiveService = HiveService();
-  final _cloudinaryService = CloudinaryService();
+  final NetworkService _networkService;
+  final HiveService _hiveService;
+  final CloudinaryService _cloudinaryService;
+
+  ReportRepository({
+    NetworkService? networkService,
+    HiveService? hiveService,
+    CloudinaryService? cloudinaryService,
+  })  : _networkService = networkService ?? NetworkService(),
+        _hiveService = hiveService ?? HiveService(),
+        _cloudinaryService = cloudinaryService ?? CloudinaryService();
 
   Future<List<ReportModel>> getReports({String? userId}) async {
     try {
@@ -17,11 +25,8 @@ class ReportRepository {
       final queryParams = userId != null ? {'userId': userId} : null;
       final response = await _networkService.dio.get('/reports', queryParameters: queryParams);
       final serverData = response.data as List;
-      final serverReports =
-          serverData.map((item) => ReportModel.fromMap(item)).toList();
-      
+      final serverReports = serverData.map((item) => ReportModel.fromMap(item)).toList();
       await _updateCache(serverReports);
-      
       return _loadAllFromCache(filterByUserId: userId);
     } catch (e) {
       debugPrint('Network unavailable or server error. Loading from cache. Error: $e');
@@ -55,8 +60,6 @@ class ReportRepository {
     required File imageFile,
   }) async {
     final imageUrl = await _cloudinaryService.uploadImage(imageFile);
-    
-    // Map to backend snake_case
     final postData = {
       'userId': reportData['userId'],
       'nama_barang': reportData['title'],
@@ -68,7 +71,6 @@ class ReportRepository {
       'status_postingan': reportData['status'],
       'images': [imageUrl],
     };
-    
     await _networkService.dio.post('/reports', data: postData);
   }
 
@@ -81,7 +83,6 @@ class ReportRepository {
     if (imageFile != null) {
       imageUrl = await _cloudinaryService.uploadImage(imageFile);
     }
-    
     final putData = {
       'nama_barang': reportData['title'],
       'deskripsi_barang': reportData['description'],
@@ -92,7 +93,6 @@ class ReportRepository {
       'status_postingan': reportData['status'],
       if (imageUrl != null) 'images': [imageUrl],
     };
-    
     await _networkService.dio.put('/reports/$id', data: putData);
   }
 
@@ -110,7 +110,7 @@ class ReportRepository {
     };
     await _networkService.dio.put('/reports/$id', data: data);
   }
-  
+
   Future<void> queueCreateForSync({
     required Map<String, dynamic> reportData,
     required String localImagePath,
@@ -146,27 +146,17 @@ class ReportRepository {
   }
 
   Future<void> deleteReport(String id, String status) async {
-    // Debug info to help trace the deletion process
     debugPrint('Attempting to delete report: ID=$id, Status=$status');
-
-    // RULE: Only local-only reports (ID starting with draft_ or pending_) skip the server call.
-    // If it has a real server ID (e.g. MongoDB ObjectId), it MUST be deleted from the backend,
-    // even if the status is 'draft'.
     final isLocalOnly = id.startsWith('draft_') || id.startsWith('pending_');
 
     if (isLocalOnly) {
-      // For local items, ensure we target all possible Hive keys
       await _hiveService.reportsBox.delete(id);
-      
-      // If it's a pending update, the original ID is what's in the box
       if (id.startsWith('pending_update_')) {
         final originalId = id.replaceFirst('pending_update_', '');
         await _hiveService.reportsBox.delete(originalId);
       }
-      
       debugPrint('Local report deleted from Hive: $id');
     } else {
-      // This is a server report, even if status is 'draft'
       try {
         await _networkService.dio.delete('/reports/$id');
         await _hiveService.reportsBox.delete(id);
@@ -181,10 +171,9 @@ class ReportRepository {
       }
     }
   }
-  
+
   Future<void> _syncPendingReports() async {
     final keys = _hiveService.reportsBox.keys.toList();
-    
     for (final key in keys) {
       if (key.toString().startsWith('pending_create_')) {
         final data = Map<String, dynamic>.from(_hiveService.reportsBox.get(key)!);
@@ -232,11 +221,8 @@ class ReportRepository {
       if (map != null && !key.toString().startsWith('pending_delete_')) {
         final dataWithId = Map<String, dynamic>.from(map);
         final report = ReportModel.fromMap(dataWithId);
-        
         if (filterByUserId != null) {
-          if (report.userId == filterByUserId) {
-            reports.add(report);
-          }
+          if (report.userId == filterByUserId) reports.add(report);
         } else {
           reports.add(report);
         }
@@ -248,7 +234,7 @@ class ReportRepository {
 
   bool _isNetworkError(DioException e) {
     return e.type == DioExceptionType.connectionError ||
-           e.type == DioExceptionType.connectionTimeout ||
-           e.type == DioExceptionType.unknown;
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.unknown;
   }
 }

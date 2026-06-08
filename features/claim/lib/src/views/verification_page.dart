@@ -150,7 +150,7 @@ class VerificationPage extends StatelessWidget {
               color: Colors.grey[300],
               width: double.infinity,
               height: double.infinity,
-              child: claim.reportImageUrl != null
+              child: claim.reportImageUrl != null && claim.reportImageUrl!.isNotEmpty
                 ? Image.network(claim.reportImageUrl!, fit: BoxFit.cover)
                 : const Icon(Icons.image_outlined, size: 50, color: Colors.grey),
             ),

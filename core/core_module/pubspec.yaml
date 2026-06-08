@@ -24,6 +24,8 @@ dependencies:
   path_provider: ^2.1.5
   equatable: ^2.0.8
   uuid: ^4.0.0
+  pdf: ^3.12.0
+  printing: ^5.13.1
 
 dev_dependencies:
   url_launcher: ^6.3.1

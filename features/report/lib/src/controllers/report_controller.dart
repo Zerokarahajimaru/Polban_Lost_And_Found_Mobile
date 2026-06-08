@@ -4,10 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 class ReportController extends ChangeNotifier {
-  final _reportRepository = ReportRepository();
+  final ReportRepository _reportRepository;
+
+  ReportController({ReportRepository? reportRepository})
+      : _reportRepository = reportRepository ?? ReportRepository();
 
   List<ReportModel> _reports = [];
-  List<ReportModel> _myReports = []; // Dedicated list for personal reports
+  List<ReportModel> _myReports = [];
   String _message = '';
   bool _isLoading = false;
   bool _lastOperationFailed = false;
@@ -29,11 +32,9 @@ class ReportController extends ChangeNotifier {
     _message = '';
   }
 
-  /// Fetches ALL reports for the public feed.
   Future<void> getReports() async {
     _isLoading = true;
     notifyListeners();
-
     try {
       final newReports = await _reportRepository.getReports();
       _reports = newReports;
@@ -47,11 +48,9 @@ class ReportController extends ChangeNotifier {
     }
   }
 
-  /// Fetches reports filtered by [userId] for the "My Reports" page.
   Future<void> getMyReports(String userId) async {
     _isLoading = true;
     notifyListeners();
-
     try {
       final results = await _reportRepository.getReports(userId: userId);
       _myReports = results;
@@ -73,10 +72,10 @@ class ReportController extends ChangeNotifier {
   }) async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       final dataWithUser = {...reportData, if (userId != null) 'userId': userId};
-      
+
       if (existingId != null && existingId.startsWith('draft_')) {
         if (imageFile == null) throw Exception("Gambar wajib untuk finalisasi draft.");
         try {
@@ -112,23 +111,21 @@ class ReportController extends ChangeNotifier {
           _lastOperationFailed = false;
         } on DioException catch (e) {
           if (_isNetworkError(e)) {
-            // [QA] Auto-save as draft on network failure for NEW reports
             await _reportRepository.saveAsDraft(
               reportData: dataWithUser,
               localImagePath: imageFile.path,
             );
             _message = 'Koneksi Bermasalah. Laporan otomatis disimpan sebagai Draft.';
-            _lastOperationFailed = false; // Set to false because we handled it by saving as draft
+            _lastOperationFailed = false;
           } else {
             rethrow;
           }
         }
       }
-      
-      // Refresh both lists
+
       await getReports();
       if (userId != null) await getMyReports(userId);
-      
+
     } on DioException catch (e) {
       _message = 'Gagal: ${e.response?.data?['message'] ?? e.message}';
       _lastOperationFailed = true;
@@ -151,11 +148,12 @@ class ReportController extends ChangeNotifier {
     notifyListeners();
     try {
       final dataWithUser = {...reportData, if (userId != null) 'userId': userId, 'status': 'draft'};
-      
-      // If it's an existing synced report (not starting with draft_ or pending_), update it online too
-      if (existingId != null && !existingId.startsWith('draft_') && !existingId.startsWith('pending_')) {
+
+      if (existingId != null &&
+          !existingId.startsWith('draft_') &&
+          !existingId.startsWith('pending_')) {
         await _reportRepository.updateReportOnline(
-          id: existingId, 
+          id: existingId,
           reportData: dataWithUser,
           imageFile: localImagePath != null ? File(localImagePath) : null,
         );
@@ -177,14 +175,11 @@ class ReportController extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> refreshFromCache({String? userId}) async {
     _reports = await _reportRepository.loadFromCacheOnly();
     if (userId != null) {
       _myReports = await _reportRepository.loadFromCacheOnly(userId: userId);
-    } else {
-      // If no userId, filter manually from the full list if we have it
-      // or keep current _myReports as is. Better to just reload all.
     }
     notifyListeners();
   }
@@ -208,7 +203,7 @@ class ReportController extends ChangeNotifier {
 
   bool _isNetworkError(DioException e) {
     return e.type == DioExceptionType.connectionError ||
-           e.type == DioExceptionType.connectionTimeout ||
-           e.type == DioExceptionType.unknown;
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.unknown;
   }
 }

@@ -4,7 +4,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 class LoginController extends ChangeNotifier {
-  final NetworkService _networkService = NetworkService();
+  final NetworkService _networkService;
+
+  LoginController({NetworkService? networkService})
+      : _networkService = networkService ?? NetworkService();
 
   NotifierState _state = NotifierState.initial;
   String _message = '';
@@ -28,7 +31,6 @@ class LoginController extends ChangeNotifier {
         _setState(NotifierState.loaded, 'Login successful!');
         return true;
       } else {
-        // This case might be rare if server uses proper status codes.
         _setState(NotifierState.error, 'Email atau password salah.');
         return false;
       }
@@ -36,11 +38,9 @@ class LoginController extends ChangeNotifier {
       _setState(NotifierState.error, 'Waktu koneksi habis. Periksa internet Anda.');
       return false;
     } on DioException catch (e) {
-      // For 400/401 errors, use a generic message for security.
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
         _setState(NotifierState.error, 'Email atau password salah.');
       } else {
-        // For other errors (like network issues), show a more specific message.
         final errorMessage = e.response?.data['message'] as String? ?? 'Gagal terhubung ke server.';
         _setState(NotifierState.error, errorMessage);
       }

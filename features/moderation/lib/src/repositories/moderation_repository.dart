@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import '../models/moderation_report.dart';
 
 class ModerationRepository {
-  final _networkService = NetworkService();
+  final NetworkService _networkService;
+
+  ModerationRepository({NetworkService? networkService})
+      : _networkService = networkService ?? NetworkService();
 
   Future<List<ModerationReport>> fetchReports({String? status}) async {
     try {

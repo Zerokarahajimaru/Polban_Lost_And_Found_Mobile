@@ -39,6 +39,7 @@ AI_LOG_EMIR.txt
 .pub/
 /build/
 /coverage/
+**/build/
 
 # Symbolication related
 app.*.symbols
