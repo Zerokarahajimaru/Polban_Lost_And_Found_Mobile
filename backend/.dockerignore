@@ -1,0 +1,9 @@
+.dart_tool/
+.git/
+.github/
+build/
+.env
+Dockerfile
+.gitignore
+README.md
+analysis_options.yaml

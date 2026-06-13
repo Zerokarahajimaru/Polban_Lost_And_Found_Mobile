@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "478925877632",
+    "project_id": "lostandfoundimage",
+    "storage_bucket": "lostandfoundimage.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:478925877632:android:ff01489060ed3efec35165",
+        "android_client_info": {
+          "package_name": "id.polban.kelompok_8.cett.main_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ5S4sZvHcTqTLhojk72KhvzzNcvxrgjY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

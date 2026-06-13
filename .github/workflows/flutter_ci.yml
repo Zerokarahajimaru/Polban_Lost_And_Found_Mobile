@@ -1,0 +1,38 @@
+name: Flutter Modular CI
+
+on:
+  push:
+    branches: [ main, master, development ]
+  pull_request:
+    branches: [ main, master, development ]
+
+jobs:
+  test_and_analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x' # Menggunakan versi 3 terbaru
+          channel: 'stable'
+
+      - name: Install Dependencies for All Modules
+        run: |
+          # Perintah sakti untuk pub get di semua folder yang ada pubspec.yaml
+          find . -name "pubspec.yaml" -execdir flutter pub get \;
+
+      - name: Check Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Static Analysis (Linting)
+        run: |
+          # Jalankan analisa kode di semua folder
+          find . -name "pubspec.yaml" -execdir flutter analyze \;
+
+      - name: Run Unit Tests
+        run: |
+          # Jalankan test di semua folder yang punya folder test/
+          find . -name "pubspec.yaml" -execdir sh -c "if [ -d 'test' ]; then flutter test; fi" \;
