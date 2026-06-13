@@ -17,6 +17,15 @@ dependencies:
   moderation:
     path: ../moderation
 
+  report:
+    path: ../report
+
+  claim:
+    path: ../claim
+
+  notification:
+    path: ../notification
+
   provider: ^6.1.1
   go_router: ^14.8.1
 

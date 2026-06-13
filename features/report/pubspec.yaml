@@ -18,6 +18,13 @@ dependencies:
   equatable: ^2.0.5
   firebase_storage: ^11.7.7
   json_annotation: ^4.9.0
+  claim:
+    path: ../claim
+  moderation:
+    path: ../moderation
+  post:
+    path: ../post
+  go_router: ^14.1.1
 
 dev_dependencies:
   flutter_test:

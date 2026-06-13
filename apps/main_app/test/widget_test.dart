@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:core_module/core_module.dart';
 import 'package:home/home.dart';
 import 'package:claim/claim.dart';
 import 'package:report/report.dart';
-import 'package:notification/notification.dart';
 import 'package:main_app/main.dart';
 
 void main() {

@@ -20,8 +20,7 @@ void main() async {
     cloudName: 'dd9ziyeaj',
     uploadPreset: 'Lost_found_polban',
   );
-  // NetworkService().init(baseUrl: 'http://localhost:8081');
-  NetworkService().init(baseUrl: 'https://polban-lost-and-found-mobile.onrender.com/');
+  NetworkService().init(baseUrl: 'http://192.168.1.253:8080/');
 
   runApp(
     MultiProvider(
@@ -49,7 +48,8 @@ class MyApp extends StatelessWidget {
       refreshListenable: sessionController,
       redirect: (BuildContext context, GoRouterState state) {
         final isLoggedIn = sessionController.isLoggedIn;
-        final isLoggingIn = state.uri.toString() == '/login';
+        final isLoggingIn = state.uri.toString() == '/login' ||
+            state.uri.toString() == '/register';
 
         if (!isLoggedIn && !isLoggingIn) {
           return '/login';
@@ -59,12 +59,10 @@ class MyApp extends StatelessWidget {
           return sessionController.isTeknisi ? '/teknisi-home' : '/home';
         }
 
-        // If a teknisi tries to access /home, redirect to /teknisi-home
         if (isLoggedIn && sessionController.isTeknisi && state.uri.toString() == '/home') {
           return '/teknisi-home';
         }
         
-        // If a regular user tries to access /teknisi-home, redirect to /home
         if (isLoggedIn && !sessionController.isTeknisi && state.uri.toString() == '/teknisi-home') {
           return '/home';
         }
@@ -75,6 +73,10 @@ class MyApp extends StatelessWidget {
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginPage(),
+        ),
+        GoRoute(
+          path: '/register',
+          builder: (context, state) => const RegisterPage(),
         ),
         GoRoute(
           path: '/teknisi-home',

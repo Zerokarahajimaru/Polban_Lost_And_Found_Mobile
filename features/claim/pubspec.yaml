@@ -15,6 +15,7 @@ dependencies:
   provider: ^6.1.1
   report:
     path: ../../features/report
+  go_router: ^14.1.1
 
 dev_dependencies:
   flutter_test:

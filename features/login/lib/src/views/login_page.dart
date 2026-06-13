@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../controllers/login_controller.dart';
 
 class LoginPage extends StatelessWidget {
@@ -142,6 +143,13 @@ class _LoginViewState extends State<_LoginView> {
                       onPressed: () => _showResetPasswordDialog(context),
                       child: Text(
                         "Lupa password?",
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push('/register'),
+                      child: Text(
+                        "Belum punya akun? Daftar",
                         style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                       ),
                     ),

@@ -22,4 +22,23 @@ class UserRepository {
     // Insecure: a real implementation must compare password hashes.
     return user.password == password;
   }
+
+  Future<UserModel> registerUser({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final db = await MongodbService.db;
+    final usersCollection = db.collection('users');
+    final id = ObjectId();
+    final user = UserModel(
+      id: id,
+      name: name,
+      email: email,
+      password: password,
+      role: UserRole.user,
+    );
+    await usersCollection.insertOne(user.toMap());
+    return user;
+  }
 }

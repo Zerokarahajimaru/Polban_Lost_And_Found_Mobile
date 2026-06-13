@@ -38,21 +38,25 @@ class AppRouter {
         path: '/login',
         builder: (context, state) => const LoginPage(),
       ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterPage(),
+      ),
     ],
-    // Redirect logic
     redirect: (BuildContext context, GoRouterState state) {
       final hiveService = HiveService();
       final bool loggedIn = hiveService.isLoggedIn();
-      final bool loggingIn = state.matchedLocation == '/login';
+      final bool loggingIn = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
 
       if (!loggedIn && !loggingIn) {
-        return '/login'; // If not logged in and not on the login page, redirect to login
+        return '/login';
       }
       if (loggedIn && loggingIn) {
-        return '/home'; // If logged in and on the login page, redirect to home
+        return '/home';
       }
 
-      return null; // No redirect needed
+      return null;
     },
   );
 }

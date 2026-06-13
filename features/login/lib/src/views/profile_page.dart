@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:core_module/core_module.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:report/report.dart';
 import 'package:claim/claim.dart';
@@ -35,10 +37,37 @@ class _ProfilePageState extends State<ProfilePage> {
           Center(
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: AppColors.primaryYellow, borderRadius: BorderRadius.circular(30)),
-                  child: const Icon(Icons.person, size: 80, color: AppColors.primaryBlue),
+                GestureDetector(
+                  onTap: _pickProfilePicture,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryYellow,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: _buildProfileImage(user.id),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryBlue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 16,
+                            color: AppColors.primaryYellow,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 15),
                 Text(user.name, style: const TextStyle(color: AppColors.primaryBlue, fontSize: 24, fontWeight: FontWeight.w900)),
@@ -190,6 +219,43 @@ class _ProfilePageState extends State<ProfilePage> {
       context.read<ClaimController>().clearData();
       context.read<NotificationController>().clearData();
       context.read<SessionController>().logout();
+    }
+  }
+
+  Widget _buildProfileImage(String userId) {
+    final hiveService = HiveService();
+    final path = hiveService.settingsBox.get('profile_pic_$userId') as String?;
+    if (path != null && path.isNotEmpty) {
+      final file = File(path);
+      if (file.existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Image.file(
+            file,
+            fit: BoxFit.cover,
+            width: 120,
+            height: 120,
+          ),
+        );
+      }
+    }
+    return const Icon(Icons.person, size: 80, color: AppColors.primaryBlue);
+  }
+
+  Future<void> _pickProfilePicture() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (pickedFile != null) {
+      final session = context.read<SessionController>();
+      final user = session.currentUser;
+      if (user != null) {
+        final hiveService = HiveService();
+        await hiveService.settingsBox.put('profile_pic_${user.id}', pickedFile.path);
+        setState(() {});
+      }
     }
   }
 }
