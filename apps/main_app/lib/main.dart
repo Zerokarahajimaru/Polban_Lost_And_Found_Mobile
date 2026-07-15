@@ -20,7 +20,7 @@ void main() async {
     cloudName: 'dd9ziyeaj',
     uploadPreset: 'Lost_found_polban',
   );
-  NetworkService().init(baseUrl: 'http://192.168.1.253:8080/');
+  NetworkService().init(baseUrl: 'https://polban-lost-and-found-mobile.onrender.com/');
 
   runApp(
     MultiProvider(
